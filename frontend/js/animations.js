@@ -169,10 +169,10 @@ const Animations = (() => {
         initLenis();
         initLoginAnimations();
         initScrollReveal();
-        initDecryptedText();
+        // initDecryptedText deferred — called after i18n loads (see app.js init)
     }
 
-    return { init, animateMovieCards, animateRecCards, countUp, initScrollReveal };
+    return { init, animateMovieCards, animateRecCards, countUp, initScrollReveal, initDecryptedText };
 })();
 
 document.addEventListener('DOMContentLoaded', () => Animations.init());

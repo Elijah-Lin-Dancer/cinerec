@@ -45,20 +45,25 @@ app.include_router(eval_router, prefix="/api/eval", tags=["Evaluation"])
 from db.database import init_db
 init_db()
 
-# Serve frontend static files
+# Serve frontend static files (built-in path traversal protection via StaticFiles)
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
+
+# Serve static assets (css, js, images, fonts) — sub-mounted so API routes work
+app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIR, "assets")), name="frontend-assets")
+app.mount("/css", StaticFiles(directory=os.path.join(FRONTEND_DIR, "css")), name="frontend-css")
+app.mount("/js", StaticFiles(directory=os.path.join(FRONTEND_DIR, "js")), name="frontend-js")
+
+
+# Catch-all: serve index.html or a specific frontend file for any non-API route
+@app.get("/{path:path}")
+async def serve_frontend(path: str):
+    """Serve frontend files; fallback to index.html for SPA routing."""
+    file_path = os.path.join(FRONTEND_DIR, path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 @app.get("/")
 async def serve_index():
+    """Serve the SPA entry point."""
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
-
-@app.get("/static/{path:path}")
-async def serve_static(path: str):
-    """Serve frontend static files (CSS, JS, assets)."""
-    file_path = os.path.normpath(os.path.join(FRONTEND_DIR, path))
-    # 防止路径遍历
-    if not file_path.startswith(os.path.normpath(FRONTEND_DIR)):
-        raise HTTPException(status_code=403, detail="Forbidden")
-    if not os.path.isfile(file_path):
-        raise HTTPException(status_code=404, detail="Not Found")
-    return FileResponse(file_path)

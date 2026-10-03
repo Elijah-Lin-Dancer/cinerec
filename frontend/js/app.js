@@ -22,8 +22,8 @@ const CineRec = (() => {
     async function loadI18n() {
         try {
             const [enRes, zhRes] = await Promise.all([
-                fetch('assets/i18n/en.json'),
-                fetch('assets/i18n/zh.json')
+                fetch('/assets/i18n/en.json'),
+                fetch('/assets/i18n/zh.json')
             ]);
             i18nData.en = await enRes.json();
             i18nData.zh = await zhRes.json();
@@ -147,6 +147,9 @@ const CineRec = (() => {
                 applyTheme();
                 await loadI18n();
                 applyI18n();
+                if (typeof Animations !== 'undefined' && Animations.initDecryptedText) {
+                    Animations.initDecryptedText();
+                }
                 navigateTo('recommend');
                 return;
             } catch(e) {}
@@ -159,8 +162,9 @@ const CineRec = (() => {
         applyTheme();
         await loadI18n();
         applyI18n();
-
-        // Nav clicks (including login link in nav-actions)
+        if (typeof Animations !== 'undefined' && Animations.initDecryptedText) {
+            Animations.initDecryptedText();
+        }
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();

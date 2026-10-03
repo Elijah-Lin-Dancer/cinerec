@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ username, password })
             });
             CineRec.setUser(data.user_id, data.username);
+            CineRec.navigateTo('recommend');
         } catch (err) {
             alert(CineRec.t('login.loginFailed'));
         }
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ username, password })
             });
             CineRec.setUser(data.user_id, data.username);
+            CineRec.navigateTo('recommend');
         } catch (err) {
             alert(CineRec.t('login.registerFailed'));
         }
@@ -55,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await CineRec.api('/api/auth/guest');
             CineRec.setUser(data.user_id, data.username);
+            CineRec.navigateTo('recommend');
         } catch (err) {
             alert(CineRec.t('login.guestFailed'));
         }
