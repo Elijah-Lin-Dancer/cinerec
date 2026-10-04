@@ -51,7 +51,7 @@
 |----------|-------------|
 | 🔬 **5-Level Algorithm Ladder** | UserCF → ItemCF → SVD → NeuMF → Multi-Modal NCF. Five progressively advanced algorithms from classic to cutting-edge. |
 | 🧠 **Multi-Modal Fusion** | Core innovation: fuses Sentence-BERT text (384d), ResNet-50 image (2048d), and genre (18d) features into the MLP path. |
-| 📊 **Rigorous Evaluation** | Leave-One-Out split with HR@K, NDCG@K, Recall@K metrics + ablation study on MovieLens 100K. |
+| 📊 **Rigorous Evaluation** | Leave-last-5-out split (training items excluded from candidates) with HR@K, NDCG@K, Recall@K metrics + modality ablation on MovieLens 100K. |
 | 🎯 **Explainable AI** | Content-based + collaborative recommendation reasons for each suggestion. |
 | 🌙 **Dark/Light Theme** | Cinema-inspired dark theme with glassmorphism + clean light mode. Bilingual (EN/ZH). |
 | 🐳 **Docker Ready** | One-click deployment with Docker Compose. |
@@ -71,7 +71,7 @@
 <img src="screenshots/movies.png" width="800" alt="CineRec Movie Library">
 
 ### Evaluation Dashboard / 评测看板
-> Interactive model comparison with real Leave-One-Out evaluation metrics.
+> Interactive model comparison with real leave-last-5-out evaluation metrics.
 
 <img src="screenshots/dashboard.png" width="800" alt="CineRec Evaluation Dashboard">
 
@@ -94,7 +94,7 @@
 ├────────┼──────────────┼──────────────────┼───────────────────┤
 │        │       ┌──────┴──────┐    ┌───────┴───────┐          │
 │  Auth Service   Movie Service  Recommend Service            │
-│  (JWT-like)     (CRUD + OMDb)  (5 Models + Explainer)       │
+│  (demo login)   (CRUD + posters) (5 Models + Explainer)       │
 │        │              │                  │                   │
 ├────────┼──────────────┼──────────────────┼───────────────────┤
 │        │       ┌──────┴──────────────────┴───────┐           │
@@ -106,7 +106,7 @@
 │        │       │  └─────────┘  └─────────┘        │           │
 │        │       │  ┌─────────┐  ┌─────────┐        │           │
 │        │       │  │   SVD    │  │  NeuMF   │        │           │
-│        │       │  │(ALS,k=64)│  │(GMF+MLP) │        │           │
+│        │       │  │(SVD,k=64)│  │(GMF+MLP) │        │           │
 │        │       │  └─────────┘  └─────────┘        │           │
 │        │       │  ┌───────────────────────┐      │           │
 │        │       │  │   Multi-Modal NCF ⭐   │      │           │
@@ -121,7 +121,7 @@
 │  └───────────┘  └──────────────┘  └──────────────┘        │
 ├─────────────────────────────────────────────────────────────┤
 │               Data Layer (SQLite + MovieLens 100K)          │
-│  100,000 ratings · 943 users · 1,682 movies · OMDb enriched │
+│  100,000 ratings · 943 users · 1,682 movies · enriched metadata │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -133,7 +133,7 @@
 |:-----:|-------|--------|-------------|
 | 1 | **UserCF** | Pearson Correlation | Find K similar users, aggregate their preferences. Vectorized computation. |
 | 2 | **ItemCF** | Adjusted Cosine | Recommend items similar to user's rated history. Vectorized similarity. |
-| 3 | **SVD/ALS** | Matrix Factorization | Decompose user-item matrix into latent factors (k=64) via alternating least squares. |
+| 3 | **SVD** | Matrix Factorization | Decompose the user-item matrix into latent factors (k=64) via truncated SVD (`scipy.sparse.linalg.svds`). |
 | 4 | **NeuMF** | GMF + MLP (PyTorch) | Dual-path architecture: element-wise product + deep MLP. BCE loss with negative sampling. |
 | 5 | **Multi-Modal NCF** ⭐ | Text+Image+Genre Fusion | Core innovation. Replaces item embedding in MLP path with a Content Tower fusing multi-modal features. |
 
@@ -171,24 +171,76 @@
 
 ## 📊 Evaluation / 评测结果
 
-### Model Comparison on MovieLens 100K (Leave-One-Out)
+### Model Comparison on MovieLens 100K (leave-last-5-out)
+
+Protocol: the 5 most recent interactions of each user are held out; every model is
+scored against the same candidate set (all items minus the user's training items),
+so re-recommending already-seen titles cannot inflate the numbers.
 
 | Model | HR@10 | NDCG@10 | HR@20 | NDCG@20 | Train Time |
 |:-----:|:-----:|:-------:|:-----:|:-------:|:-----------:|
-| UserCF | 0.0053 | 0.0025 | 0.0127 | 0.0044 | < 1s |
-| ItemCF | 0.0159 | 0.0063 | 0.0255 | 0.0087 | < 1s |
-| **SVD** | **0.0445** | **0.0225** | **0.0700** | **0.0289** | 0.2s |
-| NeuMF | 0.0244 | 0.0118 | 0.0636 | 0.0215 | 91.0s |
-| MultiModalNCF ⭐ | 0.0350 | 0.0156 | **0.0753** | **0.0258** | 203.6s |
+| UserCF | 0.0191 | 0.0035 | 0.0477 | 0.0060 | 0.13s |
+| ItemCF | 0.0721 | 0.0142 | 0.1283 | 0.0199 | 0.24s |
+| SVD | 0.2534 | 0.0532 | 0.3542 | 0.0664 | 0.2s |
+| NeuMF | 0.3468 | 0.0764 | 0.4952 | 0.1025 | 49.7s |
+| **MultiModalNCF** ⭐ | **0.3478** | **0.0784** | **0.5005** | **0.1060** | 96.9s |
 
-> **Note**: SVD achieves the best HR@10 and NDCG@10 with minimal training time. MultiModalNCF achieves the highest HR@20, demonstrating its strength in broader recommendation coverage through multi-modal content understanding.
+> **Note**: MultiModalNCF leads on every metric at both cut-offs, narrowly ahead of
+> NeuMF and clearly ahead of matrix factorization. The neural models pay for that
+> gain with a much longer training time — the ladder makes the accuracy/cost
+> trade-off explicit.
 
 ### Key Findings / 关键发现
 
-- **SVD** offers the best trade-off between accuracy and training speed.
-- **MultiModalNCF** excels at HR@20, showing the value of multi-modal features for broader coverage.
-- **NeuMF** underperforms SVD on this dataset, suggesting that deep interaction modeling needs larger datasets to shine.
-- The progression from UserCF → ItemCF → SVD shows clear improvement from classic to matrix factorization methods.
+- **UserCF → ItemCF → SVD** shows the expected jump from neighbourhood heuristics to
+  matrix factorization; SVD is the best accuracy-per-second point on the ladder.
+- **NeuMF** shows that learned non-linear interaction modelling beats plain
+  factorization on this dataset once candidates are filtered to unseen items.
+- **MultiModalNCF** edges out NeuMF by fusing Sentence-BERT text, ResNet-50 image and
+  genre content — the ablation study quantifies each modality's contribution.
+
+### Ablation Study / 消融实验
+
+Each row retrains MultiModalNCF on the same split with one content modality blanked
+at the input, isolating its contribution.
+
+| Variant | HR@10 | NDCG@10 | HR@20 | NDCG@20 |
+|:--------|:-----:|:-------:|:-----:|:-------:|
+| Full (Text+Image+Genre) | 0.3606 | 0.0846 | 0.5037 | 0.1110 |
+| w/o Text | 0.3552 | 0.0849 | 0.5027 | 0.1120 |
+| w/o Image | 0.3648 | 0.0834 | 0.4984 | 0.1096 |
+| w/o Genre | 0.3648 | 0.0860 | 0.5080 | 0.1122 |
+| **Behavior only (no content)** | 0.3436 | 0.0795 | 0.4825 | 0.1069 |
+
+> **Honest reading**: dropping *all* content features (behavior only) consistently
+> hurts every metric — content is doing real work. The single-modality deltas,
+> however, fall within single-seed noise (this is one seed, not a significance
+> test), so no per-modality ranking is claimed.
+
+<img src="docs/ablation_study.png" width="720" alt="CineRec Ablation Study">
+
+### Cold-Start Study / 冷启动实验
+
+100 items are removed from training entirely, then ranked within the cold pool
+(the content-aware task). MultiModalNCF scores them through the content tower —
+no trained embedding — while NeuMF is the content-blind control.
+
+| Model | HR@10 | NDCG@10 | HR@20 | NDCG@20 |
+|:------|:-----:|:-------:|:-----:|:-------:|
+| **MultiModalNCF (content)** ⭐ | **0.1228** | **0.0382** | **0.2719** | **0.0743** |
+| NeuMF (content-blind) | 0.0965 | 0.0344 | 0.2193 | 0.0630 |
+| Random | 0.0702 | 0.0288 | 0.2018 | 0.0610 |
+
+> Content-aware scoring beats the content-blind model, which in turn beats the
+> random floor — the multi-modal tower genuinely transfers to items with no
+> collaborative history. Single-seed study on MovieLens 100K; no significance claims.
+
+<img src="docs/coldstart.png" width="720" alt="CineRec Cold-Start Study">
+
+### Charts from Measured Results / 实测图表
+
+<img src="docs/model_comparison.png" width="720" alt="Model comparison">
+<img src="docs/training_time.png" width="600" alt="Training time comparison">
 
 ---
 
@@ -230,7 +282,7 @@ bash scripts/start.sh
 | **ML Models** | PyTorch, scikit-learn, scipy.sparse.linalg, Sentence-BERT, ResNet-50 |
 | **Backend** | Python, FastAPI, SQLite, Uvicorn |
 | **Frontend** | Vanilla JS (SPA), GSAP 3, Lenis, tsParticles, ECharts |
-| **Data** | MovieLens 100K, OMDb API |
+| **Data** | MovieLens 100K + enriched metadata (plot summaries & posters) |
 | **Deployment** | Docker, docker-compose |
 
 ---
@@ -249,18 +301,18 @@ cinerec/
 │   ├── base.py           # Base recommender class
 │   ├── user_cf.py        # User-based CF (Pearson)
 │   ├── item_cf.py        # Item-based CF (Adjusted Cosine)
-│   ├── svd_als.py        # SVD via ALS (scipy)
+│   ├── svd_als.py        # SVD via truncated SVD (scipy)
 │   ├── neumf.py          # Neural MF (GMF + MLP)
 │   ├── multimodal_ncf.py # Multi-Modal NCF ⭐ (Core Innovation)
 │   └── explain.py        # RecommenderExplainer (XAI)
 ├── evaluation/            # Offline evaluation framework
 │   ├── metrics.py         # HR@K, NDCG@K, Recall@K
-│   ├── runner.py         # Leave-One-Out evaluation runner
+│   ├── runner.py         # leave-last-5-out evaluation runner
 │   └── visualize.py       # ECharts visualization generation
 ├── data/                  # Data pipeline
 │   ├── download.py        # MovieLens 100K download
 │   ├── preprocess.py      # Feature engineering
-│   ├── enrich_tmdb.py     # OMDb poster/plot enrichment
+│   ├── enrich_tmdb.py     # TMDB poster/plot enrichment
 │   └── processed/         # Trained models + embeddings
 ├── db/                    # SQLite database layer
 ├── frontend/              # Web UI
