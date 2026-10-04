@@ -39,6 +39,11 @@ data/processed/*
 !data/processed/model_neumf.pt
 !data/processed/model_multimodalncf.pt
 
+# Test / coverage artefacts
+.coverage
+.coverage.*
+htmlcov/
+
 # Build
 dist/
 build/

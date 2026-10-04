@@ -213,7 +213,7 @@ class NeuMF(Recommender):
         with torch.no_grad():
             u = torch.LongTensor([int(user_id)]).to(self.device)
             i = torch.LongTensor([int(item_id)]).to(self.device)
-            return float(self.net(u, i).cpu().numpy())
+            return float(self.net(u, i).cpu().item())
 
     def recommend(self, user_id, top_k=10, exclude_items=None):
         """Recommend top-K items for a user."""

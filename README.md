@@ -246,31 +246,42 @@ no trained embedding — while NeuMF is the content-blind control.
 
 ## 🚀 Quick Start / 快速开始
 
+> **Zero-training start**: the trained models, content features and a MovieLens
+> seed ship in the repo (see [ADR 0002](docs/adr/0002-artifact-storage.md)), and the
+> database is seeded on first boot — so a fresh clone serves real recommendations
+> without downloading or training anything.
+
 ### Docker (Recommended / 推荐)
 
 ```bash
 git clone https://github.com/ElijahZhao/cinerec.git
 cd cinerec
-docker-compose up --build
+docker compose up --build        # APP_MODE=full by default
 # Visit http://localhost:8000
 ```
 
-### Local Development / 本地开发
+### Local / 本地
 
 ```bash
-# 1. Clone and install
 git clone https://github.com/ElijahZhao/cinerec.git
 cd cinerec
-pip install -r requirements.txt --break-system-packages
-
-# 2. Download data and train models
-python data/download.py
-python data/preprocess.py
-python scripts/train_all.py
-
-# 3. Start server
-bash scripts/start.sh
+make setup && make serve         # runtime deps only, no torch
 # Visit http://localhost:8000
+```
+
+`APP_MODE=lite make serve` skips torch entirely and serves the precomputed
+`recs_cache.json` — that is the mode used on the always-on free tier.
+
+### Reproduce from scratch / 一键复现（可选）
+
+```bash
+make setup-train                 # torch + vision stack
+make data                        # MovieLens 100K + enriched metadata
+make features                    # Sentence-BERT + ResNet-50 content features
+make train && make eval          # train all 5 models → eval_results.json
+make ablation && make coldstart  # modality ablation + cold-start study
+make charts                      # regenerate docs/*.png from measured results
+make test                        # pytest suite
 ```
 
 ---
@@ -292,13 +303,14 @@ bash scripts/start.sh
 ```
 cinerec/
 ├── api/                  # FastAPI REST endpoints
-│   ├── main.py           # App entry, CORS, static files
-│   ├── auth.py           # Authentication (login/register/guest)
+│   ├── main.py           # App entry, CORS, static files, /api/health
+│   ├── auth.py           # Session auth (PBKDF2 + signed demo tokens)
 │   ├── movies.py         # Movie browsing, search, filtering
-│   ├── recommend.py      # Model inference + explanation
-│   └── eval_api.py      # Evaluation results API
+│   ├── recommend.py      # Model inference + explanation (APP_MODE aware)
+│   └── eval_api.py       # Evaluation results API
 ├── models/                # 5 recommender models
 │   ├── base.py           # Base recommender class
+│   ├── registry.py       # Single source of truth for the algorithm ladder
 │   ├── user_cf.py        # User-based CF (Pearson)
 │   ├── item_cf.py        # Item-based CF (Adjusted Cosine)
 │   ├── svd_als.py        # SVD via truncated SVD (scipy)
@@ -307,25 +319,29 @@ cinerec/
 │   └── explain.py        # RecommenderExplainer (XAI)
 ├── evaluation/            # Offline evaluation framework
 │   ├── metrics.py         # HR@K, NDCG@K, Recall@K
-│   ├── runner.py         # leave-last-5-out evaluation runner
-│   └── visualize.py       # ECharts visualization generation
+│   ├── runner.py          # leave-last-5-out evaluation runner
+│   └── visualize.py       # chart generation from measured results
 ├── data/                  # Data pipeline
 │   ├── download.py        # MovieLens 100K download
-│   ├── preprocess.py      # Feature engineering
+│   ├── preprocess.py      # Sentence-BERT / ResNet-50 feature engineering
 │   ├── enrich_tmdb.py     # TMDB poster/plot enrichment
-│   └── processed/         # Trained models + embeddings
-├── db/                    # SQLite database layer
+│   └── processed/         # Committed models, features and results
+├── db/                    # SQLite layer (idempotent schema + first-boot seed)
 ├── frontend/              # Web UI
 │   ├── index.html         # SPA shell
 │   ├── css/               # Dark/Light theme styles
 │   ├── js/                # App logic, animations, effects
 │   └── assets/i18n/       # EN/ZH translations
-├── scripts/               # Training & start scripts
-├── screenshots/           # UI screenshots
-├── docs/                  # Evaluation chart images
+├── scripts/               # precompute, ablation, cold-start, train_all
+├── tests/                 # pytest suite
+├── deploy/                # HF Space / Northflank deployment notes
+├── docs/adr/              # Architecture decision records
+├── config.py              # Paths, APP_MODE, cache switches
 ├── Dockerfile
 ├── docker-compose.yml
-├── requirements.txt
+├── render.yaml
+├── Makefile
+├── requirements.txt / requirements-train.txt
 └── README.md
 ```
 
