@@ -1,5 +1,6 @@
 """Tests for evaluation metrics."""
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from evaluation.metrics import hit_rate_at_k, ndcg_at_k, recall_at_k
 

@@ -1,15 +1,22 @@
 """
 Feature Engineering — Encode movie content features for recommendation models.
 - Text: Sentence-BERT (all-MiniLM-L6-v2) → 384-dim embeddings
-- Image: ResNet-50 → 2048-dim features (optional, needs poster URLs)
+- Image: ResNet-50 → 2048-dim features (needs poster URLs)
 - Genre: Multi-hot encoding → 18-dim vectors
-All saved as .npy files in data/processed/
+
+Arrays are **indexed by raw movie id**: row ``i`` holds the features of the movie
+whose id is ``i`` (shape ``(max_id + 1, dim)``). This lets models index content
+features directly with ``item_id`` without an extra mapping table.
 """
 import os, json, numpy as np, pandas as pd
 
 RAW_DIR = os.path.join(os.path.dirname(__file__), "raw")
 PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "processed")
 os.makedirs(PROCESSED_DIR, exist_ok=True)
+
+# Prefer a reachable mirror for Hugging Face model weights (the default host is
+# blocked in some sandboxes). Only sets a default — an explicit env var wins.
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 
 GENRE_LIST = [
     "Action", "Adventure", "Animation", "Children", "Comedy", "Crime",
@@ -31,50 +38,54 @@ def load_enriched_movies():
     return sorted(movies, key=lambda x: x["id"])
 
 
+def _empty(num_rows, dim):
+    return np.zeros((num_rows, dim), dtype=np.float32)
+
+
 def encode_texts(overviews, item_ids):
     """Encode movie overviews using Sentence-BERT all-MiniLM-L6-v2 → 384-dim."""
     from sentence_transformers import SentenceTransformer
 
+    num_items = max(item_ids) + 1
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    valid_idx = [i for i, t in enumerate(overviews) if t and len(t.strip()) > 10]
+    valid_idx = [i for i, t in enumerate(overviews) if t and len(str(t).strip()) > 10]
     valid_texts = [overviews[i] for i in valid_idx]
 
+    result = _empty(num_items, 384)
     if not valid_texts:
         print("No valid overviews found. Creating zero embeddings.")
-        result = np.zeros((len(overviews), 384), dtype=np.float32)
     else:
         print(f"Encoding {len(valid_texts)} overviews with Sentence-BERT...")
         embeddings = model.encode(valid_texts, show_progress_bar=True, batch_size=128)
-        result = np.zeros((len(overviews), embeddings.shape[1]), dtype=np.float32)
-        for j, idx in enumerate(valid_idx):
-            result[idx] = embeddings[j]
+        for i, emb in zip(valid_idx, embeddings):
+            result[item_ids[i]] = emb
 
     out_path = os.path.join(PROCESSED_DIR, "text_embeddings.npy")
     np.save(out_path, result)
-    print(f"Text embeddings saved: {result.shape} → {out_path}")
+    print(f"Text embeddings saved: {result.shape} (id-aligned) → {out_path}")
     return result
 
 
-def encode_genres(genre_strings):
-    """Multi-hot encode genre strings → 18-dim vectors."""
-    result = np.zeros((len(genre_strings), NUM_GENRES), dtype=np.float32)
+def encode_genres(genre_strings, item_ids):
+    """Multi-hot encode genre strings → 18-dim vectors (id-aligned)."""
+    result = _empty(max(item_ids) + 1, NUM_GENRES)
     for i, gs in enumerate(genre_strings):
-        if pd.isna(gs) or not gs:
+        if gs is None or (isinstance(gs, float) and pd.isna(gs)) or not gs:
             continue
-        for g in gs.split("|"):
+        for g in str(gs).split("|"):
             g = g.strip()
             if g in GENRE_LIST:
-                result[i, GENRE_LIST.index(g)] = 1.0
+                result[item_ids[i], GENRE_LIST.index(g)] = 1.0
 
     out_path = os.path.join(PROCESSED_DIR, "genre_vectors.npy")
     np.save(out_path, result)
-    print(f"Genre vectors saved: {result.shape} → {out_path}")
+    print(f"Genre vectors saved: {result.shape} (id-aligned) → {out_path}")
     return result
 
 
 def encode_images(poster_urls, item_ids):
-    """Extract ResNet-50 features from poster images → 2048-dim."""
+    """Extract ResNet-50 features from poster images → 2048-dim (id-aligned)."""
     import torch
     from torchvision import models, transforms
     from PIL import Image
@@ -92,8 +103,8 @@ def encode_images(poster_urls, item_ids):
                               std=[0.229, 0.224, 0.225])
     ])
 
-    num_items = len(item_ids)
-    features = np.zeros((num_items, 2048), dtype=np.float32)
+    num_items = max(item_ids) + 1
+    features = _empty(num_items, 2048)
     count = 0
 
     for i, url in enumerate(poster_urls):
@@ -105,57 +116,44 @@ def encode_images(poster_urls, item_ids):
             img_t = transform(img).unsqueeze(0)
             with torch.no_grad():
                 feat = resnet(img_t).squeeze().numpy()
-            features[i] = feat
+            features[item_ids[i]] = feat
             count += 1
             if count % 50 == 0:
-                print(f"Encoded {count}/{num_items} images...")
+                print(f"Encoded {count} images...")
         except Exception:
             continue
 
     out_path = os.path.join(PROCESSED_DIR, "image_embeddings.npy")
     np.save(out_path, features)
-    print(f"Image embeddings saved: {features.shape} ({count}/{num_items} success) → {out_path}")
+    print(f"Image embeddings saved: {features.shape} ({count} success, id-aligned) → {out_path}")
     return features
 
 
-def create_id_mapping(movies):
-    """Create mapping from MovieLens item_id to 0-based index."""
-    id_map = {m["id"]: idx for idx, m in enumerate(movies)}
-    out_path = os.path.join(PROCESSED_DIR, "id_map.json")
-    with open(out_path, "w") as f:
-        json.dump(id_map, f)
-    print(f"ID mapping saved: {len(id_map)} items → {out_path}")
-    return id_map
-
-
-def preprocess_all(skip_images=True):
-    """Run all feature engineering steps."""
+def preprocess_all(skip_images=False):
+    """Run all feature engineering steps (features are id-aligned)."""
     movies = load_enriched_movies()
-    print(f"Loaded {len(movies)} movies.")
+    print(f"Loaded {len(movies)} movies (ids {min(m['id'] for m in movies)}–{max(m['id'] for m in movies)}).")
 
-    # Create ID mapping
-    create_id_mapping(movies)
+    item_ids = [m["id"] for m in movies]
 
     # Genre encoding
-    encode_genres([m.get("genres", "") for m in movies])
+    encode_genres([m.get("genres", "") for m in movies], item_ids)
 
     # Text encoding
-    encode_texts([m.get("overview", "") for m in movies],
-                 [m["id"] for m in movies])
+    encode_texts([m.get("overview", "") for m in movies], item_ids)
 
-    # Image encoding (optional — skip unless poster URLs available)
+    # Image encoding (default on when posters are available)
     has_posters = sum(1 for m in movies if m.get("poster_url") and "http" in m.get("poster_url", ""))
     if skip_images or has_posters == 0:
         print("Skipping image encoding (no poster URLs or skip_images=True).")
         np.save(
             os.path.join(PROCESSED_DIR, "image_embeddings.npy"),
-            np.zeros((len(movies), 2048), dtype=np.float32)
+            _empty(max(item_ids) + 1, 2048)
         )
         print("Created zero image embeddings placeholder.")
     else:
         print(f"Encoding {has_posters} poster images with ResNet-50...")
-        encode_images([m.get("poster_url", "") for m in movies],
-                      [m["id"] for m in movies])
+        encode_images([m.get("poster_url", "") for m in movies], item_ids)
 
     print("\n=== Feature engineering complete ===")
 
@@ -163,6 +161,8 @@ def preprocess_all(skip_images=True):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--images", action="store_true", help="Also encode poster images (slow)")
+    parser.add_argument("--no-images", dest="images", action="store_false",
+                        help="Skip poster image encoding (fast, creates zero vectors)")
+    parser.set_defaults(images=True)
     args = parser.parse_args()
     preprocess_all(skip_images=not args.images)

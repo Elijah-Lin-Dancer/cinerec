@@ -1,6 +1,9 @@
 """
-SVD via ALS (Alternating Least Squares) Matrix Factorization.
-Decomposes user-item matrix into U × V^T.
+SVD Matrix Factorization via **truncated SVD** (``scipy.sparse.linalg.svds``).
+Decomposes the (mean-centred) user-item matrix into U × V^T.
+
+Note: despite the module name, this is *not* Alternating Least Squares — it is a
+pure truncated SVD of the sparse rating matrix. See ``docs/adr/0003``.
 """
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -10,11 +13,10 @@ from models.base import Recommender
 
 class SVDALS(Recommender):
     """Matrix Factorization using truncated SVD."""
-    
-    def __init__(self, k=64, lambda_reg=0.01):
+
+    def __init__(self, k=64):
         super().__init__()
         self.k = k  # latent factor dimension
-        self.lambda_reg = lambda_reg  # regularization
         self.U = None  # (num_users, k) user factors
         self.V = None  # (num_items, k) item factors
         self.num_users = 0
@@ -31,9 +33,9 @@ class SVDALS(Recommender):
         self.num_users = int(user_ids.max()) + 1
         self.num_items = int(item_ids.max()) + 1
         
-        # Build sparse user-item matrix
+        # Build sparse user-item matrix (cast to float: ratings.csv may be int)
         self.user_item_sparse = csr_matrix(
-            (ratings, (user_ids, item_ids)),
+            (ratings.astype(np.float64), (user_ids, item_ids)),
             shape=(self.num_users, self.num_items)
         )
         

@@ -52,13 +52,17 @@ def recall_at_k(recommended, relevant, k):
     return len(set(recommended[:k]) & set(relevant)) / len(relevant)
 
 
-def evaluate_model(model, test_pairs, k_values=[5, 10, 20]):
+def evaluate_model(model, test_pairs, train_by_user=None, k_values=(5, 10, 20)):
     """
     Evaluate a recommender model on test data.
 
     Args:
         model: Recommender instance with recommend_ids() method
         test_pairs: list of (user_id, set_of_relevant_items)
+        train_by_user: optional {user_id: set(train item ids)}. When given, every
+            model is evaluated against the *same* candidate set (all items minus
+            the user's training items), removing the protocol inconsistency where
+            some models could re-recommend already-seen items.
         k_values: list of K values to evaluate at
 
     Returns:
@@ -70,13 +74,17 @@ def evaluate_model(model, test_pairs, k_values=[5, 10, 20]):
         results[f"NDCG@{k}"] = []
         results[f"Recall@{k}"] = []
 
+    train_by_user = train_by_user or {}
+    max_k = max(k_values)
+
     for user_id, relevant in test_pairs:
         if not relevant:
             continue
-        recs = model.recommend_ids(user_id, top_k=max(k_values))
+        exclude = train_by_user.get(user_id, set())
+        recs = model.recommend_ids(user_id, top_k=max_k, exclude_items=exclude)
         for k in k_values:
             results[f"HR@{k}"].append(hit_rate_at_k(recs, relevant, k))
             results[f"NDCG@{k}"].append(ndcg_at_k(recs, relevant, k))
             results[f"Recall@{k}"].append(recall_at_k(recs, relevant, k))
 
-    return {metric: np.mean(vals) if vals else 0.0 for metric, vals in results.items()}
+    return {metric: float(np.mean(vals)) if vals else 0.0 for metric, vals in results.items()}

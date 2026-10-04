@@ -5,7 +5,8 @@ Two types:
 2. Content Reason: "Similar plot to X (87%), matches your preferred genres" (based on content similarity)
 """
 import numpy as np
-import os, json
+import os
+import json
 
 PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
 

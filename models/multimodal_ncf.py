@@ -15,7 +15,8 @@ Architecture:
 
 Cold start: new items use content_emb only, GMF path uses zero vector.
 """
-import os, json, numpy as np
+import os
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -141,12 +142,27 @@ class MultiModalNCFNet(nn.Module):
         combined = torch.cat([gmf_out, mlp_out], dim=-1)
         return self.predict(combined).squeeze(-1)
 
+    def forward_cold(self, user_ids, text_emb, image_emb, genre_vec):
+        """Score a brand-new item that has no learned embedding (cold start).
+
+        The GMF path receives a zero item vector, so only the content tower
+        drives the prediction; the MLP path still uses the user embedding.
+        """
+        gmf_user = self.gmf_user_emb(user_ids)
+        gmf_out = torch.zeros_like(gmf_user)
+        mlp_user = self.mlp_user_emb(user_ids)
+        content_emb = self.content_tower(text_emb, image_emb, genre_vec)
+        mlp_out = self.mlp(torch.cat([mlp_user, content_emb], dim=-1))
+        combined = torch.cat([gmf_out, mlp_out], dim=-1)
+        return self.predict(combined).squeeze(-1)
+
 
 class MultiModalNCF(Recommender):
     """Multi-Modal Neural Collaborative Filtering — Core Innovation."""
 
     def __init__(self, embedding_dim=64, mlp_dims=(256, 128, 64), dropout=0.2,
-                 lr=0.001, batch_size=1024, epochs=20, patience=3, num_neg=4):
+                 lr=0.001, batch_size=1024, epochs=20, patience=3, num_neg=4,
+                 disabled_features=None):
         super().__init__()
         self.embedding_dim = embedding_dim
         self.mlp_dims = mlp_dims
@@ -156,6 +172,9 @@ class MultiModalNCF(Recommender):
         self.epochs = epochs
         self.patience = patience
         self.num_neg = num_neg
+        # Ablation hook: zero out selected content modalities ("text"/"image"/"genre")
+        # before training, so the study measures what each modality actually contributes.
+        self.disabled_features = set(disabled_features or ())
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.net = None
         self.num_users = 0
@@ -197,6 +216,12 @@ class MultiModalNCF(Recommender):
         if len(self.genre_vec) < self.num_items:
             pad = np.zeros((self.num_items - len(self.genre_vec), 18), dtype=np.float32)
             self.genre_vec = np.vstack([self.genre_vec, pad])
+
+        # Ablation: blank the disabled modalities so the content tower receives no
+        # information from them (a zero input can only contribute a learned bias).
+        for name, arr in (("text", self.text_emb), ("image", self.image_emb), ("genre", self.genre_vec)):
+            if name in self.disabled_features:
+                arr[:] = 0.0
 
     def fit(self, train_data):
         """Train Multi-Modal NCF."""
@@ -311,7 +336,21 @@ class MultiModalNCF(Recommender):
             t = torch.FloatTensor(self.text_emb[int(item_id)]).unsqueeze(0).to(self.device)
             img = torch.FloatTensor(self.image_emb[int(item_id)]).unsqueeze(0).to(self.device)
             g = torch.FloatTensor(self.genre_vec[int(item_id)]).unsqueeze(0).to(self.device)
-            return float(self.net(u, i, t, img, g).cpu().numpy())
+            return float(self.net(u, i, t, img, g).cpu().item())
+
+    def predict_cold(self, user_id, text_emb, image_emb, genre_vec):
+        """Predict interaction probability for a new item from its raw content.
+
+        Supports the cold-start case where the item has no trained embedding:
+        pass the item's Sentence-BERT / ResNet-50 / genre vectors directly.
+        """
+        self.net.eval()
+        with torch.no_grad():
+            u = torch.LongTensor([int(user_id)]).to(self.device)
+            t = torch.FloatTensor(text_emb).unsqueeze(0).to(self.device)
+            img = torch.FloatTensor(image_emb).unsqueeze(0).to(self.device)
+            g = torch.FloatTensor(genre_vec).unsqueeze(0).to(self.device)
+            return float(self.net.forward_cold(u, t, img, g).cpu().item())
 
     def recommend(self, user_id, top_k=10, exclude_items=None):
         """Recommend top-K items using content features."""
