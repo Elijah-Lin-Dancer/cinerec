@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse
 
 app = FastAPI(
     title="CineRec — Multi-Modal Movie Recommendation System",
-    description="A 5-level algorithm recommendation system with explainability",
+    description="A 6-level algorithm recommendation system with explainability",
     version="1.0.0"
 )
 
@@ -24,6 +24,28 @@ app = FastAPI(
 async def health():
     """Liveness probe used by Docker/healthchecks and uptime monitors."""
     return {"status": "ok"}
+
+
+@app.get("/api/metrics", tags=["Metrics"])
+async def metrics():
+    """Process-local throughput / latency snapshot plus inference-cache stats.
+
+    Counters reset on restart and are per-replica; see ``api/metrics.py``.
+    """
+    from api.metrics import registry
+    snapshot = registry.snapshot()
+    try:
+        from api.recommend import inference_cache_info
+        snapshot["inference_cache"] = inference_cache_info()
+    except Exception:  # pragma: no cover - defensive, cache info is optional
+        snapshot["inference_cache"] = None
+    return snapshot
+
+
+# Request timing/observability (must be registered before the app starts).
+from api.metrics import metrics_middleware  # noqa: E402
+
+app.middleware("http")(metrics_middleware)
 
 app.add_middleware(
     CORSMiddleware,

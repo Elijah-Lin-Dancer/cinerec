@@ -29,3 +29,15 @@ USE_PRECOMPUTED = APP_MODE == "lite"
 #: Depth of the precomputed cache (must be >= the largest ``top_k`` we serve).
 RECS_CACHE_TOP_K = 50
 RECS_CACHE_PATH = os.path.join(PROCESSED_DIR, "recs_cache.json")
+
+
+def _int_env(name, default):
+    """Read a positive int from the environment, falling back on bad input."""
+    try:
+        return max(1, int(os.environ.get(name, default)))
+    except (TypeError, ValueError):
+        return default
+
+
+#: LRU size for full-mode inference results (keyed per algorithm × user × exclusions).
+MODEL_RECS_CACHE_SIZE = _int_env("RECS_LRU_SIZE", 512)

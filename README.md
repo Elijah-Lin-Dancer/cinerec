@@ -11,7 +11,7 @@
 
 **Multi-Modal Movie Recommendation System**
 
-*From classic collaborative filtering to cutting-edge multi-modal neural networks — a 5-level algorithm ladder with explainable AI.*
+*From classic collaborative filtering to cutting-edge multi-modal neural networks — a 6-level algorithm ladder with explainable AI.*
 
 [中文文档](#-项目简介) · [Demo](#-demo-preview) · [Architecture](#-architecture) · [Quick Start](#--quick-start)
 
@@ -55,6 +55,7 @@
 | 🎯 **Explainable AI** | Content-based + collaborative recommendation reasons for each suggestion. |
 | 🌙 **Dark/Light Theme** | Cinema-inspired dark theme with glassmorphism + clean light mode. Bilingual (EN/ZH). |
 | 🐳 **Docker Ready** | One-click deployment with Docker Compose. |
+| 📈 **Observability & Load-Tested** | Inference LRU cache, in-process latency/throughput metrics (`/api/metrics`), and a measured Locust profile → [`reports/loadtest.md`](reports/loadtest.md). |
 
 ---
 
@@ -308,10 +309,11 @@ make test                        # pytest suite
 ```
 cinerec/
 ├── api/                  # FastAPI REST endpoints
-│   ├── main.py           # App entry, CORS, static files, /api/health
+│   ├── main.py           # App entry, CORS, static files, /api/health, /api/metrics
 │   ├── auth.py           # Session auth (PBKDF2 + signed demo tokens)
 │   ├── movies.py         # Movie browsing, search, filtering
-│   ├── recommend.py      # Model inference + explanation (APP_MODE aware)
+│   ├── recommend.py      # Model inference + explanation (APP_MODE aware, LRU cache)
+│   ├── metrics.py        # In-process request counters + latency middleware
 │   └── eval_api.py       # Evaluation results API
 ├── models/                # 6 recommender models
 │   ├── base.py           # Base recommender class
@@ -338,10 +340,11 @@ cinerec/
 │   ├── css/               # Dark/Light theme styles
 │   ├── js/                # App logic, animations, effects
 │   └── assets/i18n/       # EN/ZH translations
-├── scripts/               # precompute, ablation, cold-start, train_all
+├── scripts/               # precompute, ablation, cold-start, train_all, locustfile
 ├── tests/                 # pytest suite
 ├── deploy/                # HF Space / Northflank deployment notes
 ├── docs/adr/              # Architecture decision records
+├── reports/               # Measured load-test report + Locust HTML output
 ├── config.py              # Paths, APP_MODE, cache switches
 ├── Dockerfile
 ├── docker-compose.yml

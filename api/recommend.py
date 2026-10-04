@@ -11,15 +11,20 @@ popularity fallbacks (for users outside the training set) are labelled as such.
 import os
 import json
 import logging
+from functools import lru_cache
 import numpy as np
 from fastapi import APIRouter, Query, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from db.database import get_connection
 from api.auth import resolve_user
-from config import USE_PRECOMPUTED, RECS_CACHE_PATH
+from config import USE_PRECOMPUTED, RECS_CACHE_PATH, MODEL_RECS_CACHE_SIZE
 from models.registry import ALGORITHMS, AlgorithmUnavailable, load_model
 
 router = APIRouter()
+
+#: Candidate pool pulled from a model per cached call. Comfortably above the
+#: largest servable ``top_k`` so exclusion + slicing still fills a full page.
+_MODEL_CANDIDATE_POOL = 100
 
 NOTE_EMPTY = "No recommendations are available for this user right now."
 NOTE_FALLBACK = (
@@ -41,6 +46,31 @@ def _get_model(name):
     if model is not None:
         _models_cache[name] = model
     return model
+
+
+@lru_cache(maxsize=MODEL_RECS_CACHE_SIZE)
+def _cached_model_recs(algorithm, user_id, exclude_key):
+    """Full-mode inference behind an LRU cache.
+
+    Keyed by ``(algorithm, user, excluded items)``: a user rating a new film
+    changes the exclusion set and so naturally invalidates their entry, while a
+    repeated request for the same view is served from memory. Returns a tuple so
+    the cached value is immutable.
+    """
+    model = _get_model(algorithm)
+    recs = model.recommend(user_id, top_k=_MODEL_CANDIDATE_POOL, exclude_items=set(exclude_key))
+    return tuple((int(i), float(s)) for i, s in recs)
+
+
+def inference_cache_info():
+    """Expose LRU statistics for the ``/api/metrics`` endpoint."""
+    info = _cached_model_recs.cache_info()
+    return {
+        "currsize": info.currsize,
+        "maxsize": info.maxsize,
+        "hits": info.hits,
+        "misses": info.misses,
+    }
 
 
 def _get_recs_cache():
@@ -155,11 +185,9 @@ async def get_recommendations(
             recs, is_fallback = _recs_from_cache(conn, algorithm, user_id, exclude, top_k)
         else:
             try:
-                model = _get_model(algorithm)
+                recs = list(_cached_model_recs(algorithm, user_id, tuple(sorted(exclude))))[:top_k]
             except AlgorithmUnavailable as e:
                 raise HTTPException(503, str(e))
-            try:
-                recs = model.recommend(user_id, top_k=top_k, exclude_items=exclude)
             except Exception:
                 logging.exception("Model inference failed")
                 raise HTTPException(500, f"Inference failed for algorithm '{algorithm}'")

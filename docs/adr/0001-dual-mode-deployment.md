@@ -12,8 +12,8 @@
   - **`full`** — `torch` + trained artifacts present; recommendations come from
     live model inference.
   - **`lite`** — no `torch`; recommendations are served from a precomputed
-    `recs_cache.json` (every existing user × 5 algorithms). Algorithms with no
-    cache entry return an explicit message instead of an error.
+    `recs_cache.json` (every existing user × every servable algorithm). An
+    algorithm with no cache entry returns an explicit message instead of an error.
 
 - **Consequences**:
   - `requirements.txt` (runtime) and `requirements-train.txt` (torch/vision) are

@@ -1,7 +1,7 @@
 [project]
 name = "cinerec"
 version = "1.0.0"
-description = "Multi-Modal Movie Recommendation System — a 5-level algorithm ladder with explainable AI"
+description = "Multi-Modal Movie Recommendation System — a 6-level algorithm ladder with explainable AI"
 requires-python = ">=3.10"
 
 [tool.ruff]

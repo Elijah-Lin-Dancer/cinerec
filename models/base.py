@@ -9,7 +9,7 @@ import numpy as np
 
 
 class Recommender(ABC):
-    """Base recommender that all 5 models inherit from.
+    """Base recommender that all models inherit from.
 
     Provides a default pickle-based :meth:`save` / :meth:`load` (with float64 →
     float32 downcasting of large arrays to keep artefacts small). The neural
