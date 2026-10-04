@@ -1,24 +1,13 @@
-import sqlite3, os, pandas as pd
-from db.database import DB_PATH
+import sqlite3
+import os
+import pandas as pd
+from db.database import DB_PATH, init_db as create_schema
 
 def init_db(ratings_csv=None, movies_csv=None):
     """Initialize database with tables and optionally import data."""
+    create_schema()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-
-    c.execute("""CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS movies (
-        id INTEGER PRIMARY KEY, title TEXT, genres TEXT,
-        overview TEXT DEFAULT '', poster_url TEXT DEFAULT '',
-        tmdb_id TEXT DEFAULT '', release_year INTEGER
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS ratings (
-        user_id INTEGER, movie_id INTEGER, rating REAL,
-        timestamp INTEGER, PRIMARY KEY (user_id, movie_id)
-    )""")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_ratings_user_movie ON ratings(user_id, movie_id)")
 
     if ratings_csv and os.path.exists(ratings_csv):
         print("Importing ratings data...")

@@ -1,0 +1,30 @@
+name: Keepalive
+
+# Render's free tier sleeps after ~15 minutes of inactivity, so the lite
+# deployment is pinged on a schedule to keep it warm. The Northflank service is
+# always-on and needs no ping — this only targets the URL below.
+#
+# Configure the target once: Settings → Secrets and variables → Actions →
+# Variables → add `KEEPALIVE_URL` (e.g. https://cinerec.onrender.com).
+# When it is unset the job is a no-op, so forks do not fail.
+
+on:
+  schedule:
+    - cron: "*/14 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping deployment health endpoint
+        env:
+          KEEPALIVE_URL: ${{ vars.KEEPALIVE_URL }}
+        run: |
+          if [ -z "$KEEPALIVE_URL" ]; then
+            echo "KEEPALIVE_URL is not configured — nothing to ping."
+            exit 0
+          fi
+          curl -fsS --max-time 30 --retry 2 "$KEEPALIVE_URL/api/health"
+          echo
+          echo "OK: $KEEPALIVE_URL is awake."

@@ -15,19 +15,29 @@ venv/
 *.db-journal
 *.db-wal
 
-# Data
-data/raw/*.csv
+# Data — heavy downloads are excluded; the small seed files are kept so a fresh
+# clone can build the database without re-downloading MovieLens.
 data/raw/*.zip
 data/raw/ml-100k/
-data/processed/*.npy
-data/processed/*.pkl
-data/processed/*.pt
-data/processed/*.json
-!data/processed/eval_results.json
 
-# Model weights
-*.pt
-*.pth
+# Processed artifacts: ignore everything by default, then explicitly ship the
+# minimum needed to serve recommendations on a fresh clone (trained models +
+# content features + enriched metadata). See docs/adr/0002-artifact-storage.md.
+data/processed/*
+!data/processed/.gitkeep
+!data/processed/eval_results.json
+!data/processed/ablation_results.json
+!data/processed/coldstart_results.json
+!data/processed/recs_cache.json
+!data/processed/movies_enriched.json
+!data/processed/genre_vectors.npy
+!data/processed/text_embeddings.npy
+!data/processed/image_embeddings.npy
+!data/processed/model_usercf.pkl
+!data/processed/model_itemcf.pkl
+!data/processed/model_svd.pkl
+!data/processed/model_neumf.pt
+!data/processed/model_multimodalncf.pt
 
 # Build
 dist/
@@ -44,5 +54,4 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Screenshots (generated locally)
-screenshots/*.png
+# Screenshots are committed so the README renders on GitHub / in the portfolio.

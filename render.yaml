@@ -1,0 +1,22 @@
+# CineRec — Render blueprint (lite mode, third-tier redundancy)
+#
+# Render's free web instance is 0.1 CPU / 512 MB and sleeps after ~15 min idle,
+# so this is the *backup* deployment. `APP_MODE=lite` keeps the image small enough
+# to build there and serves from the precomputed cache.
+#
+# Deploy: Render Dashboard → New → Blueprint → select this repository.
+services:
+  - type: web
+    name: cinerec
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerBuildArgs:
+      - key: APP_MODE
+        value: lite
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: APP_MODE
+        value: lite

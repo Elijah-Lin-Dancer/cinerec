@@ -1,0 +1,11 @@
+# Training / research dependencies — needed to (re)compute content features,
+# train the neural models and run the offline evaluation. Install on top of the
+# runtime requirements: these are NOT required to serve `lite` deployments.
+-r requirements.txt
+
+torch>=2.0
+torchvision>=0.15
+sentence-transformers>=2.2
+Pillow>=10.0
+matplotlib>=3.7
+seaborn>=0.12

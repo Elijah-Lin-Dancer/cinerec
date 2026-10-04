@@ -1,12 +1,17 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        APP_MODE: ${APP_MODE:-full}
     container_name: cinerec
     ports:
       - "8000:8000"
     volumes:
       - ./data:/app/data
-    env_file: .env
     environment:
+      # Docker Compose auto-loads a `.env` file for interpolation, so this works
+      # on a fresh clone even when no `.env` exists (env_file would hard-fail).
+      - APP_MODE=${APP_MODE:-full}
       - TMDB_API_KEY=${TMDB_API_KEY:-}
     restart: unless-stopped
