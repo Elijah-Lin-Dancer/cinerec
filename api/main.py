@@ -8,19 +8,22 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-
-async def get_optional_user(user_id: int = Query(None)):
-    return user_id
 
 app = FastAPI(
     title="CineRec — Multi-Modal Movie Recommendation System",
     description="A 5-level algorithm recommendation system with explainability",
     version="1.0.0"
 )
+
+
+@app.get("/api/health", tags=["Health"])
+async def health():
+    """Liveness probe used by Docker/healthchecks and uptime monitors."""
+    return {"status": "ok"}
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,11 +45,20 @@ app.include_router(recommend_router, prefix="/api/recommend", tags=["Recommendat
 app.include_router(eval_router, prefix="/api/eval", tags=["Evaluation"])
 
 # One-time DB initialisations (idempotent)
-from db.database import init_db
+from db.database import init_db, seed_if_empty
 init_db()
+seed_if_empty()
 
-# Serve frontend static files (built-in path traversal protection via StaticFiles)
-FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
+# Serve frontend static files
+FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+
+
+def _safe_frontend_path(path: str):
+    """Resolve a requested path inside FRONTEND_DIR; return None if it escapes the root."""
+    candidate = os.path.abspath(os.path.join(FRONTEND_DIR, path))
+    if candidate == FRONTEND_DIR or not candidate.startswith(FRONTEND_DIR + os.sep):
+        return None
+    return candidate
 
 # Serve static assets (css, js, images, fonts) — sub-mounted so API routes work
 app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIR, "assets")), name="frontend-assets")
@@ -57,8 +69,14 @@ app.mount("/js", StaticFiles(directory=os.path.join(FRONTEND_DIR, "js")), name="
 # Catch-all: serve index.html or a specific frontend file for any non-API route
 @app.get("/{path:path}")
 async def serve_frontend(path: str):
-    """Serve frontend files; fallback to index.html for SPA routing."""
-    file_path = os.path.join(FRONTEND_DIR, path)
+    """Serve frontend files; fallback to index.html for SPA routing.
+
+    A path that escapes ``FRONTEND_DIR`` (e.g. ``../.env``) is rejected with 404
+    instead of being silently rewritten to the SPA shell.
+    """
+    file_path = _safe_frontend_path(path)
+    if file_path is None:
+        raise HTTPException(404, "Not found")
     if os.path.isfile(file_path):
         return FileResponse(file_path)
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))

@@ -1,6 +1,7 @@
 """Movie browsing and rating endpoints."""
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from db.database import get_connection, DBConnection
+from api.auth import resolve_user
 
 router = APIRouter()
 
@@ -98,8 +99,16 @@ async def get_movie(movie_id: int):
 
 
 @router.post("/{movie_id}/rate")
-async def rate_movie(movie_id: int, user_id: int = Query(...), rating: float = Query(..., ge=1, le=5)):
-    """Submit or update a movie rating."""
+async def rate_movie(
+    movie_id: int,
+    user_id: int = Query(None, description="User ID (must match the session token)"),
+    rating: float = Query(..., ge=1, le=5),
+    current_user: int = Depends(resolve_user),
+):
+    """Submit or update a movie rating for the authenticated user."""
+    if user_id is not None and user_id != current_user:
+        raise HTTPException(403, "You may only rate as yourself")
+    user_id = current_user
     conn = get_connection()
     try:
         conn.execute("""
@@ -109,7 +118,7 @@ async def rate_movie(movie_id: int, user_id: int = Query(...), rating: float = Q
         """, (user_id, movie_id, rating))
         conn.commit()
         return {"message": f"Rating {rating} saved for movie {movie_id}", "user_id": user_id}
-    except Exception as e:
+    except Exception:
         raise HTTPException(500, "Failed to save rating")
     finally:
         conn.close()

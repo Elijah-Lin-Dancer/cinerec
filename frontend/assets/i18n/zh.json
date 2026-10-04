@@ -35,6 +35,8 @@
         "collaborative": "协同过滤",
         "content": "基于内容",
         "noRec": "暂无推荐。",
+        "fallbackNote": "新用户暂时展示热门推荐，待了解你的口味后转为个性化。",
+        "sessionExpired": "登录已过期，请重新登录。",
         "algoUserCF": "UserCF",
         "algoItemCF": "ItemCF",
         "algoSVD": "SVD",

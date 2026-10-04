@@ -35,6 +35,8 @@
         "collaborative": "Collaborative",
         "content": "Content-based",
         "noRec": "No recommendations available.",
+        "fallbackNote": "New here? Showing popular picks until we learn your taste.",
+        "sessionExpired": "Your session expired. Please sign in again.",
         "algoUserCF": "UserCF",
         "algoItemCF": "ItemCF",
         "algoSVD": "SVD",

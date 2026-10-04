@@ -7,6 +7,7 @@ const CineRec = (() => {
         currentPage: 'login',
         userId: null,
         username: null,
+        token: null,
         lang: 'zh',
         theme: localStorage.getItem('cinerec-theme') || 'dark',
         apiBase: window.location.origin,
@@ -101,10 +102,11 @@ const CineRec = (() => {
     }
 
     // Auth state
-    function setUser(userId, username) {
+    function setUser(userId, username, token) {
         state.userId = userId;
         state.username = username;
-        localStorage.setItem('cinerec-user', JSON.stringify({ userId, username }));
+        state.token = token || state.token || null;
+        localStorage.setItem('cinerec-user', JSON.stringify({ userId, username, token: state.token }));
         const badge = document.getElementById('user-badge');
         const nameEl = document.getElementById('user-name');
         const loginLink = document.querySelector('.nav-login-link');
@@ -114,11 +116,13 @@ const CineRec = (() => {
         if (loginLink) loginLink.style.display = 'none';
     }
 
-    // API helper
+    // API helper — attaches the session token when present.
     async function api(path, options = {}) {
         const url = `${state.apiBase}${path}`;
+        const headers = { ...(options.headers || {}) };
+        if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
         try {
-            const res = await fetch(url, options);
+            const res = await fetch(url, { ...options, headers });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.json();
         } catch (e) {
@@ -140,8 +144,8 @@ const CineRec = (() => {
         const savedUser = localStorage.getItem('cinerec-user');
         if (savedUser) {
             try {
-                const { userId, username } = JSON.parse(savedUser);
-                setUser(userId, username);
+                const { userId, username, token } = JSON.parse(savedUser);
+                setUser(userId, username, token);
                 const savedLang = localStorage.getItem('cinerec-lang');
                 if (savedLang) state.lang = savedLang;
                 applyTheme();

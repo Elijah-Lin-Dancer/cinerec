@@ -48,7 +48,13 @@ async function loadDashboard() {
 function renderEvalTable(results) {
     const container = document.getElementById('eval-table');
     const models = ['UserCF', 'ItemCF', 'SVD', 'NeuMF', 'MultiModalNCF'];
-    const metrics = ['HR@10', 'NDCG@10', 'Recall@10', 'train_time'];
+
+    if (!results || results.available === false) {
+        container.textContent = results && results.note
+            ? results.note
+            : 'Evaluation results are unavailable.';
+        return;
+    }
 
     let html = `<table class="data-table">
         <thead><tr>
@@ -80,6 +86,7 @@ function renderEvalTable(results) {
 
 function renderEvalChart(results) {
     if (typeof echarts === 'undefined') return;
+    if (!results || results.available === false) return;
 
     if (evalChartInstance) { evalChartInstance.dispose(); evalChartInstance = null; }
 
@@ -125,6 +132,7 @@ function renderEvalChart(results) {
 
 function renderAblationChart(ablation) {
     if (typeof echarts === 'undefined') return;
+    if (!ablation || ablation.available === false) return;
 
     if (ablationChartInstance) { ablationChartInstance.dispose(); ablationChartInstance = null; }
 
@@ -146,7 +154,7 @@ function renderAblationChart(ablation) {
         legend: { data: [CineRec.t('dash.hr'), CineRec.t('dash.ndcg')], textStyle: { color: axisLabelColor }, top: 5 },
         grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
         xAxis: { type: 'category', data: variants, axisLabel: { color: axisLabelColor, rotate: 15 }, axisLine: { lineStyle: { color: splitLineColor } } },
-        yAxis: { type: 'value', min: 0.2, axisLabel: { color: axisLabelColor, formatter: v => v.toFixed(2) }, splitLine: { lineStyle: { color: splitLineColor } } },
+        yAxis: { type: 'value', min: 0, axisLabel: { color: axisLabelColor, formatter: v => v.toFixed(2) }, splitLine: { lineStyle: { color: splitLineColor } } },
         series: [
             {
                 name: CineRec.t('dash.hr'), type: 'bar',
