@@ -3,7 +3,7 @@
     "login": {
         "title": "CineRec",
         "subtitle": "你的 AI 电影指南",
-        "desc": "体验从经典到前沿的 5 种推荐算法，拥有可解释的 AI 洞察。",
+        "desc": "体验从经典到前沿的 6 种推荐算法，拥有可解释的 AI 洞察。",
         "signin": "登录",
         "signup": "注册",
         "submit": "登录",
@@ -41,11 +41,13 @@
         "algoItemCF": "ItemCF",
         "algoSVD": "SVD",
         "algoNeuMF": "NeuMF",
+        "algoLightGCN": "LightGCN",
         "algoMultiModal": "多模态",
         "algoUserCFDesc": "基于用户的协同过滤",
         "algoItemCFDesc": "基于物品的协同过滤",
         "algoSVDDesc": "奇异值分解",
         "algoNeuMFDesc": "神经协同过滤",
+        "algoLightGCNDesc": "轻量图卷积网络",
         "algoMultiModalDesc": "多模态神经网络",
         "algoError": "该算法暂时不可用，请尝试其他算法"
     },

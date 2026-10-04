@@ -23,7 +23,7 @@ def test_results_endpoint_shape():
         assert "note" in data
         return
     # The real artefact ships with the repo, so this branch is the norm.
-    for model in ("UserCF", "ItemCF", "SVD", "NeuMF", "MultiModalNCF"):
+    for model in ("UserCF", "ItemCF", "SVD", "NeuMF", "LightGCN", "MultiModalNCF"):
         assert model in data
         assert "HR@10" in data[model]
 

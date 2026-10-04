@@ -15,6 +15,7 @@ from models.svd_als import SVDALS  # noqa: E402
 # is absent (e.g. the lightweight CI install) rather than failing the suite.
 pytest.importorskip("torch")
 from models.multimodal_ncf import MultiModalNCF  # noqa: E402
+from models.lightgcn import LightGCN  # noqa: E402
 
 # A tiny deterministic interaction set: 3 users × 5 items.
 TRAIN = {
@@ -42,6 +43,10 @@ def test_user_cf_recommends_and_excludes():
 
 def test_item_cf_recommends_and_excludes():
     _check_recommender(ItemCF(k=2))
+
+
+def test_lightgcn_recommends_and_excludes():
+    _check_recommender(LightGCN(embedding_dim=8, num_layers=2, epochs=2, batch_size=4))
 
 
 def test_svd_is_truncated_svd_not_als():

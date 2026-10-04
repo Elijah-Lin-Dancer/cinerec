@@ -9,14 +9,15 @@ import pickle
 
 from config import PROCESSED_DIR
 
-#: The five models, in ascending order of sophistication.
-ALGORITHMS = ("UserCF", "ItemCF", "SVD", "NeuMF", "MultiModalNCF")
+#: The models, in ascending order of sophistication.
+ALGORITHMS = ("UserCF", "ItemCF", "SVD", "NeuMF", "LightGCN", "MultiModalNCF")
 
 MODEL_FILES = {
     "UserCF": "model_usercf.pkl",
     "ItemCF": "model_itemcf.pkl",
     "SVD": "model_svd.pkl",
     "NeuMF": "model_neumf.pt",
+    "LightGCN": "model_lightgcn.pkl",
     "MultiModalNCF": "model_multimodalncf.pt",
 }
 
@@ -57,6 +58,9 @@ def load_model(name):
         if name == "NeuMF":
             from models.neumf import NeuMF
             model = NeuMF(embedding_dim=32, mlp_dims=(128, 64, 32))
+        elif name == "LightGCN":
+            from models.lightgcn import LightGCN
+            model = LightGCN(embedding_dim=64, num_layers=3)
         else:  # MultiModalNCF
             from models.multimodal_ncf import MultiModalNCF
             model = MultiModalNCF(embedding_dim=32, mlp_dims=(128, 64, 32))

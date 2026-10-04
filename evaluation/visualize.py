@@ -2,7 +2,7 @@
 Evaluation Visualization — Generate charts from *measured* results.
 
 Produces (all in docs/):
-1. Model comparison bar chart (5 models × 3 metrics at K=10)
+1. Model comparison bar chart (all models × 3 metrics at K=10)
 2. Training time comparison
 3. Ablation study bar chart (from ablation_results.json)
 
@@ -39,8 +39,8 @@ COLORS = {
     'orange': '#fb923c',
     'cyan': '#22d3ee',
 }
-MODEL_COLORS = ['#4a9eff', '#4ade80', '#d4a843', '#a78bfa', '#f87171']
-MODEL_NAMES_ORDER = ['UserCF', 'ItemCF', 'SVD', 'NeuMF', 'MultiModalNCF']
+MODEL_COLORS = ['#4a9eff', '#4ade80', '#d4a843', '#a78bfa', '#22d3ee', '#f87171']
+MODEL_NAMES_ORDER = ['UserCF', 'ItemCF', 'SVD', 'NeuMF', 'LightGCN', 'MultiModalNCF']
 
 
 def load_json(filename):
@@ -52,7 +52,7 @@ def load_json(filename):
 
 
 def plot_model_comparison(results):
-    """Bar chart: 5 models × 3 metrics at K=10."""
+    """Bar chart: all models × 3 metrics at K=10."""
     if not results:
         return
 

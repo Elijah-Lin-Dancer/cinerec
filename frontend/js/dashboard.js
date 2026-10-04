@@ -47,7 +47,7 @@ async function loadDashboard() {
 
 function renderEvalTable(results) {
     const container = document.getElementById('eval-table');
-    const models = ['UserCF', 'ItemCF', 'SVD', 'NeuMF', 'MultiModalNCF'];
+    const models = ['UserCF', 'ItemCF', 'SVD', 'NeuMF', 'LightGCN', 'MultiModalNCF'];
 
     if (!results || results.available === false) {
         container.textContent = results && results.note
@@ -98,7 +98,7 @@ function renderEvalChart(results) {
 
     evalChartInstance = echarts.init(document.getElementById('eval-chart'), chartTheme);
 
-    const models = ['UserCF', 'ItemCF', 'SVD', 'NeuMF', 'MultiModalNCF'];
+    const models = ['UserCF', 'ItemCF', 'SVD', 'NeuMF', 'LightGCN', 'MultiModalNCF'];
 
     evalChartInstance.setOption({
         backgroundColor: 'transparent',

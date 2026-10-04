@@ -1,5 +1,5 @@
 """
-Offline Evaluation Runner — Train and evaluate all 5 models on MovieLens 100K.
+Offline Evaluation Runner — Train and evaluate every model on MovieLens 100K.
 Uses a leave-last-5-out split: each user's 5 most recent interactions form the
 test set, the rest the training set.
 Evaluates HR@K, NDCG@K, Recall@K at K={5, 10, 20}.
@@ -18,6 +18,7 @@ from models.user_cf import UserCF
 from models.item_cf import ItemCF
 from models.svd_als import SVDALS
 from models.neumf import NeuMF
+from models.lightgcn import LightGCN
 from models.multimodal_ncf import MultiModalNCF
 from evaluation.metrics import evaluate_model
 
@@ -29,6 +30,7 @@ MODEL_FILES = {
     "ItemCF": "model_itemcf.pkl",
     "SVD": "model_svd.pkl",
     "NeuMF": "model_neumf.pt",
+    "LightGCN": "model_lightgcn.pkl",
     "MultiModalNCF": "model_multimodalncf.pt",
 }
 
@@ -86,6 +88,7 @@ def run_evaluation():
         ("ItemCF", lambda: ItemCF(k=50)),
         ("SVD", lambda: SVDALS(k=64)),
         ("NeuMF", lambda: NeuMF(embedding_dim=32, mlp_dims=(128, 64, 32), epochs=10, batch_size=512)),
+        ("LightGCN", lambda: LightGCN(embedding_dim=64, num_layers=3, epochs=50, batch_size=4096)),
         ("MultiModalNCF", lambda: MultiModalNCF(embedding_dim=32, mlp_dims=(128, 64, 32), epochs=10, batch_size=512)),
     ]
 

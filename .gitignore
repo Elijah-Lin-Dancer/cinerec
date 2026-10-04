@@ -36,6 +36,7 @@ data/processed/*
 !data/processed/model_usercf.pkl
 !data/processed/model_itemcf.pkl
 !data/processed/model_svd.pkl
+!data/processed/model_lightgcn.pkl
 !data/processed/model_neumf.pt
 !data/processed/model_multimodalncf.pt
 

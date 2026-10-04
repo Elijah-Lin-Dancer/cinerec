@@ -3,7 +3,7 @@
     "login": {
         "title": "CineRec",
         "subtitle": "Your AI Movie Guide",
-        "desc": "Experience 5 recommendation algorithms from classic to cutting-edge, with explainable AI insights.",
+        "desc": "Experience 6 recommendation algorithms from classic to cutting-edge, with explainable AI insights.",
         "signin": "Sign In",
         "signup": "Sign Up",
         "submit": "Sign In",
@@ -41,11 +41,13 @@
         "algoItemCF": "ItemCF",
         "algoSVD": "SVD",
         "algoNeuMF": "NeuMF",
+        "algoLightGCN": "LightGCN",
         "algoMultiModal": "Multi-Modal",
         "algoUserCFDesc": "User-based Collaborative Filtering",
         "algoItemCFDesc": "Item-based Collaborative Filtering",
         "algoSVDDesc": "Singular Value Decomposition",
         "algoNeuMFDesc": "Neural Collaborative Filtering",
+        "algoLightGCNDesc": "Light Graph Convolution Network",
         "algoMultiModalDesc": "Multi-Modal Neural CF",
         "algoError": "This algorithm is currently unavailable. Try another one."
     },

@@ -36,9 +36,9 @@
 
 ## 📖 Project Introduction / 项目简介
 
-**CineRec** is a full-stack AI recommendation system that implements **5 progressively advanced algorithms** — from classic collaborative filtering to a novel multi-modal neural collaborative filtering model. It features a rigorous offline evaluation framework, an interactive dark-cinema themed bilingual web frontend, and Docker-ready deployment.
+**CineRec** is a full-stack AI recommendation system that implements **6 progressively advanced algorithms** — from classic collaborative filtering to a novel multi-modal neural collaborative filtering model. It features a rigorous offline evaluation framework, an interactive dark-cinema themed bilingual web frontend, and Docker-ready deployment.
 
-**CineRec** 是一个全栈 AI 推荐系统，实现了 **5 个逐层递进的算法** —— 从经典协同过滤到创新的多模态神经协同过滤。具备严谨的离线评测框架、暗色电影院主题的双语交互式 Web 前端，以及开箱即用的 Docker 部署。
+**CineRec** 是一个全栈 AI 推荐系统，实现了 **6 个逐层递进的算法** —— 从经典协同过滤到创新的多模态神经协同过滤。具备严谨的离线评测框架、暗色电影院主题的双语交互式 Web 前端，以及开箱即用的 Docker 部署。
 
 > 💡 **"Don't just use models — understand them."**
 > 不要只是用模型，要理解它们。CineRec 的每一层算法都展示了推荐系统从传统到前沿的演进路径。
@@ -49,7 +49,7 @@
 
 | Feature | Description |
 |----------|-------------|
-| 🔬 **5-Level Algorithm Ladder** | UserCF → ItemCF → SVD → NeuMF → Multi-Modal NCF. Five progressively advanced algorithms from classic to cutting-edge. |
+| 🔬 **6-Level Algorithm Ladder** | UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF. Six progressively advanced algorithms from classic to cutting-edge. |
 | 🧠 **Multi-Modal Fusion** | Core innovation: fuses Sentence-BERT text (384d), ResNet-50 image (2048d), and genre (18d) features into the MLP path. |
 | 📊 **Rigorous Evaluation** | Leave-last-5-out split (training items excluded from candidates) with HR@K, NDCG@K, Recall@K metrics + modality ablation on MovieLens 100K. |
 | 🎯 **Explainable AI** | Content-based + collaborative recommendation reasons for each suggestion. |
@@ -94,11 +94,11 @@
 ├────────┼──────────────┼──────────────────┼───────────────────┤
 │        │       ┌──────┴──────┐    ┌───────┴───────┐          │
 │  Auth Service   Movie Service  Recommend Service            │
-│  (demo login)   (CRUD + posters) (5 Models + Explainer)       │
+│  (demo login)   (CRUD + posters) (6 Models + Explainer)       │
 │        │              │                  │                   │
 ├────────┼──────────────┼──────────────────┼───────────────────┤
 │        │       ┌──────┴──────────────────┴───────┐           │
-│        │       │      Model Layer (5 Models)      │           │
+│        │       │      Model Layer (6 Models)      │           │
 │        │       │                                   │           │
 │        │       │  ┌─────────┐  ┌─────────┐        │           │
 │        │       │  │  UserCF  │  │  ItemCF  │        │           │
@@ -108,6 +108,10 @@
 │        │       │  │   SVD    │  │  NeuMF   │        │           │
 │        │       │  │(SVD,k=64)│  │(GMF+MLP) │        │           │
 │        │       │  └─────────┘  └─────────┘        │           │
+│        │       │  ┌───────────────────────┐      │           │
+│        │       │  │       LightGCN         │      │           │
+│        │       │  │  Graph Convolution (BPR)│      │           │
+│        │       │  └───────────────────────┘      │           │
 │        │       │  ┌───────────────────────┐      │           │
 │        │       │  │   Multi-Modal NCF ⭐   │      │           │
 │        │       │  │ Text+Image+Genre Fusion│      │           │
@@ -135,7 +139,8 @@
 | 2 | **ItemCF** | Adjusted Cosine | Recommend items similar to user's rated history. Vectorized similarity. |
 | 3 | **SVD** | Matrix Factorization | Decompose the user-item matrix into latent factors (k=64) via truncated SVD (`scipy.sparse.linalg.svds`). |
 | 4 | **NeuMF** | GMF + MLP (PyTorch) | Dual-path architecture: element-wise product + deep MLP. BCE loss with negative sampling. |
-| 5 | **Multi-Modal NCF** ⭐ | Text+Image+Genre Fusion | Core innovation. Replaces item embedding in MLP path with a Content Tower fusing multi-modal features. |
+| 5 | **LightGCN** | Graph Convolution (PyTorch) | Simplified GCN on the user–item bipartite graph: neighbourhood aggregation averaged over layers, trained with BPR. A modern graph-based baseline. |
+| 6 | **Multi-Modal NCF** ⭐ | Text+Image+Genre Fusion | Core innovation. Replaces item embedding in MLP path with a Content Tower fusing multi-modal features. |
 
 ### Multi-Modal NCF Architecture (Core Innovation / 核心创新)
 
@@ -278,7 +283,7 @@ make setup && make serve         # runtime deps only, no torch
 make setup-train                 # torch + vision stack
 make data                        # MovieLens 100K + enriched metadata
 make features                    # Sentence-BERT + ResNet-50 content features
-make train && make eval          # train all 5 models → eval_results.json
+make train && make eval          # train all 6 models → eval_results.json
 make ablation && make coldstart  # modality ablation + cold-start study
 make charts                      # regenerate docs/*.png from measured results
 make test                        # pytest suite
@@ -308,13 +313,14 @@ cinerec/
 │   ├── movies.py         # Movie browsing, search, filtering
 │   ├── recommend.py      # Model inference + explanation (APP_MODE aware)
 │   └── eval_api.py       # Evaluation results API
-├── models/                # 5 recommender models
+├── models/                # 6 recommender models
 │   ├── base.py           # Base recommender class
 │   ├── registry.py       # Single source of truth for the algorithm ladder
 │   ├── user_cf.py        # User-based CF (Pearson)
 │   ├── item_cf.py        # Item-based CF (Adjusted Cosine)
 │   ├── svd_als.py        # SVD via truncated SVD (scipy)
 │   ├── neumf.py          # Neural MF (GMF + MLP)
+│   ├── lightgcn.py       # LightGCN graph convolution (BPR)
 │   ├── multimodal_ncf.py # Multi-Modal NCF ⭐ (Core Innovation)
 │   └── explain.py        # RecommenderExplainer (XAI)
 ├── evaluation/            # Offline evaluation framework
