@@ -1,0 +1,30 @@
+# Never bake secrets, local databases or VCS metadata into the image.
+.env
+*.db
+*.db-journal
+*.db-wal
+.git
+.gitignore
+.github
+
+# Local/dev-only artefacts.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.pre-commit-config.yaml
+requirements-dev.txt
+
+# Training-only data and notebooks — the runtime image ships the trained
+# artefacts under data/processed/ (see docs/adr/0002), not the raw corpus.
+data/raw/*.zip
+data/raw/ml-100k/
+docs/
+screenshots/
+reports/
+tests/
+deploy/
