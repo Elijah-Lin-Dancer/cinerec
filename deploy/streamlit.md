@@ -1,15 +1,16 @@
 # CineRec — Streamlit Community Cloud (full-mode companion)
 
-The main site stays the FastAPI product in `lite` mode (see
-[`northflank.md`](northflank.md)). This app is the **complementary half**: it
-loads the trained PyTorch models and runs them live, so the full six-model
-ladder, the multi-modal content tower and the cold-start path can be explored
-interactively at zero cost.
+The main site stays the FastAPI product in `lite` mode (deployed on Render with
+`APP_MODE=lite`, served from the precomputed cache). This app is the
+**complementary half**: it loads the trained PyTorch models and runs them live,
+so the full six-model ladder, the multi-modal content tower and the cold-start
+path can be explored interactively at zero cost.
 
 > This is **not** a migration of the product to Streamlit. The bilingual
 > FastAPI frontend remains the product; this companion exists only because
 > free hosts that run torch are scarce (Hugging Face removed its free Docker
-> tier). See `docs/ROADMAP.md` for the "no migration" decision it respects.
+> tier). See [ADR 0001](../docs/adr/0001-dual-mode-deployment.md) for the
+> "no migration" decision it respects.
 
 ## Why it works on the free tier
 

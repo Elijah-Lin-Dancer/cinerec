@@ -8,8 +8,9 @@ This folder documents how to run CineRec on **Hugging Face Spaces** in `APP_MODE
 The `full` stack installs `torch` and runs inference on every request. HF Spaces'
 free CPU tier gives 16 GB RAM / 2 vCPU, which is enough for that, and it builds
 directly from a Dockerfile. The trade-off is that a Space **sleeps after 48 h of
-inactivity** — hence the Northflank/Render `lite` deployments act as an
-always-on fallback.
+inactivity** — which is why the product is instead served in `lite` mode on
+Render (see [ADR 0001](../../docs/adr/0001-dual-mode-deployment.md)) and the
+`full` path is exposed through the Streamlit companion.
 
 ## Steps
 

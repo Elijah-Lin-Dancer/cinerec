@@ -351,7 +351,7 @@ cinerec/
 │   └── assets/i18n/       # EN/ZH translations
 ├── scripts/               # precompute, ablation, cold-start, train_all, locustfile
 ├── tests/                 # pytest suite
-├── deploy/                # HF Space / Northflank deployment notes
+├── deploy/                # Streamlit Cloud / Render deployment notes
 ├── docs/adr/              # Architecture decision records
 ├── reports/               # Measured load-test report + Locust HTML output
 ├── config.py              # Paths, APP_MODE, cache switches

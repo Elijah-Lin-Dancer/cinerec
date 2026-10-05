@@ -1,8 +1,9 @@
-# CineRec — Render blueprint (lite mode, third-tier redundancy)
+# CineRec — Render blueprint (the product, `lite` mode)
 #
-# Render's free web instance is 0.1 CPU / 512 MB and sleeps after ~15 min idle,
-# so this is the *backup* deployment. `APP_MODE=lite` keeps the image small enough
-# to build there and serves from the precomputed cache.
+# Render's free web instance is 0.1 CPU / 512 MB and sleeps after ~15 min idle.
+# `APP_MODE=lite` keeps the image small enough to build and run there, serving
+# from the precomputed cache; `.github/workflows/keepalive.yml` keeps it warm.
+# See docs/adr/0001-dual-mode-deployment.md for the hosting decision.
 #
 # Deploy: Render Dashboard → New → Blueprint → select this repository.
 services:

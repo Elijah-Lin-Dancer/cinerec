@@ -1,8 +1,9 @@
 name: Keepalive
 
 # Render's free tier sleeps after ~15 minutes of inactivity, so the lite
-# deployment is pinged on a schedule to keep it warm. The Northflank service is
-# always-on and needs no ping — this only targets the URL below.
+# deployment is pinged on a schedule to keep it warm. The Streamlit companion
+# has its own wake-on-visit behaviour and needs no ping — this only targets the
+# URL below.
 #
 # Configure the target once: Settings → Secrets and variables → Actions →
 # Variables → add `KEEPALIVE_URL` (e.g. https://cinerec.onrender.com).
