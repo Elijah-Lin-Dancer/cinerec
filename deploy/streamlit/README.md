@@ -51,15 +51,16 @@ tier's per-app ceiling.
 | Branch | `main` |
 | Main file path | `deploy/streamlit/streamlit_app.py` |
 | Requirements file | none to set — auto-detected from the entrypoint's directory |
-| Python version | `3.10` (Advanced settings) |
+| Python version | `3.11` (Advanced settings) |
 | Custom subdomain | e.g. `cinerec` → `cinerec.streamlit.app` |
 | Secrets | none required |
 
 Unlike the main site, no `CINEREC_SECRET` is needed: this app is read-only and
 has no login.
 
-Pick a Python version that has CPU torch wheels (3.10–3.12). `3.10` matches the
-Docker image, so it is the version this app is tested against.
+Pick the **lowest** Python version offered that has CPU torch wheels: Community
+Cloud lists 3.11–3.14, so choose `3.11`. Avoid 3.13/3.14, where torch wheels may
+not exist yet. (The Docker image pins 3.10 for the API — unrelated to this app.)
 
 ## Free-tier limits to keep in mind
 
