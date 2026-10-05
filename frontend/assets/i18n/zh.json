@@ -39,6 +39,11 @@
         "ratings": "条评分",
         "noResults": "未找到电影。"
     },
+    "detail": {
+        "viewDetails": "查看详情",
+        "noOverview": "该片暂无简介。",
+        "imdb": "在 IMDb 查看"
+    },
     "genres": {
         "Action": "动作",
         "Adventure": "冒险",

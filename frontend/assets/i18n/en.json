@@ -39,6 +39,11 @@
         "ratings": "ratings",
         "noResults": "No movies found."
     },
+    "detail": {
+        "viewDetails": "View details",
+        "noOverview": "No synopsis available for this title.",
+        "imdb": "View on IMDb"
+    },
     "rec": {
         "title": "For You",
         "refresh": "Refresh",

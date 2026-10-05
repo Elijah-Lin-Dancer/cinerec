@@ -912,6 +912,7 @@ input, select {
     font-size: 3rem;
     color: var(--text-secondary);
     overflow: hidden;
+    position: relative;
 }
 
 .movie-poster img {
@@ -998,6 +999,49 @@ input, select {
     letter-spacing: 0.02em;
 }
 
+/* --- Movie card actions & click affordance --- */
+.movie-actions {
+    margin-top: 0.6rem;
+}
+
+.movie-actions .btn-outline {
+    width: 100%;
+    padding: 0.42rem 0.8rem;
+    font-size: 0.78rem;
+}
+
+/* "View details" pill revealed on hover/focus so the cards read as clickable. */
+.movie-card-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 0.7rem;
+    transform: translateX(-50%) translateY(6px);
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #0a0a0f;
+    background: linear-gradient(135deg, var(--accent-light), var(--accent));
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+}
+
+.movie-card:hover .movie-card-hint,
+.movie-card:focus-visible .movie-card-hint {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.movie-card:focus-visible,
+.rec-card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
 /* --- Recommendation Cards --- */
 .rec-grid {
     display: grid;
@@ -1013,6 +1057,7 @@ input, select {
     transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
 }
 
 .rec-card::before {
@@ -1203,6 +1248,142 @@ input, select {
 .modal-close:hover {
     color: var(--text-primary);
     background: rgba(255, 255, 255, 0.08);
+}
+
+/* --- Movie Detail Modal --- */
+.detail-modal-content {
+    position: relative;
+    max-width: 780px;
+    padding: 1.75rem;
+    text-align: left;
+    max-height: 88vh;
+    overflow-y: auto;
+}
+
+.detail-close {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    z-index: 1;
+}
+
+.detail-body {
+    display: grid;
+    grid-template-columns: 210px 1fr;
+    gap: 1.6rem;
+}
+
+.detail-poster {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+}
+
+.detail-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.detail-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.detail-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.25;
+    padding-right: 2rem;
+}
+
+.detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.detail-year {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.detail-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.detail-rating-star {
+    color: var(--accent);
+}
+
+.detail-rating-value {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.detail-rating-count {
+    font-size: 0.78rem;
+}
+
+.detail-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.detail-overview {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    max-height: 42vh;
+    overflow-y: auto;
+}
+
+.detail-overview.muted {
+    font-style: italic;
+    opacity: 0.75;
+}
+
+.detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.45rem 1.1rem;
+    font-size: 0.82rem;
+}
+
+.detail-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem 0;
+}
+
+@media (max-width: 640px) {
+    .detail-body {
+        grid-template-columns: 1fr;
+    }
+    .detail-poster {
+        max-width: 190px;
+        margin: 0 auto;
+    }
 }
 
 /* --- Star Rating --- */

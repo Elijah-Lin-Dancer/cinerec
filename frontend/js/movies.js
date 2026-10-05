@@ -246,8 +246,18 @@ function _movieCard(movie) {
     const card = document.createElement('div');
     card.className = 'movie-card tilt-card spotlight-card';
     card.dataset.id = String(movie.id);
+    // The whole card is the affordance that opens the detail modal, so expose
+    // it to the keyboard as a button as well.
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `${_displayTitle(movie.title)} · ${CineRec.t('detail.viewDetails')}`);
 
-    card.appendChild(_moviePoster(movie));
+    const poster = _moviePoster(movie);
+    const hint = document.createElement('span');
+    hint.className = 'movie-card-hint';
+    hint.textContent = CineRec.t('detail.viewDetails');
+    poster.appendChild(hint);
+    card.appendChild(poster);
 
     const info = document.createElement('div');
     info.className = 'movie-info';
@@ -399,15 +409,28 @@ function _movieTitleById(movieId) {
 document.addEventListener('DOMContentLoaded', () => {
     _bindFilterEvents();
 
-    // Event delegation: rating is opened from the card's data-id, so no title or
-    // id is ever interpolated into markup.
+    // Event delegation: a card click opens the detail modal; the Rate button
+    // inside it opens the rating modal instead. Ids come from data-id, so no
+    // title or id is ever interpolated into markup.
     document.getElementById('movies-grid').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-action="rate"]');
-        if (!btn) return;
-        const card = btn.closest('.movie-card');
+        const card = e.target.closest('.movie-card');
         if (!card) return;
         const movieId = Number(card.dataset.id);
-        openRatingModal(movieId, _movieTitleById(movieId));
+        if (e.target.closest('[data-action="rate"]')) {
+            openRatingModal(movieId, _movieTitleById(movieId));
+            return;
+        }
+        if (typeof MovieDetail !== 'undefined') MovieDetail.open(movieId);
+    });
+
+    // Keyboard equivalent of the card click, so the library is usable without a
+    // mouse. Enter/Space on the focused card opens its details.
+    document.getElementById('movies-grid').addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+        const card = e.target.closest('.movie-card');
+        if (!card || e.target.closest('[data-action="rate"]')) return;
+        e.preventDefault();
+        if (typeof MovieDetail !== 'undefined') MovieDetail.open(Number(card.dataset.id));
     });
 
     // Event delegation for pagination buttons.

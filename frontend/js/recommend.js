@@ -117,6 +117,14 @@ function renderRecommendations(recs, algo, isFallback) {
         const card = document.createElement('div');
         card.className = 'rec-card spotlight-card glass-card';
         card.style.setProperty('--delay', `${idx * 0.05}s`);
+        // Recommendations carry the underlying movie id, so a card can open the
+        // same detail modal as the library.
+        if (rec.item_id != null) {
+            card.dataset.id = String(rec.item_id);
+            card.tabIndex = 0;
+            card.setAttribute('role', 'button');
+            card.setAttribute('aria-label', `${_displayTitle(rec.title)} · ${CineRec.t('detail.viewDetails')}`);
+        }
 
         const rank = document.createElement('div');
         rank.className = 'rec-rank';
@@ -193,6 +201,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Refresh button
     document.getElementById('btn-refresh-rec').addEventListener('click', loadRecommendations);
+
+    // Open the detail modal for a recommended title (click or keyboard).
+    const recList = document.getElementById('rec-list');
+    recList.addEventListener('click', (e) => {
+        const card = e.target.closest('.rec-card[data-id]');
+        if (card && typeof MovieDetail !== 'undefined') MovieDetail.open(Number(card.dataset.id));
+    });
+    recList.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+        const card = e.target.closest('.rec-card[data-id]');
+        if (!card) return;
+        e.preventDefault();
+        if (typeof MovieDetail !== 'undefined') MovieDetail.open(Number(card.dataset.id));
+    });
 
     // Redraw cards (titles fall back to the original, genres/UI translate).
     CineRec.onLangChange(() => {
