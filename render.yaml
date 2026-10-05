@@ -13,9 +13,10 @@ services:
     plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
-    dockerBuildArgs:
-      - key: APP_MODE
-        value: lite
+    # The Blueprint schema has no `dockerBuildArgs` field. Render instead
+    # translates a service's env vars into Docker build args, so the
+    # `APP_MODE=lite` below is what the Dockerfile's `ARG APP_MODE` sees at
+    # build time (and at runtime). See render.com/docs/docker.
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
