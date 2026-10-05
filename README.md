@@ -102,6 +102,20 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 <img src="screenshots/dashboard.png" width="800" alt="CineRec Evaluation Dashboard">
 
+### Ablation & Cold-Start Charts / 消融与冷启动图表
+> Scrolled views of the same evaluation page: the ablation study (one modality blanked at a time) and the cold-start study (100 items with no collaborative history). Both render from the committed JSON results — no hard-coded numbers.
+
+<table>
+<tr>
+<td><img src="screenshots/eval_charts.png" width="400" alt="Ablation study charts"></td>
+<td><img src="screenshots/coldstart.png" width="400" alt="Cold-start study section"></td>
+</tr>
+<tr>
+<td align="center"><sub>Ablation study — each content modality removed</sub></td>
+<td align="center"><sub>Cold-start — 100 unseen items ranked via content tower</sub></td>
+</tr>
+</table>
+
 ### Streamlit Companion (Full Mode) / Streamlit 伴生应用
 > Live inference companion with a film-strip logo, KPI strip, CSS bar charts, a Jaccard overlap heatmap, an algorithm ladder, and a user profile mini-card.
 
