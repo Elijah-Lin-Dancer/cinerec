@@ -11,9 +11,10 @@
 
 **Multi-Modal Movie Recommendation System**
 
-*From classic collaborative filtering to cutting-edge multi-modal neural networks — a 6-level algorithm ladder with explainable AI.*
+*Six recommenders on one codebase — from UserCF to a multi-modal NCF — evaluated on
+a single leave-last-5-out split whose numbers are reported as measured.*
 
-[中文文档](#-项目简介) · [Live Demo](#-live-demo--在线演示) · [Demo](#-demo-preview) · [Architecture](#-architecture) · [Quick Start](#--quick-start)
+[中文文档](#-项目简介) · [Live Demo](#-live-demo--在线演示) · [Demo](#-demo-preview--效果预览) · [Quick Start](#-quick-start--快速开始)
 
 </div>
 
@@ -21,16 +22,16 @@
 
 ## 🔗 Live Demo / 在线演示
 
-Two deployments, one codebase — the same six-algorithm ladder, in the two modes
-described in [ADR 0001](docs/adr/0001-dual-mode-deployment.md):
+One codebase, two runtime modes (`APP_MODE`), each hosted on the free tier it fits
+([ADR 0001](docs/adr/0001-dual-mode-deployment.md)):
 
 | Mode | What it shows | Link |
 |------|---------------|------|
-| **`lite`** — product | The bilingual FastAPI web app. Recommendations come from a precomputed cache, so it fits a free 512 MB instance. No account needed: click **游客体验 / Try as Guest** on the login screen. | **https://cinerec-rfew.onrender.com** |
-| **`full`** — companion | A Streamlit app that loads the trained PyTorch models and runs them **live**: live inference, the six-model comparison, the multi-modal ablation and the cold-start study. | **https://cinerec-movie-recommend.streamlit.app** |
+| **`lite`** — product | The bilingual FastAPI web app. Recommendations come from a precomputed cache, so it fits a 512 MB instance. No account needed: click **游客体验 / Try as Guest**. | **https://cinerec-rfew.onrender.com** |
+| **`full`** — companion | A Streamlit app that loads the trained PyTorch models and runs them **live**: live inference, the six-model comparison, the modality ablation, the cold-start study. | **https://cinerec-movie-recommend.streamlit.app** |
 
-> Both run on free tiers, so each sleeps when idle — the first visit can take a
-> few seconds to wake. The companion lives in [`deploy/streamlit/`](deploy/streamlit/).
+> Both run on free tiers and sleep when idle — the first visit can take a few
+> seconds to wake. The companion lives in [`deploy/streamlit/`](deploy/streamlit/).
 
 ---
 
@@ -38,40 +39,42 @@ described in [ADR 0001](docs/adr/0001-dual-mode-deployment.md):
 
 - [Live Demo / 在线演示](#-live-demo--在线演示)
 - [Project Introduction / 项目简介](#-project-introduction--项目简介)
-- [Key Features / 核心特性](#-key-features--核心特性)
-- [Demo Preview / 效果预览](#-demo-preview)
-- [Architecture / 系统架构](#-architecture)
+- [Key Features / 核心亮点](#-key-features--核心亮点)
+- [Demo Preview / 效果预览](#-demo-preview--效果预览)
+- [Architecture / 系统架构](#-architecture--系统架构)
 - [Algorithms / 算法说明](#-algorithms--算法说明)
 - [Evaluation / 评测结果](#-evaluation--评测结果)
-- [Quick Start / 快速开始](#--quick-start)
+- [Quick Start / 快速开始](#-quick-start--快速开始)
 - [Tech Stack / 技术栈](#-tech-stack--技术栈)
 - [Project Structure / 项目结构](#-project-structure--项目结构)
+- [FAQ / 常见问题](#-faq--常见问题)
 - [License](#-license)
+- [Changelog / 更新日志](#-changelog--更新日志)
 
 ---
 
 ## 📖 Project Introduction / 项目简介
 
-**CineRec** is a full-stack AI recommendation system that implements **6 progressively advanced algorithms** — from classic collaborative filtering to a novel multi-modal neural collaborative filtering model. It features a rigorous offline evaluation framework, an interactive dark-cinema themed bilingual web frontend, and Docker-ready deployment.
+CineRec is a full-stack movie recommender that implements six models in ascending
+order of complexity and scores all of them against the same candidate set. It ships
+a bilingual dark-cinema web frontend, a REST API, and a Docker build that serves
+either runtime mode from the same image.
 
-**CineRec** 是一个全栈 AI 推荐系统，实现了 **6 个逐层递进的算法** —— 从经典协同过滤到创新的多模态神经协同过滤。具备严谨的离线评测框架、暗色电影院主题的双语交互式 Web 前端，以及开箱即用的 Docker 部署。
+CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模型，并在同一候选集上统一
+评测。它包含双语暗色 Web 前端、REST API，以及可用同一镜像服务两种运行模式的 Docker 构建。
 
 > 💡 **"Don't just use models — understand them."**
 > 不要只是用模型，要理解它们。CineRec 的每一层算法都展示了推荐系统从传统到前沿的演进路径。
 
 ---
 
-## ✨ Key Features / 核心特性
+## ✨ Key Features / 核心亮点
 
-| Feature | Description |
-|----------|-------------|
-| 🔬 **6-Level Algorithm Ladder** | UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF. Six progressively advanced algorithms from classic to cutting-edge. |
-| 🧠 **Multi-Modal Fusion** | Core innovation: fuses Sentence-BERT text (384d), ResNet-50 image (2048d), and genre (18d) features into the MLP path. |
-| 📊 **Rigorous Evaluation** | Leave-last-5-out split (training items excluded from candidates) with HR@K, NDCG@K, Recall@K metrics + modality ablation on MovieLens 100K. |
-| 🎯 **Explainable AI** | Content-based + collaborative recommendation reasons for each suggestion. |
-| 🌙 **Dark/Light Theme** | Cinema-inspired dark theme with glassmorphism + clean light mode. Bilingual (EN/ZH). |
-| 🐳 **Docker Ready** | One-click deployment with Docker Compose. |
-| 📈 **Observability & Load-Tested** | Inference LRU cache, in-process latency/throughput metrics (`/api/metrics`), and a measured Locust profile → [`reports/loadtest.md`](reports/loadtest.md). |
+- **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF。算法集合与加载方式集中在 [`models/registry.py`](models/registry.py)，前端、API、预计算脚本都从这里取。
+- **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合 Sentence-BERT 文本(384d)、ResNet-50 图像(2048d) 与类型(18d) 特征。
+- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，6 个模型共用同一套 HR@K / NDCG@K / Recall@K。正文明确标注 single-seed，不作"最优模型"声明。
+- **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）同仓切换。
+- **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐、实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
 
 ---
 
@@ -156,7 +159,7 @@ described in [ADR 0001](docs/adr/0001-dual-mode-deployment.md):
 | 2 | **ItemCF** | Adjusted Cosine | Recommend items similar to user's rated history. Vectorized similarity. |
 | 3 | **SVD** | Matrix Factorization | Decompose the user-item matrix into latent factors (k=64) via truncated SVD (`scipy.sparse.linalg.svds`). |
 | 4 | **NeuMF** | GMF + MLP (PyTorch) | Dual-path architecture: element-wise product + deep MLP. BCE loss with negative sampling. |
-| 5 | **LightGCN** | Graph Convolution (PyTorch) | Simplified GCN on the user–item bipartite graph: neighbourhood aggregation averaged over layers, trained with BPR. A modern graph-based baseline. |
+| 5 | **LightGCN** | Graph Convolution (PyTorch) | Simplified GCN on the user–item bipartite graph: neighbourhood aggregation averaged over layers, trained with BPR. |
 | 6 | **Multi-Modal NCF** ⭐ | Text+Image+Genre Fusion | Core innovation. Replaces item embedding in MLP path with a Content Tower fusing multi-modal features. |
 
 ### Multi-Modal NCF Architecture (Core Innovation / 核心创新)
@@ -220,15 +223,14 @@ so re-recommending already-seen titles cannot inflate the numbers.
 
 - **UserCF → ItemCF → SVD** shows the expected jump from neighbourhood heuristics to
   matrix factorization; SVD is the best accuracy-per-second point on the ladder.
-- **NeuMF** shows that learned non-linear interaction modelling beats plain
-  factorization on this dataset once candidates are filtered to unseen items — it is
-  the strongest hit-rate model on this split.
+- **NeuMF** leads HR@10 at 0.3775 / HR@20 at 0.5164 — learned non-linear interaction
+  modelling beats plain factorization on this dataset once candidates are filtered
+  to unseen items.
 - **LightGCN** sits between SVD and NeuMF (HR@10 0.2789) with the best
-  accuracy-per-second among the neural models, showing the graph baseline is
-  competitive without any content features.
-- **MultiModalNCF** trails NeuMF on hit-rate while leading on NDCG: fusing
-  Sentence-BERT text, ResNet-50 image and genre content mainly improves the *ranking*
-  of the items it retrieves — the ablation study quantifies each modality's contribution.
+  accuracy-per-second among the neural models — competitive with no content features.
+- **MultiModalNCF** trails NeuMF on hit-rate while leading on NDCG (0.0850 / 0.1123):
+  fusing Sentence-BERT text, ResNet-50 image and genre content mainly improves the
+  *ranking* of the items it retrieves — the ablation study quantifies each modality.
 
 ### Ablation Study / 消融实验
 
@@ -303,7 +305,8 @@ make setup && make serve         # runtime deps only, no torch
 `APP_MODE=lite make serve` skips torch entirely and serves the precomputed
 `recs_cache.json` — that is the mode used on the always-on free tier.
 
-### Reproduce from scratch / 一键复现（可选）
+<details>
+<summary><b>Reproduce from scratch / 一键复现（可选）</b></summary>
 
 ```bash
 make setup-train                 # torch + vision stack
@@ -314,6 +317,7 @@ make ablation && make coldstart  # modality ablation + cold-start study
 make charts                      # regenerate docs/*.png from measured results
 make test                        # pytest suite
 ```
+</details>
 
 ---
 
@@ -321,11 +325,12 @@ make test                        # pytest suite
 
 | Layer | Technologies |
 |-------|-------------|
-| **ML Models** | PyTorch, scikit-learn, scipy.sparse.linalg, Sentence-BERT, ResNet-50 |
+| **ML Models** | PyTorch, scikit-learn, `scipy.sparse.linalg`, Sentence-BERT, ResNet-50 |
 | **Backend** | Python, FastAPI, SQLite, Uvicorn |
 | **Frontend** | Vanilla JS (SPA), GSAP 3, Lenis, Canvas star field, ECharts |
 | **Data** | MovieLens 100K + enriched metadata (plot summaries & posters) |
-| **Deployment** | Docker, docker-compose |
+| **Deployment** | Docker / docker-compose · Render free tier (`lite`) · Streamlit Community Cloud (`full`) |
+| **Quality** | ruff, black, pytest + coverage, pre-commit, GitHub Actions CI |
 
 ---
 
@@ -345,7 +350,7 @@ cinerec/
 │   ├── registry.py       # Single source of truth for the algorithm ladder
 │   ├── user_cf.py        # User-based CF (Pearson)
 │   ├── item_cf.py        # Item-based CF (Adjusted Cosine)
-│   ├── svd_als.py        # SVD via truncated SVD (scipy)
+│   ├── svd_als.py        # SVD via truncated SVD (scipy; despite the name, not ALS)
 │   ├── neumf.py          # Neural MF (GMF + MLP)
 │   ├── lightgcn.py       # LightGCN graph convolution (BPR)
 │   ├── multimodal_ncf.py # Multi-Modal NCF ⭐ (Core Innovation)
@@ -367,7 +372,8 @@ cinerec/
 │   └── assets/i18n/       # EN/ZH translations
 ├── scripts/               # precompute, ablation, cold-start, train_all, locustfile
 ├── tests/                 # pytest suite
-├── deploy/                # Render notes + the Streamlit companion app (own deps)
+├── deploy/                # Streamlit companion (own deps) + notes
+│   └── hf-space/          # Record of the rejected HF Spaces option (see ADR 0001)
 ├── docs/adr/              # Architecture decision records
 ├── reports/               # Measured load-test report + Locust HTML output
 ├── config.py              # Paths, APP_MODE, cache switches
@@ -382,9 +388,70 @@ cinerec/
 
 ---
 
+## ❓ FAQ / 常见问题
+
+<details>
+<summary><b>为什么有 lite 和 full 两种模式？</b></summary>
+
+`full` 需要 torch 并实时推理；`lite` 用预计算的 `recs_cache.json` 换取极小内存占用，
+以便在 512 MB 免费实例上常驻。两者是同一代码库，由 `APP_MODE` 切换。详见
+[ADR 0001](docs/adr/0001-dual-mode-deployment.md)。
+</details>
+
+<details>
+<summary><b>新注册用户的推荐为什么是热门榜？</b></summary>
+
+预计算缓存只覆盖已有用户；新用户不在缓存内，接口会回退到热门推荐并**显式标注**，
+而不是报错。见 ADR 0001 的 "Consequences"。
+</details>
+
+<details>
+<summary><b>评测为什么只有 single split / single seed？</b></summary>
+
+这是刻意的取舍：项目目标是展示算法取舍与工程规范，而非追 SOTA。正文所有结论均标注
+single-seed、不作显著性声明。如需多 seed，可改 `evaluation/runner.py` 重跑。
+</details>
+
+<details>
+<summary><b>SVD 用的是 ALS 吗？</b></summary>
+
+不是。文件名 `models/svd_als.py` 是历史命名，实现是 truncated SVD
+（`scipy.sparse.linalg.svds`），[ADR 0003](docs/adr/0003-algorithm-ladder.md) 已说明。
+</details>
+
+<details>
+<summary><b>如何用 Docker 跑 lite 模式？</b></summary>
+
+```bash
+docker build --build-arg APP_MODE=lite -t cinerec:lite .
+docker run -p 8000:8000 cinerec:lite
+```
+健康检查：`GET /api/health`；进程指标：`GET /api/metrics`。
+</details>
+
+---
+
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License — see [LICENSE](LICENSE).
+
+> Poster and overview metadata are fetched from the TMDB API
+> ([`data/enrich_tmdb.py`](data/enrich_tmdb.py)).
+
+---
+
+## 📝 Changelog / 更新日志
+
+<details>
+<summary>展开查看</summary>
+
+- **2026-10-05** — UI：动画背景 + canvas 星空 + 字体改版；Streamlit 伴生应用独立目录与主题。
+- **2026-10-05** — 部署：Render(`lite`) + Streamlit(`full`) 双档免费部署定稿（ADR 0001）。
+- **2026-10-04** — 评测：6 模型统一评测 + 消融 + 冷启动实验；MLOps：LRU 缓存 + `/api/metrics` + Locust 压测。
+- **2026-07-19** — 初始版本：UserCF / ItemCF / SVD / NeuMF + 前端 + 数据库。
+
+> 详细过程记录见 [`docs/ROADMAP.md`](docs/ROADMAP.md)。
+</details>
 
 ---
 

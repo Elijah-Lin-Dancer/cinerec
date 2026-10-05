@@ -47,9 +47,20 @@ from api.metrics import metrics_middleware  # noqa: E402
 
 app.middleware("http")(metrics_middleware)
 
+# CORS origins are configurable so the same image works locally and behind a
+# real host; the localhost defaults keep `make serve` working out of the box.
+_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "ALLOWED_ORIGINS",
+        "http://localhost:8000,http://localhost:3000,http://127.0.0.1:8000",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://localhost:3000", "http://127.0.0.1:8000"],
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -67,7 +67,7 @@ lint:
 	$(PYTHON) -m ruff check .
 
 loadtest:
-	$(PYTHON) -m locust -f scripts/locustfile.py --headless -u 20 -r 5 -t 30s \
+	$(PYTHON) -m locust -f scripts/locustfile.py --headless -u 30 -r 10 -t 30s \
 		--host $(HOST) --html reports/locust_report.html
 
 docker-build:
