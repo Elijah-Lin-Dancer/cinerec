@@ -614,9 +614,9 @@ def _heatmap_html(matrix, labels):
     """Render a square Jaccard/overlap matrix as a CSS grid heatmap."""
     n = len(labels)
     # Build an (n+1) x (n+1) grid: header row + header col + cells.
-    cells = [f"<div class='cr-heat-label'></div>"]
-    for l in labels:
-        cells.append(f"<div class='cr-heat-label'>{_esc(l)}</div>")
+    cells = ["<div class='cr-heat-label'></div>"]
+    for lab in labels:
+        cells.append(f"<div class='cr-heat-label'>{_esc(lab)}</div>")
     for i, ri in enumerate(labels):
         cells.append(f"<div class='cr-heat-label'>{_esc(ri)}</div>")
         for j, _ in enumerate(labels):
