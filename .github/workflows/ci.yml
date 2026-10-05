@@ -18,6 +18,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          # CPU torch only: unlocks the 4 torch-gated neural-model tests without
+          # pulling the CUDA wheel or the heavy train-only stack (transfomers
+          # etc.), keeping CI fast. Features/models ship precomputed.
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt -r requirements-dev.txt
       - name: Lint (ruff)
         run: ruff check .
