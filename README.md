@@ -232,7 +232,7 @@ so re-recommending already-seen titles cannot inflate the numbers.
 | LightGCN | 0.2789 | 0.0615 | 0.4210 | 0.0804 | 16.4s |
 | **MultiModalNCF** ⭐ | 0.3627 | **0.0850** | 0.5133 | **0.1123** | 93.5s |
 
-> **Honest reading**: on this single split the strongest hit-rate result is **NeuMF**
+> **What the numbers say**: on this single split the strongest hit-rate result is **NeuMF**
 > (HR@10 0.3775 / HR@20 0.5164), while **MultiModalNCF** leads only on NDCG
 > (0.0850 / 0.1123) — i.e. content features mainly improve the *ranking* of the
 > items the model already retrieves. **LightGCN** lands between SVD and NeuMF at a
@@ -266,7 +266,7 @@ at the input, isolating its contribution.
 | w/o Genre | 0.3648 | 0.0860 | 0.5080 | 0.1122 |
 | **Behavior only (no content)** | 0.3436 | 0.0795 | 0.4825 | 0.1069 |
 
-> **Honest reading**: dropping *all* content features (behavior only) consistently
+> **Reading the ablation**: dropping *all* content features (behavior only) consistently
 > hurts every metric — content is doing real work. The single-modality deltas,
 > however, fall within single-seed noise (this is one seed, not a significance
 > test), so no per-modality ranking is claimed.
