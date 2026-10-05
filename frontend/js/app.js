@@ -194,7 +194,7 @@ const CineRec = (() => {
     // Init
     async function init() {
         // Check CDN dependencies
-        const deps = ['gsap', 'Lenis', 'tsParticles', 'echarts'];
+        const deps = ['gsap', 'Lenis', 'echarts'];
         const missing = deps.filter(d => typeof window[d] === 'undefined' && d !== 'Lenis');
         if (missing.length > 0) {
             console.warn('Missing CDN dependencies:', missing.join(', '));

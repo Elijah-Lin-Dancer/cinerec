@@ -41,15 +41,198 @@ COMPARE_K = 10
 
 CSS = """
 <style>
-  .block-container {padding-top: 2.2rem; max-width: 1180px;}
-  .cr-hero {font-size: 2.1rem; font-weight: 700; letter-spacing: -.02em; margin-bottom: .1rem;}
-  .cr-sub {color: #94a3b8; margin-bottom: 1rem;}
-  .cr-card {border: 1px solid rgba(148,163,184,.28); border-radius: 12px;
-            padding: 12px 12px 10px 12px; height: 100%; background: rgba(15,23,42,.35);}
-  .cr-title {font-weight: 600; font-size: .95rem; margin: .3rem 0 .1rem 0; line-height: 1.25;}
-  .cr-meta {color: #94a3b8; font-size: .76rem;}
-  .cr-score {color: #f5c518; font-weight: 700; font-size: .85rem;}
-  .cr-reason {font-size: .78rem; color: #cbd5e1; margin-top: .3rem;}
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --cr-bg: #08080f;
+  --cr-accent: #d4a843;
+  --cr-accent-light: #e8c36a;
+  --cr-border: rgba(255,255,255,.09);
+  --cr-muted: #8b8ba6;
+  --cr-text: #e8e8ed;
+}
+
+/* --- Typography (mirrors the product's front end) --- */
+html, body, [class*="css"], .stApp, .stMarkdown, button, input, select, textarea {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+code, pre, .cr-score {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* --- Layered cinematic background (base wash + drifting aurora) --- */
+.stApp {
+  background-color: var(--cr-bg);
+  background-image:
+    radial-gradient(120% 85% at 50% -15%, rgba(74,158,255,.10), transparent 60%),
+    radial-gradient(85% 65% at 88% 12%, rgba(167,139,250,.09), transparent 58%),
+    radial-gradient(90% 70% at 8% 100%, rgba(212,168,67,.07), transparent 60%),
+    linear-gradient(180deg,#0b0b18 0%,#08080f 55%,#0b0812 100%);
+  background-attachment: fixed;
+}
+.stApp::before {
+  content: '';
+  position: fixed;
+  inset: -25%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 20% 25%, rgba(212,168,67,.20), transparent 62%),
+    radial-gradient(42% 46% at 82% 18%, rgba(74,158,255,.18), transparent 60%),
+    radial-gradient(48% 50% at 72% 82%, rgba(167,139,250,.16), transparent 64%),
+    radial-gradient(36% 40% at 15% 85%, rgba(74,222,128,.07), transparent 60%);
+  animation: cr-aurora 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes cr-aurora {
+  0%   { transform: translate3d(-3%,-2%,0) scale(1.08) rotate(0deg); }
+  50%  { transform: translate3d(2%,3%,0) scale(1.16) rotate(4deg); }
+  100% { transform: translate3d(4%,-3%,0) scale(1.10) rotate(-3deg); }
+}
+
+/* Keep Streamlit chrome transparent; lift real content above the aurora. */
+[data-testid="stAppViewContainer"],
+[data-testid="stHeader"] { background: transparent !important; }
+[data-testid="stMain"], section.main { position: relative; z-index: 1; }
+
+/* --- Layout --- */
+.block-container, [data-testid="stMainBlockContainer"] {
+  padding-top: 2.6rem;
+  max-width: 1180px;
+}
+
+/* --- Hero --- */
+.cr-hero {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+  margin-bottom: .15rem;
+  background: linear-gradient(120deg, var(--cr-accent-light), var(--cr-accent) 45%, #f6e6b8 70%, var(--cr-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 26px rgba(212,168,67,.28));
+}
+.cr-sub { color: var(--cr-muted); margin-bottom: 1.3rem; font-size: .95rem; }
+
+/* --- Recommendation cards --- */
+.cr-card {
+  border: 1px solid rgba(148,163,184,.22);
+  border-radius: 14px;
+  padding: 14px 14px 12px 14px;
+  height: 100%;
+  background: linear-gradient(160deg, rgba(30,30,56,.72), rgba(15,15,30,.62));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.cr-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(212,168,67,.38);
+  box-shadow: 0 12px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.cr-title { font-weight: 600; font-size: .95rem; margin: .35rem 0 .12rem 0; line-height: 1.28; color: var(--cr-text); }
+.cr-meta { color: var(--cr-muted); font-size: .76rem; }
+.cr-score {
+  display: inline-block;
+  margin-top: .35rem;
+  color: #0a0a0f;
+  background: linear-gradient(135deg, var(--cr-accent-light), var(--cr-accent));
+  font-weight: 700;
+  font-size: .72rem;
+  padding: .1rem .5rem;
+  border-radius: 20px;
+}
+.cr-reason {
+  font-size: .78rem;
+  color: #cbd5e1;
+  margin-top: .45rem;
+  border-top: 1px solid var(--cr-border);
+  padding-top: .4rem;
+}
+
+[data-testid="stImage"] img { border-radius: 12px; }
+
+/* --- Tabs as chips --- */
+.stTabs [data-baseweb="tab-list"] {
+  gap: .35rem;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--cr-border);
+  border-radius: 12px;
+  padding: .3rem;
+}
+.stTabs [data-baseweb="tab"] {
+  height: auto;
+  padding: .45rem 1.05rem;
+  border-radius: 9px;
+  color: var(--cr-muted);
+  font-weight: 600;
+}
+.stTabs [aria-selected="true"] {
+  background: rgba(212,168,67,.12) !important;
+  color: var(--cr-accent) !important;
+  box-shadow: 0 0 12px rgba(212,168,67,.15);
+}
+.stTabs [data-baseweb="tab-highlight"],
+.stTabs [data-baseweb="tab-border"] { display: none; }
+
+/* --- Sidebar --- */
+[data-testid="stSidebar"] {
+  background: rgba(13,13,26,.72);
+  border-right: 1px solid var(--cr-border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+[data-testid="stSidebar"] h2 { color: var(--cr-accent-light); font-weight: 700; }
+
+/* --- Headings, expanders, tables --- */
+h1, h2, h3, h4 { color: var(--cr-text); letter-spacing: -.01em; }
+h3 { font-weight: 700; }
+[data-testid="stExpander"] {
+  border: 1px solid var(--cr-border);
+  border-radius: 12px;
+  background: rgba(18,18,34,.5);
+  overflow: hidden;
+}
+[data-testid="stDataFrame"], [data-testid="stTable"] {
+  border: 1px solid var(--cr-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* --- Controls --- */
+.stSlider [role="slider"] {
+  background: var(--cr-accent) !important;
+  border-color: var(--cr-accent) !important;
+  box-shadow: 0 0 10px rgba(212,168,67,.45);
+}
+.stButton > button, .stDownloadButton > button {
+  border-radius: 9px;
+  border: 1px solid rgba(212,168,67,.45);
+  background: linear-gradient(135deg, var(--cr-accent), var(--cr-accent-light));
+  color: #0a0a0f;
+  font-weight: 700;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.stButton > button:hover, .stDownloadButton > button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(212,168,67,.35);
+  border-color: var(--cr-accent-light);
+}
+[data-testid="stAlert"] { border-radius: 12px; }
+.stCaption, [data-testid="stCaptionContainer"] { color: var(--cr-muted); }
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(212,168,67,.25); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(212,168,67,.45); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stApp::before { animation: none; }
+}
 </style>
 """
 

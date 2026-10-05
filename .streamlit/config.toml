@@ -1,0 +1,20 @@
+# CineRec — Streamlit theme for the live-inference companion.
+#
+# Read from the repository root, which is where both Community Cloud and a
+# local `streamlit run streamlit_app.py` start. It only affects Streamlit; the
+# FastAPI product deployment on Render never reads it.
+#
+# The palette mirrors the product's dark-cinema theme (see
+# `frontend/css/style.css`) so the companion feels like the same app. The
+# layered, animated background is painted on top of `backgroundColor` by the
+# CSS block in `streamlit_app.py`.
+[theme]
+base = "dark"
+primaryColor = "#d4a843"
+backgroundColor = "#08080f"
+secondaryBackgroundColor = "#12122a"
+textColor = "#e8e8ed"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"

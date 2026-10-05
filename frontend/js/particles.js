@@ -1,56 +1,155 @@
 /**
- * CineRec — tsParticles Star Field Background
+ * CineRec — Canvas star field.
+ *
+ * Self-contained replacement for the tsParticles background: the CDN bundle
+ * (v3.7.0) mounted a canvas but never sized or drew it, so the layer stayed
+ * empty. This version has no third-party dependency, resizes with the
+ * viewport, and drives one requestAnimationFrame loop.
  */
 const Particles = (() => {
-    async function init() {
-        if (typeof tsParticles === 'undefined') return;
+    const PALETTE = ['#d4a843', '#e8c36a', '#4a9eff', '#a78bfa', '#ffffff'];
+    const LINK_DISTANCE = 130;
+    const CURSOR_DISTANCE = 170;
+    const MAX_DPR = 2;
 
-        const container = document.getElementById('particles-bg');
-        if (!container) return;
+    let canvas = null;
+    let ctx = null;
+    let stars = [];
+    let width = 0;
+    let height = 0;
+    const pointer = { x: -9999, y: -9999, active: false };
 
-        await tsParticles.load("particles-bg", {
-            fullScreen: false,
-            fpsLimit: 60,
-            particles: {
-                number: { value: 80, density: { enable: true, area: 900 } },
-                color: { value: ["#d4a843", "#4a9eff", "#ffffff"] },
-                shape: { type: "circle" },
-                opacity: {
-                    value: { min: 0.1, max: 0.5 },
-                    animation: { enable: true, speed: 0.5, sync: false }
-                },
-                size: {
-                    value: { min: 0.5, max: 2 },
-                    animation: { enable: true, speed: 1, sync: false }
-                },
-                move: {
-                    enable: true,
-                    speed: 0.3,
-                    direction: "none",
-                    random: true,
-                    straight: false,
-                    outModes: "out"
-                },
-                links: {
-                    enable: true,
-                    distance: 150,
-                    color: "#ffffff",
-                    opacity: 0.08,
-                    width: 0.5
-                }
-            },
-            detectRetina: true,
-            interactivity: {
-                events: {
-                    onHover: { enable: true, mode: "grab" },
-                    onClick: { enable: true, mode: "push" }
-                },
-                modes: {
-                    grab: { distance: 200, links: { opacity: 0.3 } },
-                    push: { quantity: 2 }
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
+    function seed() {
+        const density = Math.round((width * height) / 9000);
+        const count = Math.max(60, Math.min(150, density));
+        stars = Array.from({ length: count }, () => ({
+            x: rand(0, width),
+            y: rand(0, height),
+            r: rand(0.6, 2.4),
+            a: rand(0.15, 0.7),
+            tw: rand(0.4, 1.6),
+            phase: rand(0, Math.PI * 2),
+            vx: rand(-0.18, 0.18),
+            vy: rand(-0.18, 0.18),
+            color: PALETTE[(Math.random() * PALETTE.length) | 0],
+        }));
+    }
+
+    function resize() {
+        const rect = canvas.getBoundingClientRect();
+        width = Math.max(1, rect.width);
+        height = Math.max(1, rect.height);
+        const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seed();
+    }
+
+    function paint(time) {
+        ctx.clearRect(0, 0, width, height);
+
+        // Constellation links between nearby stars.
+        ctx.lineWidth = 0.6;
+        for (let i = 0; i < stars.length; i++) {
+            const s = stars[i];
+            for (let j = i + 1; j < stars.length; j++) {
+                const o = stars[j];
+                const dx = s.x - o.x;
+                const dy = s.y - o.y;
+                const d2 = dx * dx + dy * dy;
+                if (d2 < LINK_DISTANCE * LINK_DISTANCE) {
+                    const d = Math.sqrt(d2);
+                    ctx.strokeStyle = `rgba(138,180,255,${(0.10 * (1 - d / LINK_DISTANCE)).toFixed(3)})`;
+                    ctx.beginPath();
+                    ctx.moveTo(s.x, s.y);
+                    ctx.lineTo(o.x, o.y);
+                    ctx.stroke();
                 }
             }
-        });
+        }
+
+        // Cursor reveals the nearby stars it can "grab".
+        if (pointer.active) {
+            ctx.lineWidth = 0.8;
+            for (const s of stars) {
+                const dx = s.x - pointer.x;
+                const dy = s.y - pointer.y;
+                const d2 = dx * dx + dy * dy;
+                if (d2 < CURSOR_DISTANCE * CURSOR_DISTANCE) {
+                    const d = Math.sqrt(d2);
+                    ctx.strokeStyle = `rgba(212,168,67,${(0.35 * (1 - d / CURSOR_DISTANCE)).toFixed(3)})`;
+                    ctx.beginPath();
+                    ctx.moveTo(s.x, s.y);
+                    ctx.lineTo(pointer.x, pointer.y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Stars drift slowly and twinkle.
+        const t = time * 0.001;
+        for (const s of stars) {
+            const twinkle = 0.6 + 0.4 * Math.sin(t * s.tw + s.phase);
+            ctx.globalAlpha = s.a * twinkle;
+            ctx.fillStyle = s.color;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            s.x += s.vx;
+            s.y += s.vy;
+            if (s.x < -5) s.x = width + 5;
+            else if (s.x > width + 5) s.x = -5;
+            if (s.y < -5) s.y = height + 5;
+            else if (s.y > height + 5) s.y = -5;
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function loop(time) {
+        paint(time);
+        requestAnimationFrame(loop);
+    }
+
+    function paintOnce() {
+        ctx.clearRect(0, 0, width, height);
+        for (const s of stars) {
+            ctx.globalAlpha = s.a;
+            ctx.fillStyle = s.color;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function init() {
+        const host = document.getElementById('particles-bg');
+        if (!host) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        canvas = document.createElement('canvas');
+        canvas.setAttribute('aria-hidden', 'true');
+        host.appendChild(canvas);
+        ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        resize();
+        window.addEventListener('resize', () => {
+            resize();
+            paintOnce();
+        }, { passive: true });
+        window.addEventListener('mousemove', (e) => {
+            pointer.x = e.clientX;
+            pointer.y = e.clientY;
+            pointer.active = true;
+        }, { passive: true });
+        window.addEventListener('mouseout', () => { pointer.active = false; }, { passive: true });
+
+        requestAnimationFrame(loop);
     }
 
     return { init };

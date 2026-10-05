@@ -323,7 +323,7 @@ make test                        # pytest suite
 |-------|-------------|
 | **ML Models** | PyTorch, scikit-learn, scipy.sparse.linalg, Sentence-BERT, ResNet-50 |
 | **Backend** | Python, FastAPI, SQLite, Uvicorn |
-| **Frontend** | Vanilla JS (SPA), GSAP 3, Lenis, tsParticles, ECharts |
+| **Frontend** | Vanilla JS (SPA), GSAP 3, Lenis, Canvas star field, ECharts |
 | **Data** | MovieLens 100K + enriched metadata (plot summaries & posters) |
 | **Deployment** | Docker, docker-compose |
 
