@@ -429,14 +429,79 @@ docker run -p 8000:8000 cinerec:lite
 健康检查：`GET /api/health`；进程指标：`GET /api/metrics`。
 </details>
 
+<details>
+<summary><b>为什么数据集里的电影都这么老？/ Why are all the movies so old?</b></summary>
+
+**中文** — 因为数据集是 **MovieLens 100K**，它是在 **1997-09-19 到 1998-04-22** 这七个月里
+从 MovieLens 网站收集的，片目覆盖 **1922–1998**，所以片库里最新的电影就是 1998 年的——
+这是**原始数据的年代范围**，不是我们的数据管道出问题。
+
+选它是一次明确的取舍：它只有 100,000 条评分（943 用户 × 1,682 部电影，每人都至少评过 20 部），
+六模型全部可在 CPU 上秒级到分钟级训练完，因此我们能把"精度 vs 训练耗时"的真实权衡讲清楚，
+并把训练好的模型与特征直接入库，让一个新克隆**零训练**即可跑起来（见 [ADR 0002](docs/adr/0002-artifact-storage.md)）。
+它同时是学术界通行、可引用的基准，便于把 HR@K / NDCG@K 与文献对照。
+完整的取舍与被否决的选项见 [ADR 0004](docs/adr/0004-dataset-choice.md)。
+
+**English** — Because the dataset is **MovieLens 100K**, collected through the
+MovieLens website over the seven months from **19 Sep 1997 to 22 Apr 1998**; its
+catalogue spans **1922–1998**, so a 1998 title is the *end of the range*, not a
+stale mirror. That is a property of the source data, not a pipeline bug.
+
+It was a deliberate trade-off: only 100,000 ratings (943 users × 1,682 movies,
+each user with ≥ 20 ratings) means all six models train in seconds-to-minutes on
+CPU, which lets us report an honest accuracy/cost trade-off and commit the trained
+artefacts so a fresh clone serves recommendations with **zero training**
+([ADR 0002](docs/adr/0002-artifact-storage.md)). It is also the standard, citable
+benchmark, so our numbers can be compared against the literature. Full reasoning
+and the rejected alternatives are in [ADR 0004](docs/adr/0004-dataset-choice.md).
+</details>
+
+<details>
+<summary><b>数据从哪里来？商用 / 再分发的许可如何？/ Where does the data come from, and what about commercial use & redistribution?</b></summary>
+
+**中文** — 三份材料，三套许可，互不覆盖：
+
+1. **本项目代码** —— MIT（见 [LICENSE](LICENSE)）。
+2. **MovieLens 100K 评分数据** —— 由明尼苏达大学 GroupLens Research Project 提供，**仅供研究/非商业**用途：
+   未经许可**不得再分发**，**不得用于任何商业或盈利目的**，且不得暗示获得明尼苏达大学的背书。
+   本项目是**非商业的个人作品集项目**，正是按此条件使用。若在出版物中使用，请引用
+   Harper & Konstan (2015), *The MovieLens Datasets: History and Context*, ACM TiiS 5(4)。
+   原始数据经 [`data/download.py`](data/download.py) 从 `files.grouplens.org` 获取（https-only + 白名单）。
+3. **海报与剧情简介（元数据）** —— 通过 TMDB API 获取（[`data/enrich_tmdb.py`](data/enrich_tmdb.py)），
+   受 TMDB 条款约束；1,682 部中有 1,400 部有简介、1,366 部有海报，未匹配的会优雅降级。
+
+**English** — Three inputs, three licences, none of which covers the others:
+
+1. **This project's code** — MIT (see [LICENSE](LICENSE)).
+2. **The MovieLens 100K ratings** — provided by the GroupLens Research Project,
+   University of Minnesota, for **research / non-commercial** use: it must **not be
+   redistributed** without permission and must **not** be used for commercial or
+   revenue-bearing purposes, and no endorsement by the University of Minnesota may
+   be implied. This repository is a **non-commercial portfolio project** and uses it
+   on exactly those terms. Publications must cite Harper & Konstan (2015),
+   *The MovieLens Datasets: History and Context*, ACM TiiS 5(4). The raw data is
+   fetched by [`data/download.py`](data/download.py) from `files.grouplens.org`
+   (https-only, allow-listed host).
+3. **Poster and overview metadata** — fetched from the TMDB API
+   ([`data/enrich_tmdb.py`](data/enrich_tmdb.py)) and subject to TMDB's terms;
+   1,400 / 1,682 rows have an overview and 1,366 / 1,682 a poster, and unmatched
+   titles degrade gracefully.
+</details>
+
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License — see [LICENSE](LICENSE).
+The **source code** is licensed under the MIT License — see [LICENSE](LICENSE).
 
-> Poster and overview metadata are fetched from the TMDB API
-> ([`data/enrich_tmdb.py`](data/enrich_tmdb.py)).
+This does **not** extend to the bundled data:
+
+- **MovieLens 100K** (ratings, titles, genres, years) is © GroupLens Research,
+  University of Minnesota, provided for **non-commercial research use**. It may
+  not be redistributed or used commercially without permission. See the
+  [FAQ entry above](#-faq--常见问题) and [ADR 0004](docs/adr/0004-dataset-choice.md).
+- **Poster and overview metadata** are fetched from the TMDB API
+  ([`data/enrich_tmdb.py`](data/enrich_tmdb.py)); TMDB's terms apply.
 
 ---
 
@@ -445,6 +510,7 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE).
 <details>
 <summary>展开查看</summary>
 
+- **2026-10-05** — UI：电影详情弹窗（卡片点击/键盘打开、评分与 IMDb 入口、随语言切换重绘）；数据集取舍与许可写入 [ADR 0004](docs/adr/0004-dataset-choice.md) 与上方 FAQ。
 - **2026-10-05** — UI：动画背景 + canvas 星空 + 字体改版；Streamlit 伴生应用独立目录与主题。
 - **2026-10-05** — 部署：Render(`lite`) + Streamlit(`full`) 双档免费部署定稿（ADR 0001）。
 - **2026-10-04** — 评测：6 模型统一评测 + 消融 + 冷启动实验；MLOps：LRU 缓存 + `/api/metrics` + Locust 压测。
