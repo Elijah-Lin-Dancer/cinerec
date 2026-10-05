@@ -75,6 +75,8 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 - **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，6 个模型共用同一套 HR@K / NDCG@K / Recall@K。正文明确标注 single-seed，不作"最优模型"声明。
 - **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）同仓切换。
 - **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐、实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
+- **电影详情弹窗** — 点击任意电影卡片（或键盘 Enter）打开无障碍详情弹窗：海报、简介、类型、平均评分、评分入口与 IMDb 链接；Escape/关闭按钮/遮罩点击关闭；随语言切换重绘。
+- **Streamlit 美化伴生应用** — 胶片 logo + KPI 条 + 融合推荐卡 + CSS 柱状图/热力图 + 算法阶梯 + 用户画像，纯 CSS 图表不增加依赖。
 
 ---
 
@@ -86,14 +88,33 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 <img src="screenshots/recommend.png" width="800" alt="CineRec Recommendation Page">
 
 ### Movie Library / 电影库
-> Browse 1,682 movies with real IMDb posters, search, genre filtering, and pagination.
+> Browse 1,682 movies with real posters, search, genre filtering, and pagination. Click any card to open a detail popup with synopsis, rating, and IMDb link.
 
 <img src="screenshots/movies.png" width="800" alt="CineRec Movie Library">
 
+### Movie Detail Modal / 电影详情弹窗
+> Click any movie card (or press Enter on a focused card) to open an accessible detail popup — poster, synopsis, genres, average rating, and actions to rate or view on IMDb. Closes with Escape, close button, or backdrop click; re-renders on language switch.
+
+<img src="screenshots/detail_modal.png" width="800" alt="CineRec Movie Detail Modal">
+
 ### Evaluation Dashboard / 评测看板
-> Interactive model comparison with real leave-last-5-out evaluation metrics.
+> Interactive model comparison with real leave-last-5-out evaluation metrics — all six models side by side.
 
 <img src="screenshots/dashboard.png" width="800" alt="CineRec Evaluation Dashboard">
+
+### Streamlit Companion (Full Mode) / Streamlit 伴生应用
+> Live inference companion with a film-strip logo, KPI strip, CSS bar charts, a Jaccard overlap heatmap, an algorithm ladder, and a user profile mini-card.
+
+<table>
+<tr>
+<td><img src="screenshots/streamlit_live.png" width="400" alt="Streamlit Live Recommendation"></td>
+<td><img src="screenshots/streamlit_comparison.png" width="400" alt="Streamlit Six-Model Comparison"></td>
+</tr>
+<tr>
+<td align="center"><sub>Live recommendation + KPI strip</sub></td>
+<td align="center"><sub>Six-model comparison + heatmap</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -510,7 +531,7 @@ This does **not** extend to the bundled data:
 <details>
 <summary>展开查看</summary>
 
-- **2026-10-05** — UI：电影详情弹窗（卡片点击/键盘打开、评分与 IMDb 入口、随语言切换重绘）；数据集取舍与许可写入 [ADR 0004](docs/adr/0004-dataset-choice.md) 与上方 FAQ。
+- **2026-10-05** — UI：电影详情弹窗（卡片点击/键盘打开、评分与 IMDb 入口、随语言切换重绘）；数据集取舍与许可写入 [ADR 0004](docs/adr/0004-dataset-choice.md) 与上方 FAQ；Streamlit 伴生应用美化（胶片 logo + KPI 条 + 融合推荐卡 + CSS 柱状图/热力图 + 算法阶梯 + 用户画像）；README 截图全部更新为最新版本。
 - **2026-10-05** — UI：动画背景 + canvas 星空 + 字体改版；Streamlit 伴生应用独立目录与主题。
 - **2026-10-05** — 部署：Render(`lite`) + Streamlit(`full`) 双档免费部署定稿（ADR 0001）。
 - **2026-10-04** — 评测：6 模型统一评测 + 消融 + 冷启动实验；MLOps：LRU 缓存 + `/api/metrics` + Locust 压测。
