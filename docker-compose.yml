@@ -14,4 +14,7 @@ services:
       # on a fresh clone even when no `.env` exists (env_file would hard-fail).
       - APP_MODE=${APP_MODE:-full}
       - TMDB_API_KEY=${TMDB_API_KEY:-}
+      # Session-token signing key. Empty means "generate an ephemeral key", which
+      # is safe but logs out all users on restart — set it for a real deployment.
+      - CINEREC_SECRET=${CINEREC_SECRET:-}
     restart: unless-stopped

@@ -1,5 +1,9 @@
 /**
  * CineRec — Movie Browsing Page Logic
+ *
+ * Server-provided strings (title, poster_url, genres) are inserted through the
+ * DOM API / textContent only — never innerHTML — and clicks are handled by
+ * event delegation, so a hostile title cannot inject markup or script.
  */
 async function loadMovies(page = 1) {
     const search = document.getElementById('movie-search').value;
@@ -15,38 +19,101 @@ async function loadMovies(page = 1) {
         renderPagination(data.page, data.pages);
         Animations.animateMovieCards();
     } catch (err) {
-        document.getElementById('movies-grid').innerHTML = `<p>${CineRec.t('common.error')}</p>`;
+        const grid = document.getElementById('movies-grid');
+        grid.textContent = '';
+        const p = document.createElement('p');
+        p.textContent = CineRec.t('common.error');
+        grid.appendChild(p);
     }
+}
+
+function _moviePlaceholder(title) {
+    const ph = document.createElement('div');
+    ph.className = 'poster-placeholder';
+    const span = document.createElement('span');
+    span.textContent = (title && String(title).charAt(0)) || '?';
+    ph.appendChild(span);
+    return ph;
+}
+
+function _moviePoster(movie) {
+    const wrap = document.createElement('div');
+    wrap.className = 'movie-poster';
+    if (movie.poster_url) {
+        const img = document.createElement('img');
+        img.src = movie.poster_url;
+        img.alt = movie.title || '';
+        img.loading = 'lazy';
+        img.addEventListener('error', () => {
+            wrap.textContent = '';
+            wrap.appendChild(_moviePlaceholder(movie.title));
+        });
+        wrap.appendChild(img);
+    } else {
+        wrap.appendChild(_moviePlaceholder(movie.title));
+    }
+    return wrap;
+}
+
+function _movieCard(movie) {
+    const card = document.createElement('div');
+    card.className = 'movie-card tilt-card spotlight-card';
+    card.dataset.id = String(movie.id);
+
+    card.appendChild(_moviePoster(movie));
+
+    const info = document.createElement('div');
+    info.className = 'movie-info';
+
+    const title = document.createElement('h3');
+    title.className = 'movie-title';
+    title.textContent = movie.title || '';
+    info.appendChild(title);
+
+    const meta = document.createElement('div');
+    meta.className = 'movie-meta';
+    if (movie.release_year) {
+        const year = document.createElement('span');
+        year.className = 'movie-year';
+        year.textContent = String(movie.release_year);
+        meta.appendChild(year);
+    }
+    if (movie.genres) {
+        const genres = document.createElement('span');
+        genres.className = 'movie-genres';
+        genres.textContent = String(movie.genres).split('|').slice(0, 3).join(' · ');
+        meta.appendChild(genres);
+    }
+    info.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'movie-actions';
+    const rateBtn = document.createElement('button');
+    rateBtn.className = 'btn-sm btn-outline';
+    rateBtn.dataset.action = 'rate';
+    rateBtn.textContent = CineRec.t('movies.rate');
+    actions.appendChild(rateBtn);
+    info.appendChild(actions);
+
+    card.appendChild(info);
+    return card;
 }
 
 function renderMovieGrid(movies) {
     const grid = document.getElementById('movies-grid');
+    grid.textContent = '';
+
     if (!movies.length) {
-        grid.innerHTML = `<p class="empty-state">${CineRec.t('movies.noResults')}</p>`;
+        const p = document.createElement('p');
+        p.className = 'empty-state';
+        p.textContent = CineRec.t('movies.noResults');
+        grid.appendChild(p);
         return;
     }
 
-    grid.innerHTML = movies.map(m => `
-        <div class="movie-card tilt-card spotlight-card" data-id="${m.id}">
-            <div class="movie-poster">
-                ${m.poster_url
-                    ? `<img src="${m.poster_url}" alt="${m.title}" loading="lazy" onerror="this.src=''">`
-                    : `<div class="poster-placeholder"><span>${m.title?.charAt(0) || '?'}</span></div>`}
-            </div>
-            <div class="movie-info">
-                <h3 class="movie-title">${m.title}</h3>
-                <div class="movie-meta">
-                    ${m.release_year ? `<span class="movie-year">${m.release_year}</span>` : ''}
-                    ${m.genres ? `<span class="movie-genres">${m.genres.split('|').slice(0, 3).join(' · ')}</span>` : ''}
-                </div>
-                <div class="movie-actions">
-                    <button class="btn-sm btn-outline" onclick="openRatingModal(${m.id}, '${(m.title || '').replace(/'/g, "\\'")}')">
-                        ${CineRec.t('movies.rate')}
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
+    const frag = document.createDocumentFragment();
+    movies.forEach(m => frag.appendChild(_movieCard(m)));
+    grid.appendChild(frag);
 
     // Re-init effects for new cards
     if (typeof Effects !== 'undefined') Effects.refresh();
@@ -54,26 +121,54 @@ function renderMovieGrid(movies) {
 
 function renderPagination(current, total) {
     const pag = document.getElementById('movies-pagination');
-    if (total <= 1) { pag.innerHTML = ''; return; }
+    pag.textContent = '';
+    if (total <= 1) return;
 
-    let html = '';
+    const frag = document.createDocumentFragment();
     for (let i = 1; i <= total; i++) {
-        html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="loadMovies(${i})">${i}</button>`;
+        const btn = document.createElement('button');
+        btn.className = `page-btn ${i === current ? 'active' : ''}`;
+        btn.dataset.page = String(i);
+        btn.textContent = String(i);
+        frag.appendChild(btn);
     }
-    pag.innerHTML = html;
+    pag.appendChild(frag);
 }
 
 // Rating modal
 let ratingMovieId = null;
 function openRatingModal(movieId, title) {
     ratingMovieId = movieId;
-    document.getElementById('rating-movie-title').textContent = title;
+    document.getElementById('rating-movie-title').textContent = title || '';
     document.getElementById('rating-modal').classList.remove('hidden');
     document.querySelectorAll('.star-rating .star').forEach(s => s.classList.remove('active'));
     Effects.refresh();
 }
 
+function _movieTitleById(movieId) {
+    const match = (CineRec.state.movies || []).find(m => Number(m.id) === Number(movieId));
+    return match ? match.title : '';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Event delegation: rating is opened from the card's data-id, so no title or
+    // id is ever interpolated into markup.
+    document.getElementById('movies-grid').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="rate"]');
+        if (!btn) return;
+        const card = btn.closest('.movie-card');
+        if (!card) return;
+        const movieId = Number(card.dataset.id);
+        openRatingModal(movieId, _movieTitleById(movieId));
+    });
+
+    // Event delegation for pagination buttons.
+    document.getElementById('movies-pagination').addEventListener('click', (e) => {
+        const btn = e.target.closest('.page-btn');
+        if (!btn) return;
+        loadMovies(Number(btn.dataset.page));
+    });
+
     // Close modal
     document.querySelector('.modal-close').addEventListener('click', () => {
         document.getElementById('rating-modal').classList.add('hidden');

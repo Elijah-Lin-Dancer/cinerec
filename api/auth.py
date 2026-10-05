@@ -5,14 +5,15 @@ Security model (intentionally lightweight, and honestly documented):
 - Login returns an HMAC-signed token binding the caller to a user id; the token
   is verified on state-changing / user-scoped endpoints so a caller cannot read
   or write another user's data by guessing an id.
-- This is *not* a full auth system (no expiry, no revocation, single shared
-  secret) — it is a stateless demo session adequate for a portfolio deployment.
+- This is *not* a full auth system (no revocation, single shared secret) — it is
+  a stateless demo session with a signed expiry, adequate for a portfolio deployment.
 """
 import hashlib
 import hmac
 import os
 import secrets
 import sqlite3
+import time
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
@@ -21,7 +22,16 @@ from db.database import get_connection
 
 router = APIRouter()
 
-_SECRET = os.environ.get("CINEREC_SECRET", "cinerec-demo-secret-change-me")
+#: HMAC key for session tokens. There is deliberately **no** hard-coded fallback:
+#: if the operator forgets to set ``CINEREC_SECRET`` we generate an ephemeral
+#: random key, so a publicly-known default can never be used to forge tokens.
+#: (A side effect is that sessions stop validating on restart — acceptable, and
+#: far safer, for a demo deployment.)
+_SECRET = os.environ.get("CINEREC_SECRET") or secrets.token_hex(32)
+
+#: Signed token lifetime; tokens older than this are rejected (default 7 days).
+_TOKEN_TTL_SECONDS = max(60, int(os.environ.get("CINEREC_TOKEN_TTL", 7 * 24 * 3600)))
+
 _PBKDF2_ITERATIONS = 200_000
 _LEGACY_SHA256_HEX_LEN = 64
 
@@ -55,21 +65,31 @@ def _is_legacy_hash(stored: str) -> bool:
 
 
 def make_token(user_id: int) -> str:
-    """Create a stateless demo token binding the caller to a user id."""
-    payload = str(int(user_id))
+    """Create a stateless demo token binding the caller to a user id.
+
+    The signed payload is ``<user_id>.<issued_at_epoch>``; the signature covers
+    the timestamp too, so it cannot be edited to extend a token's life.
+    """
+    payload = f"{int(user_id)}.{int(time.time())}"
     sig = hmac.new(_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
     return f"{payload}.{sig}"
 
 
 def verify_token(token: str):
-    """Return the user id encoded in ``token``, or ``None`` when it is invalid."""
-    if not token or "." not in token:
+    """Return the user id encoded in ``token``, or ``None`` when it is invalid/expired."""
+    if not token:
         return None
-    raw_id, sig = token.split(".", 1)
-    if not raw_id.isdigit():
+    parts = token.split(".")
+    if len(parts) != 3:
         return None
-    expected = hmac.new(_SECRET.encode(), raw_id.encode(), hashlib.sha256).hexdigest()
+    raw_id, raw_ts, sig = parts
+    if not raw_id.isdigit() or not raw_ts.isdigit():
+        return None
+    payload = f"{raw_id}.{raw_ts}"
+    expected = hmac.new(_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(sig, expected):
+        return None
+    if time.time() - int(raw_ts) > _TOKEN_TTL_SECONDS:
         return None
     return int(raw_id)
 

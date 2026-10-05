@@ -14,6 +14,7 @@ free sandbox CPU/RAM allowance and never sleeps.
 | Port | `8000` (public, HTTP) |
 | Health check | HTTP `GET /api/health` on port `8000` |
 | Environment variable | `APP_MODE=lite` |
+| Environment variable | `CINEREC_SECRET` = a long random string (session-token signing key; without it tokens reset on every restart) |
 | Resources | 0.2 CPU / 512 MiB (free sandbox) |
 
 ## Pre-requisite

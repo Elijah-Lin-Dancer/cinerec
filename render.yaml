@@ -20,3 +20,6 @@ services:
     envVars:
       - key: APP_MODE
         value: lite
+      # Render generates a random value, so session tokens cannot be forged.
+      - key: CINEREC_SECRET
+        generateValue: true

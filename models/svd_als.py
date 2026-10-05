@@ -83,6 +83,8 @@ class SVDALS(Recommender):
         """Predict rating via dot product + user mean."""
         user_id = int(user_id)
         item_id = int(item_id)
+        if user_id < 0 or item_id < 0:
+            return self.global_mean
         if user_id >= self.num_users or item_id >= self.num_items:
             return self.global_mean
         return self.user_mean[user_id] + np.dot(self.U[user_id], self.V[item_id])
@@ -90,7 +92,8 @@ class SVDALS(Recommender):
     def recommend(self, user_id, top_k=10, exclude_items=None):
         """Recommend top-K items for a user."""
         user_id = int(user_id)
-        if user_id >= self.num_users:
+        top_k = int(top_k)
+        if top_k <= 0 or user_id < 0 or user_id >= self.num_users:
             return []
         if exclude_items is None:
             exclude_items = set()
@@ -105,7 +108,7 @@ class SVDALS(Recommender):
             rated = set()
         
         for idx in list(exclude_items) + list(rated):
-            if idx < len(scores):
+            if 0 <= idx < len(scores):
                 scores[idx] = -np.inf
         
         top_indices = np.argsort(scores)[-top_k:][::-1]

@@ -21,8 +21,8 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
       - name: Lint (ruff)
         run: ruff check .
-      - name: Tests
-        run: pytest -q
+      - name: Tests (with coverage)
+        run: pytest -q --cov --cov-report=term-missing
 
   docker:
     runs-on: ubuntu-latest

@@ -209,16 +209,20 @@ class NeuMF(Recommender):
 
     def predict(self, user_id, item_id):
         """Predict interaction probability for user-item pair."""
+        user_id, item_id = int(user_id), int(item_id)
+        if not (0 <= user_id < self.num_users and 0 <= item_id < self.num_items):
+            return 0.0  # out-of-range indices cannot be embedded
         self.net.eval()
         with torch.no_grad():
-            u = torch.LongTensor([int(user_id)]).to(self.device)
-            i = torch.LongTensor([int(item_id)]).to(self.device)
+            u = torch.LongTensor([user_id]).to(self.device)
+            i = torch.LongTensor([item_id]).to(self.device)
             return float(self.net(u, i).cpu().item())
 
     def recommend(self, user_id, top_k=10, exclude_items=None):
         """Recommend top-K items for a user."""
         user_id = int(user_id)
-        if user_id >= self.num_users:
+        top_k = int(top_k)
+        if top_k <= 0 or user_id < 0 or user_id >= self.num_users:
             return []
         if exclude_items is None:
             exclude_items = set()
@@ -231,7 +235,7 @@ class NeuMF(Recommender):
             scores = self.net(user_tensor, item_tensor).cpu().numpy()
 
         for idx in exclude_items:
-            if idx < len(scores):
+            if 0 <= idx < len(scores):
                 scores[idx] = -np.inf
 
         top_indices = np.argsort(scores)[-top_k:][::-1]
@@ -246,8 +250,12 @@ class NeuMF(Recommender):
         }, path)
 
     def load(self, path):
-        """Load model weights."""
-        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+        """Load model weights.
+
+        ``weights_only=True`` restricts unpickling to tensors and plain Python
+        containers, so a tampered artefact cannot execute arbitrary code.
+        """
+        checkpoint = torch.load(path, map_location=self.device, weights_only=True)
         self.num_users = checkpoint['num_users']
         self.num_items = checkpoint['num_items']
         self.net = NeuMFNet(

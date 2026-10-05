@@ -179,14 +179,15 @@ class LightGCN(Recommender):
     def predict(self, user_id, item_id):
         """Dot-product score between the final user and item embeddings."""
         user_id, item_id = int(user_id), int(item_id)
-        if user_id >= self.num_users or item_id >= self.num_items:
+        if not (0 <= user_id < self.num_users and 0 <= item_id < self.num_items):
             return 0.0
         return float(self.user_emb[user_id] @ self.item_emb[item_id])
 
     def recommend(self, user_id, top_k=10, exclude_items=None):
         """Rank all items by dot-product score and return the top-K unseen ones."""
         user_id = int(user_id)
-        if self.user_emb is None or user_id >= self.num_users:
+        top_k = int(top_k)
+        if top_k <= 0 or self.user_emb is None or user_id < 0 or user_id >= self.num_users:
             return []
         exclude_items = exclude_items or set()
 

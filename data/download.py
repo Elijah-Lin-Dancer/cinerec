@@ -1,14 +1,50 @@
-import os, zipfile, requests, pandas as pd
+"""Download and extract the MovieLens 100K dataset.
+
+Hardened against the usual data-pipeline footguns: the URL is allow-listed and
+https-only, the request uses connect/read timeouts so a stalled host cannot hang
+the build, and archive members are checked so a malicious zip cannot write
+outside the target directory (Zip Slip).
+"""
+import os
+import zipfile
+from urllib.parse import urlparse
+
+import pandas as pd
+import requests
+
 RAW_DIR = os.path.join(os.path.dirname(__file__), "raw")
 os.makedirs(RAW_DIR, exist_ok=True)
 
+MOVIELENS_URL = "https://files.grouplens.org/datasets/movielens/ml-100k.zip"
+_ALLOWED_HOSTS = {"files.grouplens.org"}
+
+
+def _validated_url(url):
+    """Return ``url`` when it is https on an allow-listed host, else raise."""
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in _ALLOWED_HOSTS:
+        raise ValueError(f"Refusing to download from untrusted URL: {url}")
+    return url
+
+
+def _safe_extract(archive, dest):
+    """Extract ``archive`` into ``dest``, rejecting members that escape it."""
+    dest_root = os.path.realpath(dest)
+    for member in archive.infolist():
+        target = os.path.realpath(os.path.join(dest_root, member.filename))
+        if os.path.commonpath([dest_root, target]) != dest_root:
+            raise ValueError(f"Unsafe path in archive (Zip Slip): {member.filename}")
+    archive.extractall(dest)
+
+
 def download_movielens_100k():
     """Download MovieLens 100K dataset and extract u.data"""
-    url = "https://files.grouplens.org/datasets/movielens/ml-100k.zip"
+    url = _validated_url(MOVIELENS_URL)
     zip_path = os.path.join(RAW_DIR, "ml-100k.zip")
     if not os.path.exists(zip_path):
         print(f"Downloading {url}...")
-        r = requests.get(url, stream=True)
+        # (connect, read) timeouts — a hung server must not block the pipeline.
+        r = requests.get(url, stream=True, timeout=(10, 120))
         r.raise_for_status()
         with open(zip_path, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
@@ -23,7 +59,7 @@ def download_movielens_100k():
             print("File may be corrupted. Please re-run this script.")
     if not os.path.exists(os.path.join(RAW_DIR, "ml-100k")):
         with zipfile.ZipFile(zip_path, "r") as z:
-            z.extractall(RAW_DIR)
+            _safe_extract(z, RAW_DIR)
         print("Extracted.")
     return pd.read_csv(
         os.path.join(RAW_DIR, "ml-100k", "u.data"), sep="\t",

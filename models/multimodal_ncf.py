@@ -329,13 +329,16 @@ class MultiModalNCF(Recommender):
 
     def predict(self, user_id, item_id):
         """Predict interaction probability."""
+        user_id, item_id = int(user_id), int(item_id)
+        if not (0 <= user_id < self.num_users and 0 <= item_id < self.num_items):
+            return 0.0  # out-of-range indices cannot be embedded
         self.net.eval()
         with torch.no_grad():
-            u = torch.LongTensor([int(user_id)]).to(self.device)
-            i = torch.LongTensor([int(item_id)]).to(self.device)
-            t = torch.FloatTensor(self.text_emb[int(item_id)]).unsqueeze(0).to(self.device)
-            img = torch.FloatTensor(self.image_emb[int(item_id)]).unsqueeze(0).to(self.device)
-            g = torch.FloatTensor(self.genre_vec[int(item_id)]).unsqueeze(0).to(self.device)
+            u = torch.LongTensor([user_id]).to(self.device)
+            i = torch.LongTensor([item_id]).to(self.device)
+            t = torch.FloatTensor(self.text_emb[item_id]).unsqueeze(0).to(self.device)
+            img = torch.FloatTensor(self.image_emb[item_id]).unsqueeze(0).to(self.device)
+            g = torch.FloatTensor(self.genre_vec[item_id]).unsqueeze(0).to(self.device)
             return float(self.net(u, i, t, img, g).cpu().item())
 
     def predict_cold(self, user_id, text_emb, image_emb, genre_vec):
@@ -355,7 +358,8 @@ class MultiModalNCF(Recommender):
     def recommend(self, user_id, top_k=10, exclude_items=None):
         """Recommend top-K items using content features."""
         user_id = int(user_id)
-        if user_id >= self.num_users:
+        top_k = int(top_k)
+        if top_k <= 0 or user_id < 0 or user_id >= self.num_users:
             return []
         if exclude_items is None:
             exclude_items = set()
@@ -370,7 +374,7 @@ class MultiModalNCF(Recommender):
             scores = self.net(user_tensor, item_tensor, text_tensor, image_tensor, genre_tensor).cpu().numpy()
 
         for idx in exclude_items:
-            if idx < len(scores):
+            if 0 <= idx < len(scores):
                 scores[idx] = -np.inf
 
         top_indices = np.argsort(scores)[-top_k:][::-1]
@@ -387,8 +391,12 @@ class MultiModalNCF(Recommender):
         }, path)
 
     def load(self, path):
-        """Load model weights."""
-        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+        """Load model weights.
+
+        ``weights_only=True`` restricts unpickling to tensors and plain Python
+        containers, so a tampered artefact cannot execute arbitrary code.
+        """
+        checkpoint = torch.load(path, map_location=self.device, weights_only=True)
         self.num_users = checkpoint['num_users']
         self.num_items = checkpoint['num_items']
         self._load_content_features()

@@ -20,6 +20,10 @@ class RecommenderExplainer:
         self.content_embs = None  # (num_items, content_dim)
         self.user_ratings = {}  # user_id -> {item_id: rating}
         self.item_similarity = None  # (num_items, num_items) content cosine sim
+        # Per-user caches: explanations are generated for many items in one
+        # request, so the sorted history and genre preferences are computed once.
+        self._top_rated_cache = {}
+        self._genre_pref_cache = {}
 
     def load_data(self, movies_enriched_path=None, genre_path=None):
         """Load movie metadata and genre features."""
@@ -59,6 +63,19 @@ class RecommenderExplainer:
         """Load user rating history from training data."""
         for u, i, r in zip(train_data['user_id'], train_data['item_id'], train_data['rating']):
             self.user_ratings.setdefault(int(u), {})[int(i)] = float(r)
+        # Ratings changed: any memoised per-user view is now stale.
+        self._top_rated_cache.clear()
+        self._genre_pref_cache.clear()
+
+    def _top_rated_items(self, user_id, n):
+        """Return (item_id, rating) pairs sorted by rating desc, memoised per user."""
+        key = (int(user_id), int(n))
+        cached = self._top_rated_cache.get(key)
+        if cached is None:
+            history = self.user_ratings.get(user_id, {})
+            cached = sorted(history.items(), key=lambda x: x[1], reverse=True)[:n]
+            self._top_rated_cache[key] = cached
+        return cached
 
     def get_movie_title(self, item_id):
         """Get movie title by item ID."""
@@ -85,15 +102,16 @@ class RecommenderExplainer:
         if not user_history or self.item_similarity is None:
             return reasons
 
-        # Find highest-rated items by user
-        rated_items = sorted(user_history.items(), key=lambda x: x[1], reverse=True)
+        # Highest-rated items by user (memoised: the same user is explained for
+        # every recommendation in a request).
+        rated_items = self._top_rated_items(user_id, 20)
 
         rec_idx = recommended_item_id
-        if rec_idx >= self.item_similarity.shape[0]:
+        if rec_idx < 0 or rec_idx >= self.item_similarity.shape[0]:
             return reasons
 
         sim_scores = []
-        for rated_id, rating in rated_items[:20]:  # top-20 rated items
+        for rated_id, rating in rated_items:
             if rated_id == recommended_item_id:
                 continue
             if rated_id >= self.item_similarity.shape[0]:
@@ -251,7 +269,11 @@ class RecommenderExplainer:
         }
 
     def _get_user_genre_prefs(self, user_id, threshold=4.0):
-        """Get set of genres from user's highly-rated movies."""
+        """Get set of genres from user's highly-rated movies (memoised per user)."""
+        key = (int(user_id), float(threshold))
+        cached = self._genre_pref_cache.get(key)
+        if cached is not None:
+            return cached
         prefs = set()
         user_history = self.user_ratings.get(user_id, {})
         for item_id, rating in user_history.items():
@@ -260,4 +282,5 @@ class RecommenderExplainer:
                 if genres:
                     for g in genres.split("|"):
                         prefs.add(g.strip())
+        self._genre_pref_cache[key] = prefs
         return prefs

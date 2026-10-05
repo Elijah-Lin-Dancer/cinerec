@@ -36,7 +36,8 @@ data:
 	$(PYTHON) data/enrich_tmdb.py
 
 features:
-	HF_ENDPOINT=$${HF_ENDPOINT:-https://hf-mirror.com} $(PYTHON) data/preprocess.py
+	# Set HF_ENDPOINT externally if the default Hugging Face host is unreachable.
+	$(PYTHON) data/preprocess.py
 
 train:
 	$(PYTHON) scripts/train_all.py

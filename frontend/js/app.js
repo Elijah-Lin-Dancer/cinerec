@@ -131,44 +131,33 @@ const CineRec = (() => {
         }
     }
 
-    // Init
-    async function init() {
-        // Check CDN dependencies
-        const deps = ['gsap', 'Lenis', 'tsParticles', 'echarts'];
-        const missing = deps.filter(d => typeof window[d] === 'undefined' && d !== 'Lenis');
-        if (missing.length > 0) {
-            console.warn('Missing CDN dependencies:', missing.join(', '));
+    // Load the genre filter options once.
+    async function loadGenres() {
+        const select = document.getElementById('genre-filter');
+        if (!select || select.dataset.loaded) return;
+        try {
+            const genresData = await api('/api/movies/genres');
+            genresData.genres.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g;
+                opt.textContent = g;
+                select.appendChild(opt);
+            });
+            select.dataset.loaded = '1';
+        } catch (e) {
+            console.warn('Could not load genres');
         }
+    }
 
-        // Restore user session
-        const savedUser = localStorage.getItem('cinerec-user');
-        if (savedUser) {
-            try {
-                const { userId, username, token } = JSON.parse(savedUser);
-                setUser(userId, username, token);
-                const savedLang = localStorage.getItem('cinerec-lang');
-                if (savedLang) state.lang = savedLang;
-                applyTheme();
-                await loadI18n();
-                applyI18n();
-                if (typeof Animations !== 'undefined' && Animations.initDecryptedText) {
-                    Animations.initDecryptedText();
-                }
-                navigateTo('recommend');
-                return;
-            } catch(e) {}
-        }
+    // One-time UI wiring: navigation, language, theme, filters, mobile menu.
+    // Runs exactly once and always *before* any early return in ``init`` — the
+    // previous code returned early on session restore, which left navigation,
+    // theme, language and the genre filter unresponsive for logged-in users.
+    let uiBound = false;
+    function bindUI() {
+        if (uiBound) return;
+        uiBound = true;
 
-        // Restore saved lang
-        const savedLang = localStorage.getItem('cinerec-lang');
-        if (savedLang) state.lang = savedLang;
-
-        applyTheme();
-        await loadI18n();
-        applyI18n();
-        if (typeof Animations !== 'undefined' && Animations.initDecryptedText) {
-            Animations.initDecryptedText();
-        }
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -182,19 +171,8 @@ const CineRec = (() => {
         // Theme toggle
         document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
-        // Load genre filter
-        try {
-            const genresData = await api('/api/movies/genres');
-            const select = document.getElementById('genre-filter');
-            genresData.genres.forEach(g => {
-                const opt = document.createElement('option');
-                opt.value = g;
-                opt.textContent = g;
-                select.appendChild(opt);
-            });
-        } catch (e) {
-            console.warn('Could not load genres');
-        }
+        // Genre filter
+        loadGenres();
 
         // Hamburger menu (mobile)
         const hamburger = document.getElementById('hamburger');
@@ -210,6 +188,44 @@ const CineRec = (() => {
                     document.querySelector('.nav-links').classList.remove('open');
                 });
             });
+        }
+    }
+
+    // Init
+    async function init() {
+        // Check CDN dependencies
+        const deps = ['gsap', 'Lenis', 'tsParticles', 'echarts'];
+        const missing = deps.filter(d => typeof window[d] === 'undefined' && d !== 'Lenis');
+        if (missing.length > 0) {
+            console.warn('Missing CDN dependencies:', missing.join(', '));
+        }
+
+        // Restore saved lang
+        const savedLang = localStorage.getItem('cinerec-lang');
+        if (savedLang) state.lang = savedLang;
+
+        applyTheme();
+        await loadI18n();
+        applyI18n();
+
+        // Bind interactions before the possible early return below.
+        bindUI();
+
+        if (typeof Animations !== 'undefined' && Animations.initDecryptedText) {
+            Animations.initDecryptedText();
+        }
+
+        // Restore user session
+        const savedUser = localStorage.getItem('cinerec-user');
+        if (savedUser) {
+            try {
+                const { userId, username, token } = JSON.parse(savedUser);
+                setUser(userId, username, token);
+                navigateTo('recommend');
+                return;
+            } catch (e) {
+                localStorage.removeItem('cinerec-user');
+            }
         }
     }
 

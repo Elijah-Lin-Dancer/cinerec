@@ -185,25 +185,34 @@ so re-recommending already-seen titles cannot inflate the numbers.
 
 | Model | HR@10 | NDCG@10 | HR@20 | NDCG@20 | Train Time |
 |:-----:|:-----:|:-------:|:-----:|:-------:|:-----------:|
-| UserCF | 0.0191 | 0.0035 | 0.0477 | 0.0060 | 0.13s |
-| ItemCF | 0.0721 | 0.0142 | 0.1283 | 0.0199 | 0.24s |
-| SVD | 0.2534 | 0.0532 | 0.3542 | 0.0664 | 0.2s |
-| NeuMF | 0.3468 | 0.0764 | 0.4952 | 0.1025 | 49.7s |
-| **MultiModalNCF** ⭐ | **0.3478** | **0.0784** | **0.5005** | **0.1060** | 96.9s |
+| UserCF | 0.0191 | 0.0035 | 0.0477 | 0.0060 | 0.1s |
+| ItemCF | 0.0721 | 0.0142 | 0.1283 | 0.0199 | 0.25s |
+| SVD | 0.2534 | 0.0532 | 0.3542 | 0.0664 | 0.47s |
+| NeuMF | **0.3775** | 0.0838 | **0.5164** | 0.1121 | 48.4s |
+| LightGCN | 0.2789 | 0.0615 | 0.4210 | 0.0804 | 16.4s |
+| **MultiModalNCF** ⭐ | 0.3627 | **0.0850** | 0.5133 | **0.1123** | 93.5s |
 
-> **Note**: MultiModalNCF leads on every metric at both cut-offs, narrowly ahead of
-> NeuMF and clearly ahead of matrix factorization. The neural models pay for that
-> gain with a much longer training time — the ladder makes the accuracy/cost
-> trade-off explicit.
+> **Honest reading**: on this single split the strongest hit-rate result is **NeuMF**
+> (HR@10 0.3775 / HR@20 0.5164), while **MultiModalNCF** leads only on NDCG
+> (0.0850 / 0.1123) — i.e. content features mainly improve the *ranking* of the
+> items the model already retrieves. **LightGCN** lands between SVD and NeuMF at a
+> fraction of NeuMF's training time. The neural models pay for their gains with a
+> much longer training time, making the accuracy/cost trade-off explicit. These are
+> single-seed numbers and the top gaps are small, so no "best model" claim is made.
 
 ### Key Findings / 关键发现
 
 - **UserCF → ItemCF → SVD** shows the expected jump from neighbourhood heuristics to
   matrix factorization; SVD is the best accuracy-per-second point on the ladder.
 - **NeuMF** shows that learned non-linear interaction modelling beats plain
-  factorization on this dataset once candidates are filtered to unseen items.
-- **MultiModalNCF** edges out NeuMF by fusing Sentence-BERT text, ResNet-50 image and
-  genre content — the ablation study quantifies each modality's contribution.
+  factorization on this dataset once candidates are filtered to unseen items — it is
+  the strongest hit-rate model on this split.
+- **LightGCN** sits between SVD and NeuMF (HR@10 0.2789) with the best
+  accuracy-per-second among the neural models, showing the graph baseline is
+  competitive without any content features.
+- **MultiModalNCF** trails NeuMF on hit-rate while leading on NDCG: fusing
+  Sentence-BERT text, ResNet-50 image and genre content mainly improves the *ranking*
+  of the items it retrieves — the ablation study quantifies each modality's contribution.
 
 ### Ablation Study / 消融实验
 

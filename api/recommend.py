@@ -104,6 +104,26 @@ def get_explainer():
     return _explainer
 
 
+def _fetch_movies(conn, item_ids):
+    """Fetch the requested movie rows in a single query, keyed by id.
+
+    Replaces one ``SELECT`` per recommendation (an N+1 that scaled with
+    ``top_k``) with a single ``IN`` query. Order is preserved by the caller
+    through the returned mapping. The placeholder count derives from ``len``,
+    never from user text, so the statement stays parameterised.
+    """
+    ids = [int(i) for i in dict.fromkeys(item_ids)]
+    if not ids:
+        return {}
+    placeholders = ",".join("?" * len(ids))
+    rows = conn.execute(
+        f"SELECT id, title, genres, poster_url, release_year "
+        f"FROM movies WHERE id IN ({placeholders})",
+        ids,
+    ).fetchall()
+    return {int(r["id"]): r for r in rows}
+
+
 def _popular_items(conn, exclude, top_k):
     """Popularity fallback for users outside the model's training set.
 
@@ -198,12 +218,12 @@ async def get_recommendations(
                 recs = _popular_items(conn, exclude, top_k)
                 is_fallback = bool(recs)
 
+        page = recs[:top_k]
+        movies_by_id = _fetch_movies(conn, [item_id for item_id, _ in page])
+
         recommendations = []
-        for item_id, score in recs[:top_k]:
-            movie = conn.execute(
-                "SELECT id, title, genres, poster_url, release_year FROM movies WHERE id = ?",
-                (item_id,)
-            ).fetchone()
+        for item_id, score in page:
+            movie = movies_by_id.get(int(item_id))
             if movie:
                 recommendations.append({
                     "item_id": int(movie["id"]),

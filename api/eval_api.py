@@ -15,12 +15,19 @@ PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed
 
 
 def _load(filename):
-    """Return the parsed JSON artefact, or a structured 'unavailable' marker."""
+    """Return the parsed JSON artefact, or a structured 'unavailable' marker.
+
+    A missing *or* unreadable/corrupt artefact is reported as unavailable rather
+    than surfacing a 500 — the endpoint's job is to be honest about what exists.
+    """
     path = os.path.join(PROCESSED_DIR, filename)
     if not os.path.exists(path):
         return {"available": False, "note": f"{filename} not found — run the training/evaluation pipeline."}
-    with open(path, encoding="utf-8") as f:
-        payload = json.load(f)
+    try:
+        with open(path, encoding="utf-8") as f:
+            payload = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        return {"available": False, "note": f"{filename} could not be read ({e})."}
     if isinstance(payload, dict):
         payload.setdefault("available", True)
     return payload

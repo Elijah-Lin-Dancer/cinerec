@@ -1,4 +1,6 @@
 """Movie browsing and rating endpoints."""
+import time
+
 from fastapi import APIRouter, Query, HTTPException, Depends
 from db.database import get_connection, DBConnection
 from api.auth import resolve_user
@@ -111,14 +113,23 @@ async def rate_movie(
     user_id = current_user
     conn = get_connection()
     try:
-        conn.execute("""
+        # Reject ratings for movies that do not exist rather than silently
+        # storing a dangling foreign key.
+        if not conn.execute("SELECT 1 FROM movies WHERE id = ?", (movie_id,)).fetchone():
+            raise HTTPException(404, "Movie not found")
+
+        # Store the timestamp as an integer epoch, matching the schema comment
+        # and the seed import (previously a TEXT datetime was written here,
+        # giving the column two incompatible encodings).
+        conn.execute(
+            """
             INSERT INTO ratings (user_id, movie_id, rating, timestamp)
-            VALUES (?, ?, ?, datetime('now'))
-            ON CONFLICT(user_id, movie_id) DO UPDATE SET rating = excluded.rating, timestamp = datetime('now')
-        """, (user_id, movie_id, rating))
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id, movie_id) DO UPDATE SET rating = excluded.rating, timestamp = excluded.timestamp
+            """,
+            (user_id, movie_id, rating, int(time.time())),
+        )
         conn.commit()
-        return {"message": f"Rating {rating} saved for movie {movie_id}", "user_id": user_id}
-    except Exception:
-        raise HTTPException(500, "Failed to save rating")
     finally:
         conn.close()
+    return {"message": f"Rating {rating} saved for movie {movie_id}", "user_id": user_id}

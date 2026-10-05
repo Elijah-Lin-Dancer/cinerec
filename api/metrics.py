@@ -20,6 +20,14 @@ _ID_SEGMENT = re.compile(r"/\d+(?=/|$)")
 #: Percentiles are therefore computed over a rolling window, not all history.
 _MAX_LATENCY_SAMPLES = 2000
 
+#: Cap the number of distinct (method, path) keys held in memory. Scanners and
+#: crawlers hit arbitrary URLs, so without this the counter maps would grow
+#: without bound on a public deployment. Once the cap is reached, every new
+#: distinct path is aggregated under ``{other}`` — totals stay exact, only the
+#: per-endpoint breakdown coarse-grains.
+_MAX_ENDPOINTS = 500
+_OTHER_PATH = "{other}"
+
 
 def _normalise_path(path):
     """Return a stable grouping key for a request path."""
@@ -40,13 +48,16 @@ class MetricsRegistry:
         self._latency = defaultdict(lambda: deque(maxlen=_MAX_LATENCY_SAMPLES))
 
     def record(self, method, path, status, latency_ms):
-        """Record one completed request."""
+        """Record one completed request, keeping the key space bounded."""
         with self._lock:
+            key = (method, path)
+            if key not in self._counts and len(self._counts) >= _MAX_ENDPOINTS:
+                key = (method, _OTHER_PATH)
             self._total += 1
             self._total_latency_ms += latency_ms
-            self._counts[(method, path)] += 1
+            self._counts[key] += 1
             self._status[int(status)] += 1
-            self._latency[(method, path)].append(latency_ms)
+            self._latency[key].append(latency_ms)
             if status >= 500:
                 self._errors_5xx += 1
 

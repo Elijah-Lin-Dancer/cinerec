@@ -9,14 +9,15 @@ whose id is ``i`` (shape ``(max_id + 1, dim)``). This lets models index content
 features directly with ``item_id`` without an extra mapping table.
 """
 import os, json, numpy as np, pandas as pd
+from urllib.parse import urlparse
 
 RAW_DIR = os.path.join(os.path.dirname(__file__), "raw")
 PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "processed")
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-# Prefer a reachable mirror for Hugging Face model weights (the default host is
-# blocked in some sandboxes). Only sets a default — an explicit env var wins.
-os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+# NOTE: model weights are fetched from the default Hugging Face endpoint. If that
+# host is unreachable (e.g. behind a restrictive network), export HF_ENDPOINT to a
+# trusted mirror yourself — the pipeline deliberately does not hard-code one.
 
 GENRE_LIST = [
     "Action", "Adventure", "Animation", "Children", "Comedy", "Crime",
@@ -40,6 +41,12 @@ def load_enriched_movies():
 
 def _empty(num_rows, dim):
     return np.zeros((num_rows, dim), dtype=np.float32)
+
+
+def _is_fetchable_url(url):
+    """Only http(s) URLs with a host are fetched — rejects file:// and bare paths."""
+    parsed = urlparse(str(url or ""))
+    return parsed.scheme in ("http", "https") and bool(parsed.hostname)
 
 
 def encode_texts(overviews, item_ids):
@@ -108,10 +115,11 @@ def encode_images(poster_urls, item_ids):
     count = 0
 
     for i, url in enumerate(poster_urls):
-        if not url or "http" not in url:
+        if not _is_fetchable_url(url):
             continue
         try:
-            resp = requests.get(url, timeout=10)
+            resp = requests.get(url, timeout=(10, 30))
+            resp.raise_for_status()
             img = Image.open(BytesIO(resp.content)).convert("RGB")
             img_t = transform(img).unsqueeze(0)
             with torch.no_grad():
@@ -143,7 +151,7 @@ def preprocess_all(skip_images=False):
     encode_texts([m.get("overview", "") for m in movies], item_ids)
 
     # Image encoding (default on when posters are available)
-    has_posters = sum(1 for m in movies if m.get("poster_url") and "http" in m.get("poster_url", ""))
+    has_posters = sum(1 for m in movies if _is_fetchable_url(m.get("poster_url")))
     if skip_images or has_posters == 0:
         print("Skipping image encoding (no poster URLs or skip_images=True).")
         np.save(
