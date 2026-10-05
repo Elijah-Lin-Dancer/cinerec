@@ -1,0 +1,49 @@
+name: Fork sync
+
+# Keeps a designated mirror fork byte-identical to this repo, so a second
+# hosting account — e.g. a spare Render account signed in with a different
+# GitHub identity — deploys exactly what upstream ships. This works around two
+# provider rules:
+#   * Render requires the deployment GitHub account to match the login account,
+#     so the spare account cannot deploy this repo directly.
+#   * A fork inherits no credentials, so no long-lived personal token is needed.
+#
+# The job does nothing unless the repository sets an Actions *variable* named
+# `SYNC_TARGET_OWNER` to its own owner login. That keeps the schedule inert on
+# the upstream repo and — more importantly — on every unrelated fork, so a
+# stranger's fork is never reset out from under them.
+#
+# One-time setup, in the mirror fork only:
+#   1. Actions tab → "I understand my workflows, go ahead and enable them".
+#   2. Settings → Actions → General → Workflow permissions → Read and write.
+#   3. Settings → Secrets and variables → Actions → Variables →
+#      New repository variable: SYNC_TARGET_OWNER = <fork owner login>.
+#   4. Actions → Fork sync → Run workflow, to sync immediately.
+#
+# After that the fork tracks upstream automatically. Render auto-deploys on the
+# resulting push, and no deploy happens when upstream is unchanged.
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # hourly; GitHub may delay scheduled runs under load
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: vars.SYNC_TARGET_OWNER != '' && vars.SYNC_TARGET_OWNER == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Reset fork to upstream main
+        run: |
+          git remote add upstream https://github.com/ElijahZhao/cinerec.git
+          git fetch --no-tags upstream main
+          git reset --hard FETCH_HEAD
+          git push --force origin main
