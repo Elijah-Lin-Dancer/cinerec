@@ -5,6 +5,9 @@
  * innerHTML) so fields like title, poster_url and explanation text cannot
  * inject markup.
  */
+let _lastRecAlgo = 'SVD';
+let _lastRecFallback = false;
+
 async function loadRecommendations() {
     if (!CineRec.state.userId) {
         CineRec.navigateTo('login');
@@ -20,8 +23,10 @@ async function loadRecommendations() {
             `/api/recommend?algorithm=${encodeURIComponent(algo)}&top_k=10`
         );
         CineRec.state.recommendations = data.recommendations;
+        _lastRecAlgo = algo;
+        _lastRecFallback = !!data.fallback;
         renderRecommendations(data.recommendations, algo, data.fallback);
-        Animations.animateRecCards();
+        if (typeof Animations !== 'undefined') Animations.animateRecCards();
     } catch (err) {
         const status = err && err.message ? err.message : '';
         recList.textContent = '';
@@ -36,10 +41,6 @@ async function loadRecommendations() {
     }
 }
 
-function _initialOf(title) {
-    return (title && String(title).charAt(0)) || '?';
-}
-
 function _posterNode(rec) {
     const wrap = document.createElement('div');
     wrap.className = 'rec-poster';
@@ -48,6 +49,7 @@ function _posterNode(rec) {
         const ph = document.createElement('div');
         ph.className = 'poster-placeholder';
         const span = document.createElement('span');
+        span.className = 'ph-initial';
         span.textContent = _initialOf(rec.title);
         ph.appendChild(span);
         return ph;
@@ -56,8 +58,10 @@ function _posterNode(rec) {
     if (rec.poster_url) {
         const img = document.createElement('img');
         img.src = rec.poster_url;
-        img.alt = rec.title || '';
+        img.alt = _displayTitle(rec.title);
         img.loading = 'lazy';
+        img.decoding = 'async';
+        img.referrerPolicy = 'no-referrer';
         img.addEventListener('error', () => {
             wrap.textContent = '';
             wrap.appendChild(placeholder());
@@ -126,7 +130,8 @@ function renderRecommendations(recs, algo, isFallback) {
 
         const title = document.createElement('h3');
         title.className = 'rec-title';
-        title.textContent = rec.title || '';
+        title.textContent = _displayTitle(rec.title);
+        title.title = _displayTitle(rec.title);
         info.appendChild(title);
 
         const meta = document.createElement('div');
@@ -136,10 +141,11 @@ function renderRecommendations(recs, algo, isFallback) {
             year.textContent = String(rec.release_year);
             meta.appendChild(year);
         }
-        if (rec.genres) {
+        const genreNames = _splitGenres(rec.genres).slice(0, 3).map(g => CineRec.genreName(g));
+        if (genreNames.length) {
             const genres = document.createElement('span');
             genres.className = 'rec-genres';
-            genres.textContent = String(rec.genres).split('|').slice(0, 3).join(' · ');
+            genres.textContent = genreNames.join(' · ');
             meta.appendChild(genres);
         }
         info.appendChild(meta);
@@ -167,7 +173,8 @@ function renderRecommendations(recs, algo, isFallback) {
     });
 
     document.querySelectorAll('.score-value[data-count]').forEach(el => {
-        Animations.countUp(el, parseFloat(el.dataset.count));
+        if (typeof Animations !== 'undefined') Animations.countUp(el, parseFloat(el.dataset.count));
+        else el.textContent = parseFloat(el.dataset.count).toFixed(4);
     });
 
     if (typeof Effects !== 'undefined') Effects.refresh();
@@ -186,4 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Refresh button
     document.getElementById('btn-refresh-rec').addEventListener('click', loadRecommendations);
+
+    // Redraw cards (titles fall back to the original, genres/UI translate).
+    CineRec.onLangChange(() => {
+        if (CineRec.state.recommendations && CineRec.state.recommendations.length) {
+            renderRecommendations(CineRec.state.recommendations, _lastRecAlgo, _lastRecFallback);
+        }
+    });
 });

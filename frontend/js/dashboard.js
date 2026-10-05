@@ -171,3 +171,11 @@ function renderAblationChart(ablation) {
         ]
     });
 }
+
+// Table headers and chart legends are built at render time, so redraw the
+// dashboard when the language changes while it is the active page.
+document.addEventListener('DOMContentLoaded', () => {
+    CineRec.onLangChange(() => {
+        if (CineRec.state.currentPage === 'dashboard') loadDashboard();
+    });
+});

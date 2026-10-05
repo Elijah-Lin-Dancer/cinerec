@@ -30,6 +30,8 @@ async def list_movies(
     per_page: int = Query(20, ge=1, le=100),
     search: str = Query("", description="Search by title"),
     genre: str = Query("", description="Filter by genre"),
+    year_from: int = Query(0, ge=0, description="Earliest release year (0 = no lower bound)"),
+    year_to: int = Query(0, ge=0, description="Latest release year (0 = no upper bound)"),
     sort: str = Query("id", description="Sort field: id, title, year")
 ):
     with DBConnection() as conn:
@@ -44,6 +46,12 @@ async def list_movies(
         if genre:
             query += " AND genres LIKE ?"
             params.append(f"%{genre}%")
+        if year_from:
+            query += " AND release_year >= ?"
+            params.append(year_from)
+        if year_to:
+            query += " AND release_year <= ?"
+            params.append(year_to)
 
         # Count total
         count_query = query.replace("SELECT *", "SELECT COUNT(*)")

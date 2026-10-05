@@ -103,9 +103,34 @@
     background: rgba(255, 255, 255, 0.8);
 }
 
-[data-theme="light"] .search-bar {
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+[data-theme="light"] .filter-search {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .filter-search .search-icon {
+    stroke: var(--text-secondary);
+}
+
+[data-theme="light"] .chip {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .chip:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .chip.active {
+    color: #fff;
+}
+
+[data-theme="light"] .chip-scroll {
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+[data-theme="light"] .chip-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .data-table th {
@@ -124,6 +149,11 @@
 
 [data-theme="light"] .poster-placeholder {
     background: linear-gradient(135deg, #e8e8ed, #d1d1d8);
+}
+
+[data-theme="light"] .ph-initial {
+    color: rgba(184, 134, 11, 0.55);
+    text-shadow: none;
 }
 
 [data-theme="light"] .modal-content {
@@ -159,7 +189,7 @@
 }
 
 /* Light theme needs its own backdrop: the dark base gradient must not bleed in. */
-[data-theme="light"] body {
+[data-theme="light"] #base-bg {
     background-image:
         radial-gradient(120% 85% at 50% -15%, rgba(74, 158, 255, 0.10), transparent 60%),
         radial-gradient(85% 65% at 88% 12%, rgba(167, 139, 250, 0.10), transparent 58%),
@@ -201,19 +231,29 @@ html {
 
 body {
     font-family: var(--font-primary);
-    /* Layered cinematic base: tinted wash + coloured glows + soft vignette.
-       The animated aurora layer (#aurora-bg) drifts on top of this for motion. */
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+/* Static cinematic base: tinted wash + coloured glows + soft vignette.
+   It lives on its own fixed layer rather than `body { background-attachment:
+   fixed }`, which forces the browser to repaint the backdrop on every scroll
+   frame and was a major source of the page jank. The animated #aurora-bg drifts
+   on top of this. */
+#base-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    pointer-events: none;
     background-color: var(--bg-primary);
     background-image:
         radial-gradient(120% 85% at 50% -15%, rgba(74, 158, 255, 0.10), transparent 60%),
         radial-gradient(85% 65% at 88% 12%, rgba(167, 139, 250, 0.09), transparent 58%),
         radial-gradient(90% 70% at 8% 100%, rgba(212, 168, 67, 0.07), transparent 60%),
         linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-primary) 55%, #0b0812 100%);
-    background-attachment: fixed;
-    color: var(--text-primary);
-    min-height: 100vh;
-    overflow-x: hidden;
-    line-height: 1.6;
 }
 
 a {
@@ -317,8 +357,8 @@ input, select {
     padding: 0 2rem;
     height: 64px;
     background: linear-gradient(180deg, rgba(14, 14, 28, 0.82), rgba(12, 12, 24, 0.62));
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(12px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
     border-bottom: 1px solid var(--glass-border);
     box-shadow: 0 1px 0 rgba(212, 168, 67, 0.06), 0 8px 32px rgba(0, 0, 0, 0.35);
 }
@@ -450,8 +490,10 @@ input, select {
 /* --- Glass Card --- */
 .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    /* Kept deliberately light: a large blur radius on many elements is a
+       per-frame compositing cost and one of the causes of the earlier jank. */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius);
     box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -701,47 +743,118 @@ input, select {
     margin: 0 0.35rem;
 }
 
-/* --- Search Bar --- */
-.search-bar {
+/* --- Movie Filter Panel (search + genre/year/sort chips) --- */
+.filter-panel {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 1rem;
-    flex: 1;
-    max-width: 600px;
-    min-width: 300px;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.75rem;
 }
 
-.search-bar input {
+.filter-search {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.95rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-search:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.filter-search .search-icon {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: var(--text-secondary);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.filter-search input {
     flex: 1;
-    padding: 0.4rem 0.5rem;
-    font-size: 0.9rem;
+    min-width: 0;
+    font-size: 0.92rem;
     color: var(--text-primary);
     background: transparent;
 }
 
-.search-bar input::placeholder {
+.filter-search input::placeholder {
     color: var(--text-secondary);
 }
 
-.search-bar select {
-    padding: 0.4rem 0.6rem;
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.filter-label {
+    flex-shrink: 0;
+    width: 44px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.chip-scroll {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding: 0.15rem 0.1rem 0.35rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.chip-scroll::-webkit-scrollbar {
+    height: 5px;
+}
+
+.chip-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.chip {
+    flex-shrink: 0;
+    padding: 0.34rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid var(--border);
+    transition: color 0.18s, background 0.18s, border-color 0.18s;
+}
+
+.chip:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.chip.active {
+    color: #0a0a0f;
+    background: linear-gradient(135deg, var(--accent-light), var(--accent));
+    border-color: transparent;
+    font-weight: 700;
+    box-shadow: 0 2px 12px var(--accent-glow);
+}
+
+.movies-count {
     font-size: 0.8rem;
     color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: border-color 0.2s;
-}
-
-.search-bar select:focus {
-    border-color: var(--accent);
-}
-
-.search-bar select option {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
+    font-family: var(--font-mono);
 }
 
 /* --- Movie Cards Grid --- */
@@ -805,6 +918,28 @@ input, select {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* Fallback artwork for the ~19% of titles with no poster URL: a tinted panel
+   with the title's initial, so a missing cover still looks intentional. */
+.poster-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(120% 80% at 50% 0%, rgba(212, 168, 67, 0.18), transparent 62%),
+        linear-gradient(135deg, var(--bg-secondary), var(--bg-deep));
+}
+
+.ph-initial {
+    font-size: 2.75rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: rgba(232, 195, 106, 0.5);
+    text-shadow: 0 2px 16px rgba(212, 168, 67, 0.25);
 }
 
 .movie-info {
@@ -1083,8 +1218,26 @@ input, select {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
     gap: 0.4rem;
     margin-top: 2rem;
+}
+
+/* Ellipsis between the first/last page and the current-page window. */
+.page-gap {
+    min-width: 24px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* "Page X of Y" caption trailing the controls. */
+.pagination-info {
+    margin-left: 0.5rem;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    white-space: nowrap;
 }
 
 .pagination button {
@@ -1238,7 +1391,12 @@ input, select {
         gap: 0.5rem;
         transform: translateY(-100%);
         opacity: 0;
-        transition: transform 0.3s, opacity 0.3s;
+        /* While closed the panel is only translated off-screen, so without
+           these it would still sit across the nav bar and swallow taps meant
+           for the hamburger / theme / language buttons. */
+        pointer-events: none;
+        visibility: hidden;
+        transition: transform 0.3s, opacity 0.3s, visibility 0.3s;
         z-index: 999;
         border-bottom: 1px solid var(--border);
     }
@@ -1246,6 +1404,8 @@ input, select {
     .nav-links.open {
         transform: translateY(0);
         opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
     }
 
     .nav-links .nav-link {

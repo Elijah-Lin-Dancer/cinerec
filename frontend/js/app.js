@@ -4,21 +4,29 @@
 const CineRec = (() => {
     // State
     const state = {
-        currentPage: 'login',
+        // The movie library is the public home page; the login form is reached
+        // explicitly from the nav link.
+        currentPage: 'movies',
         userId: null,
         username: null,
         token: null,
-        lang: 'zh',
+        lang: localStorage.getItem('cinerec-lang') || 'zh',
         theme: localStorage.getItem('cinerec-theme') || 'dark',
         apiBase: window.location.origin,
         movies: [],
+        moviesLoaded: false,
+        moviesTotal: 0,
+        moviesPages: 1,
         recommendations: [],
         currentAlgo: 'SVD',
         moviePage: 1,
+        // Active movie-library filters, owned here so any module can read them.
+        filters: { genre: '', yearFrom: 0, yearTo: 0, sort: 'id' },
     };
 
     // i18n
     let i18nData = { en: {}, zh: {} };
+    const langListeners = [];
 
     async function loadI18n() {
         try {
@@ -33,17 +41,28 @@ const CineRec = (() => {
         }
     }
 
-    function t(key) {
+    function t(key, vars) {
         const keys = key.split('.');
         let val = i18nData[state.lang];
         for (const k of keys) {
             val = val?.[k];
         }
-        if (!val) {
+        if (typeof val !== 'string') {
             console.warn(`[i18n] Missing key: ${key}`);
             return key;
         }
+        if (vars) {
+            for (const k of Object.keys(vars)) {
+                val = val.replace(`{${k}}`, vars[k]);
+            }
+        }
         return val;
+    }
+
+    // Translate a single MovieLens genre label; unknown genres pass through.
+    function genreName(genre) {
+        const map = i18nData[state.lang]?.genres;
+        return (map && map[genre]) || genre;
     }
 
     function applyI18n() {
@@ -54,13 +73,23 @@ const CineRec = (() => {
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
             el.placeholder = t(el.dataset.i18nPlaceholder);
         });
-        document.getElementById('lang-label').textContent = state.lang.toUpperCase();
+        const label = document.getElementById('lang-label');
+        if (label) label.textContent = state.lang.toUpperCase();
+    }
+
+    // Modules register here so their dynamically rendered content can be
+    // redrawn when the language changes (applyI18n only touches static markup).
+    function onLangChange(fn) {
+        if (typeof fn === 'function') langListeners.push(fn);
     }
 
     function toggleLang() {
         state.lang = state.lang === 'en' ? 'zh' : 'en';
         applyI18n();
         localStorage.setItem('cinerec-lang', state.lang);
+        langListeners.forEach(fn => {
+            try { fn(); } catch (e) { console.error('Lang listener failed:', e); }
+        });
     }
 
     // Theme
@@ -92,10 +121,10 @@ const CineRec = (() => {
         if (loginLink) loginLink.style.display = (page === 'login' || state.userId) ? 'none' : '';
         if (userBadge && state.userId) userBadge.style.display = '';
 
-        // Trigger page-specific animations
+        // Trigger page-specific loading
         if (page === 'recommend') loadRecommendations();
         if (page === 'dashboard') loadDashboard();
-        if (page === 'movies' && state.movies.length === 0) loadMovies();
+        if (page === 'movies' && !state.moviesLoaded) loadMovies(state.moviePage);
 
         // Scroll to top
         window.scrollTo(0, 0);
@@ -131,28 +160,7 @@ const CineRec = (() => {
         }
     }
 
-    // Load the genre filter options once.
-    async function loadGenres() {
-        const select = document.getElementById('genre-filter');
-        if (!select || select.dataset.loaded) return;
-        try {
-            const genresData = await api('/api/movies/genres');
-            genresData.genres.forEach(g => {
-                const opt = document.createElement('option');
-                opt.value = g;
-                opt.textContent = g;
-                select.appendChild(opt);
-            });
-            select.dataset.loaded = '1';
-        } catch (e) {
-            console.warn('Could not load genres');
-        }
-    }
-
-    // One-time UI wiring: navigation, language, theme, filters, mobile menu.
-    // Runs exactly once and always *before* any early return in ``init`` — the
-    // previous code returned early on session restore, which left navigation,
-    // theme, language and the genre filter unresponsive for logged-in users.
+    // One-time UI wiring: navigation, language, theme, mobile menu.
     let uiBound = false;
     function bindUI() {
         if (uiBound) return;
@@ -171,8 +179,8 @@ const CineRec = (() => {
         // Theme toggle
         document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
-        // Genre filter
-        loadGenres();
+        // Build the movie-library filter chips (defined in movies.js).
+        if (typeof buildMovieFilters === 'function') buildMovieFilters();
 
         // Hamburger menu (mobile)
         const hamburger = document.getElementById('hamburger');
@@ -200,36 +208,32 @@ const CineRec = (() => {
             console.warn('Missing CDN dependencies:', missing.join(', '));
         }
 
-        // Restore saved lang
-        const savedLang = localStorage.getItem('cinerec-lang');
-        if (savedLang) state.lang = savedLang;
-
         applyTheme();
         await loadI18n();
         applyI18n();
 
-        // Bind interactions before the possible early return below.
+        // Bind interactions before anything else can fail.
         bindUI();
 
         if (typeof Animations !== 'undefined' && Animations.initDecryptedText) {
             Animations.initDecryptedText();
         }
 
-        // Restore user session
+        // Restore a saved session, but keep the library as the landing page.
         const savedUser = localStorage.getItem('cinerec-user');
         if (savedUser) {
             try {
                 const { userId, username, token } = JSON.parse(savedUser);
                 setUser(userId, username, token);
-                navigateTo('recommend');
-                return;
             } catch (e) {
                 localStorage.removeItem('cinerec-user');
             }
         }
+
+        navigateTo('movies');
     }
 
-    return { state, t, navigateTo, setUser, api, init, applyI18n };
+    return { state, t, genreName, navigateTo, setUser, api, init, applyI18n, onLangChange };
 })();
 
 document.addEventListener('DOMContentLoaded', () => CineRec.init());

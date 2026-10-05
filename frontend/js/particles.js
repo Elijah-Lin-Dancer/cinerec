@@ -8,22 +8,26 @@
  */
 const Particles = (() => {
     const PALETTE = ['#d4a843', '#e8c36a', '#4a9eff', '#a78bfa', '#ffffff'];
-    const LINK_DISTANCE = 130;
+    const LINK_DISTANCE = 120;
     const CURSOR_DISTANCE = 170;
-    const MAX_DPR = 2;
+    // Cap the backing-store scale: full-screen canvas at DPR 2 means a large
+    // clear+draw every frame, which is the bulk of the animation cost on
+    // low-power machines.
+    const MAX_DPR = 1.5;
 
     let canvas = null;
     let ctx = null;
     let stars = [];
     let width = 0;
     let height = 0;
+    let running = false;
     const pointer = { x: -9999, y: -9999, active: false };
 
     const rand = (min, max) => Math.random() * (max - min) + min;
 
     function seed() {
-        const density = Math.round((width * height) / 9000);
-        const count = Math.max(60, Math.min(150, density));
+        const density = Math.round((width * height) / 14000);
+        const count = Math.max(40, Math.min(90, density));
         stars = Array.from({ length: count }, () => ({
             x: rand(0, width),
             y: rand(0, height),
@@ -110,6 +114,7 @@ const Particles = (() => {
     }
 
     function loop(time) {
+        if (!running) return;
         paint(time);
         requestAnimationFrame(loop);
     }
@@ -149,6 +154,18 @@ const Particles = (() => {
         }, { passive: true });
         window.addEventListener('mouseout', () => { pointer.active = false; }, { passive: true });
 
+        // Stop the loop entirely while the tab is hidden instead of relying on
+        // the browser to throttle it.
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                running = false;
+            } else if (!running) {
+                running = true;
+                requestAnimationFrame(loop);
+            }
+        });
+
+        running = true;
         requestAnimationFrame(loop);
     }
 

@@ -11,11 +11,12 @@
     <title>CineRec — Multi-Modal Movie Recommendation</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css?v=21">
-    <link rel="stylesheet" href="/css/animations.css?v=21">
+    <link rel="stylesheet" href="/css/style.css?v=23">
+    <link rel="stylesheet" href="/css/animations.css?v=23">
 </head>
 <body>
-    <!-- Layered atmospheric background: drifting aurora + star field + grain -->
+    <!-- Layered atmospheric background: static base wash + drifting aurora + star field + grain -->
+    <div id="base-bg"></div>
     <div id="aurora-bg"></div>
     <div id="particles-bg"></div>
     <div id="film-grain"></div>
@@ -49,7 +50,7 @@
     </nav>
 
     <!-- Page: Login -->
-    <section id="page-login" class="page active">
+    <section id="page-login" class="page">
         <div class="login-container">
             <div class="login-hero">
                 <h1 class="hero-title">
@@ -104,22 +105,38 @@
     </section>
 
     <!-- Page: Movies -->
-    <section id="page-movies" class="page">
+    <section id="page-movies" class="page active">
         <div class="page-container">
             <div class="page-header">
                 <h1 class="page-title" data-i18n="movies.title">Movie Library</h1>
-                <div class="search-bar glass-card">
+                <span id="movies-count" class="movies-count"></span>
+            </div>
+
+            <div class="filter-panel glass-card">
+                <div class="filter-search">
+                    <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+                    </svg>
                     <input type="text" id="movie-search" placeholder="Search movies..." data-i18n-placeholder="movies.search">
-                    <select id="genre-filter">
-                        <option value="" data-i18n="movies.allGenres">All Genres</option>
-                    </select>
-                    <select id="sort-select">
-                        <option value="id" data-i18n="movies.sortId">By ID</option>
-                        <option value="title" data-i18n="movies.sortTitle">By Title</option>
-                        <option value="year" data-i18n="movies.sortYear">By Year</option>
-                    </select>
+                </div>
+
+                <div class="filter-row">
+                    <span class="filter-label" data-i18n="movies.filterGenre">Genre</span>
+                    <div class="chip-scroll" id="genre-chips"></div>
+                </div>
+
+                <div class="filter-row">
+                    <span class="filter-label" data-i18n="movies.filterYear">Year</span>
+                    <div class="chip-scroll" id="year-chips"></div>
+                </div>
+
+                <div class="filter-row">
+                    <span class="filter-label" data-i18n="movies.filterSort">Sort</span>
+                    <div class="chip-scroll" id="sort-chips"></div>
                 </div>
             </div>
+
             <div id="movies-grid" class="movies-grid">
                 <!-- Movie cards populated by JS -->
             </div>
@@ -194,13 +211,13 @@
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
     <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
-    <script src="/js/app.js?v=21"></script>
-    <script src="/js/animations.js?v=21"></script>
-    <script src="/js/particles.js?v=21"></script>
-    <script src="/js/effects.js?v=21"></script>
-    <script src="/js/auth.js?v=21"></script>
-    <script src="/js/movies.js?v=21"></script>
-    <script src="/js/recommend.js?v=21"></script>
-    <script src="/js/dashboard.js?v=21"></script>
+    <script src="/js/app.js?v=23"></script>
+    <script src="/js/animations.js?v=23"></script>
+    <script src="/js/particles.js?v=23"></script>
+    <script src="/js/effects.js?v=23"></script>
+    <script src="/js/auth.js?v=23"></script>
+    <script src="/js/movies.js?v=23"></script>
+    <script src="/js/recommend.js?v=23"></script>
+    <script src="/js/dashboard.js?v=23"></script>
 </body>
 </html>
