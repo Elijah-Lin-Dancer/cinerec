@@ -13,14 +13,30 @@
 
 *From classic collaborative filtering to cutting-edge multi-modal neural networks — a 6-level algorithm ladder with explainable AI.*
 
-[中文文档](#-项目简介) · [Demo](#-demo-preview) · [Architecture](#-architecture) · [Quick Start](#--quick-start)
+[中文文档](#-项目简介) · [Live Demo](#-live-demo--在线演示) · [Demo](#-demo-preview) · [Architecture](#-architecture) · [Quick Start](#--quick-start)
 
 </div>
 
 ---
 
+## 🔗 Live Demo / 在线演示
+
+Two deployments, one codebase — the same six-algorithm ladder, in the two modes
+described in [ADR 0001](docs/adr/0001-dual-mode-deployment.md):
+
+| Mode | What it shows | Link |
+|------|---------------|------|
+| **`lite`** — product | The bilingual FastAPI web app. Recommendations come from a precomputed cache, so it fits a free 512 MB instance. No account needed: click **游客体验 / Try as Guest** on the login screen. | **https://cinerec-rfew.onrender.com** |
+| **`full`** — companion | A Streamlit app that loads the trained PyTorch models and runs them **live**: live inference, the six-model comparison, the multi-modal ablation and the cold-start study. | **https://cinerec-movie-recommend.streamlit.app** |
+
+> Both run on free tiers, so each sleeps when idle — the first visit can take a
+> few seconds to wake. The companion lives in [`deploy/streamlit/`](deploy/streamlit/).
+
+---
+
 ## 📋 Table of Contents
 
+- [Live Demo / 在线演示](#-live-demo--在线演示)
 - [Project Introduction / 项目简介](#-project-introduction--项目简介)
 - [Key Features / 核心特性](#-key-features--核心特性)
 - [Demo Preview / 效果预览](#-demo-preview)
@@ -351,7 +367,7 @@ cinerec/
 │   └── assets/i18n/       # EN/ZH translations
 ├── scripts/               # precompute, ablation, cold-start, train_all, locustfile
 ├── tests/                 # pytest suite
-├── deploy/                # Streamlit Cloud / Render deployment notes
+├── deploy/                # Render notes + the Streamlit companion app (own deps)
 ├── docs/adr/              # Architecture decision records
 ├── reports/               # Measured load-test report + Locust HTML output
 ├── config.py              # Paths, APP_MODE, cache switches
@@ -360,6 +376,7 @@ cinerec/
 ├── render.yaml
 ├── Makefile
 ├── requirements.txt / requirements-train.txt
+├── streamlit_app.py       # live-inference companion (entry: deploy/streamlit/)
 └── README.md
 ```
 
