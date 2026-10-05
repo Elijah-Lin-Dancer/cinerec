@@ -88,6 +88,15 @@ app.mount("/css", StaticFiles(directory=os.path.join(FRONTEND_DIR, "css")), name
 app.mount("/js", StaticFiles(directory=os.path.join(FRONTEND_DIR, "js")), name="frontend-js")
 
 
+# Serve the SPA entry point. Registered *before* the catch-all: otherwise
+# `/{path:path}` matches "/" with an empty path, which the traversal guard
+# rejects (empty path resolves to FRONTEND_DIR itself) and the root 404s.
+@app.get("/")
+async def serve_index():
+    """Serve the SPA entry point."""
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
+
 # Catch-all: serve index.html or a specific frontend file for any non-API route
 @app.get("/{path:path}")
 async def serve_frontend(path: str):
@@ -101,9 +110,4 @@ async def serve_frontend(path: str):
         raise HTTPException(404, "Not found")
     if os.path.isfile(file_path):
         return FileResponse(file_path)
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
-
-@app.get("/")
-async def serve_index():
-    """Serve the SPA entry point."""
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
