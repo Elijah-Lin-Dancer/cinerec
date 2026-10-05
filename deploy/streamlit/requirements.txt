@@ -1,0 +1,28 @@
+# Streamlit Community Cloud requirements for the live-inference companion.
+#
+# Community Cloud only installs from a file literally named `requirements.txt`,
+# and it searches the entrypoint's own directory before the repository root. So
+# this file must live next to `streamlit_app.py`; it is picked up automatically
+# and no "requirements file" setting exists in the deploy form. The repository
+# root's `requirements.txt` stays the `lite` runtime set (see the Dockerfile).
+#
+# The heavy training extras (torchvision, sentence-transformers) are deliberately
+# NOT included: the text/image features are already computed and committed under
+# data/processed, so serving the companion needs CPU torch only.
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+streamlit>=1.30
+torch>=2.0
+
+# The `lite` runtime set, mirrored from the repository root. It is duplicated
+# instead of pulled in with `-r ../requirements.txt` because pip and uv resolve
+# relative `-r` paths differently, and Community Cloud may use either.
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+fastapi>=0.100
+uvicorn>=0.23
+pydantic>=2.0
+requests>=2.31
+python-dotenv>=1.0

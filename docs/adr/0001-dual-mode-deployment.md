@@ -30,7 +30,7 @@ Streamlit app is a read-only companion that exercises the `full` path — the
 six-model ladder, the multi-modal content tower and the cold-start route — so
 those can be explored interactively without a GPU host. It demonstrates the
 models; it does not replace the product, and the engineering surface (REST API,
-auth, LRU cache, metrics) stays intact for review. See `deploy/streamlit.md`.
+auth, LRU cache, metrics) stays intact for review. See `deploy/streamlit/README.md`.
 
 ### Hosts considered and rejected
 
@@ -42,8 +42,8 @@ auth, LRU cache, metrics) stays intact for review. See `deploy/streamlit.md`.
 ## Consequences
 
 - `requirements.txt` (runtime) and `requirements-train.txt` (torch/vision) are
-  split so `lite` images stay small; `requirements-streamlit.txt` adds the CPU
-  torch wheel for the companion only.
+  split so `lite` images stay small; the companion carries its own
+  `deploy/streamlit/requirements.txt` with the CPU torch wheel.
 - A precompute step (`scripts/precompute.py`) must run before `lite` deployment.
 - Newly registered users are outside the cache; they fall back to popularity
   (clearly labelled — see the recommendation endpoint).

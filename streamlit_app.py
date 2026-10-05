@@ -14,11 +14,12 @@ what the API serves.
 
 Run locally::
 
-    pip install -r requirements-streamlit.txt
+    pip install -r deploy/streamlit/requirements.txt
     streamlit run streamlit_app.py
 
-Deploy on Streamlit Community Cloud: entry point ``streamlit_app.py``, and set
-the requirements file to ``requirements-streamlit.txt`` (Advanced settings).
+Deploy on Streamlit Community Cloud from the companion directory — main file
+path ``deploy/streamlit/streamlit_app.py`` — which sits next to the CPU-torch
+requirements the live models need. See ``deploy/streamlit/README.md``.
 """
 import json
 import os

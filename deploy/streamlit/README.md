@@ -9,8 +9,21 @@ path can be explored interactively at zero cost.
 > This is **not** a migration of the product to Streamlit. The bilingual
 > FastAPI frontend remains the product; this companion exists only because
 > free hosts that run torch are scarce (Hugging Face removed its free Docker
-> tier). See [ADR 0001](../docs/adr/0001-dual-mode-deployment.md) for the
+> tier). See [ADR 0001](../../docs/adr/0001-dual-mode-deployment.md) for the
 > "no migration" decision it respects.
+
+## Why it lives in its own directory
+
+Streamlit Community Cloud installs dependencies from a file named exactly
+`requirements.txt`, looking in the **entrypoint's own directory first**, then the
+repository root — and the deploy form has no field for a custom requirements
+filename. The real app is `../../streamlit_app.py` (it reuses the product's
+modules), where it would pick up the root `requirements.txt` — the `lite` runtime
+set, with no torch.
+
+So this directory holds the shim (`streamlit_app.py`), which puts the repository
+root on `sys.path` and hands off to the real app, plus its own
+`requirements.txt` carrying the CPU-torch stack.
 
 ## Why it works on the free tier
 
@@ -26,24 +39,27 @@ runtime:
 | `movies_enriched.json`, `ratings.csv` (seed data) | small | yes |
 
 `torchvision` and `sentence-transformers` are **not** needed to serve — they are
-training-only, so `requirements-streamlit.txt` installs the CPU torch wheel and
-nothing else heavy. Resident memory is ~300–500 MB, well inside the free tier's
-per-app ceiling.
+training-only, so `deploy/streamlit/requirements.txt` installs the CPU torch wheel
+and nothing else heavy. Resident memory is ~300–500 MB, well inside the free
+tier's per-app ceiling.
 
 ## Settings to apply
 
 | Setting | Value |
 |---------|-------|
-| Repository | your fork of this repository (must be **public**) |
+| Repository | `ElijahZhao/cinerec` (must be **public**) |
 | Branch | `main` |
-| Main file path | `streamlit_app.py` |
-| Requirements file | `requirements-streamlit.txt` (Advanced settings) |
+| Main file path | `deploy/streamlit/streamlit_app.py` |
+| Requirements file | none to set — auto-detected from the entrypoint's directory |
 | Python version | `3.10` (Advanced settings) |
 | Custom subdomain | e.g. `cinerec` → `cinerec.streamlit.app` |
 | Secrets | none required |
 
 Unlike the main site, no `CINEREC_SECRET` is needed: this app is read-only and
 has no login.
+
+Pick a Python version that has CPU torch wheels (3.10–3.12). `3.10` matches the
+Docker image, so it is the version this app is tested against.
 
 ## Free-tier limits to keep in mind
 
