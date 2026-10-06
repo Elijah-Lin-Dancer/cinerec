@@ -49,6 +49,14 @@ htmlcov/
 dist/
 build/
 
+# Local scratch / working files
+scratch/
+*.local
+*.bak
+*.orig
+*.rej
+*.tmp
+
 # Node
 node_modules/
 
