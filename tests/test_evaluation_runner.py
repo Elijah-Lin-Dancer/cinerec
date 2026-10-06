@@ -11,6 +11,14 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import pytest  # noqa: E402
+
+# ``evaluation/runner.py`` imports the torch-backed models at module scope, so
+# this file can only load where torch is installed. Without the gate the e2e job
+# — which deliberately installs no torch — dies at *collection* with
+# ModuleNotFoundError instead of skipping the module.
+pytest.importorskip("torch", reason="evaluation.runner imports the torch-backed models")
+
 import evaluation.runner as runner  # noqa: E402
 
 RATINGS_CSV = """user_id,item_id,rating,timestamp
