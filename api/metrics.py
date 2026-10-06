@@ -5,6 +5,26 @@ inspectable snapshot that suits a portfolio deployment, not a monitoring stack.
 Counters are **process-local** and reset on restart; behind more than one replica
 each replica reports only its own traffic. That limitation is intentional and
 documented rather than hidden.
+
+Aggregating across replicas / over time
+---------------------------------------
+The snapshot is designed to be *combined*, so a scraper can aggregate it:
+
+- **Additive across replicas and across scrapes**: ``total_requests``,
+  ``total_5xx`` and every endpoint ``count`` / ``status_counts`` entry are plain
+  counters — sum them. Throughput follows from summed requests over the summed
+  uptime window, not by averaging the per-replica ``requests_per_second``.
+- **Not additive**: ``avg_latency_ms`` and the ``p50/p95/p99`` percentiles are
+  computed from a bounded **per-process rolling window** of the most recent
+  ``_MAX_LATENCY_SAMPLES`` samples. They cannot be summed or averaged into a
+  fleet-wide percentile; recompute from raw samples or move to a shared
+  aggregation store if that is required.
+- **Bounded key space**: once ``_MAX_ENDPOINTS`` distinct routes are seen, new
+  paths aggregate under ``{other}`` so crawler traffic cannot grow memory without
+  bound. Totals stay exact; only the per-endpoint breakdown coarsens.
+
+A multi-replica deployment therefore needs an external collector (or scrapes that
+sum the additive fields) to present fleet-wide numbers.
 """
 import re
 import threading

@@ -70,13 +70,13 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 ## ✨ Key Features / 核心亮点
 
-- **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF。算法集合与加载方式集中在 [`models/registry.py`](models/registry.py)，前端、API、预计算脚本都从这里取。
-- **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合 Sentence-BERT 文本(384d)、ResNet-50 图像(2048d) 与类型(18d) 特征。
-- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，6 个模型共用同一套 HR@K / NDCG@K / Recall@K。正文明确标注 single-seed，不作"最优模型"声明。
-- **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）同仓切换。
-- **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐、实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
-- **电影详情弹窗** — 点击任意电影卡片（或键盘 Enter）打开无障碍详情弹窗：海报、简介、类型、平均评分、评分入口与 IMDb 链接；Escape/关闭按钮/遮罩点击关闭；随语言切换重绘。
-- **Streamlit 美化伴生应用** — 胶片 logo + KPI 条 + 融合推荐卡 + CSS 柱状图/热力图 + 算法阶梯 + 用户画像，纯 CSS 图表不增加依赖。
+- **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF 全部登记在 [`models/registry.py`](models/registry.py)，前端、API 与预计算脚本都从这一处取。
+- **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合三路内容特征：Sentence-BERT 文本(384d)、ResNet-50 图像(2048d)、类型(18d)。
+- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，6 个模型共用同一套 HR@K / NDCG@K / Recall@K；结论明确标注 single-seed，不作"最优模型"声明。
+- **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）由 `APP_MODE` 切换。
+- **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐，外加一次实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
+- 电影详情弹窗：点击任意卡片（或键盘 Enter）打开无障碍弹窗，含海报、简介、类型、平均评分、评分入口与 IMDb 链接；Escape、关闭按钮或遮罩点击均可关闭，随语言切换重绘。
+- Streamlit 伴生应用：胶片 logo、KPI 条、融合推荐卡、纯 CSS 柱状图/热力图、算法阶梯与用户画像。
 
 ---
 
@@ -249,16 +249,15 @@ so re-recommending already-seen titles cannot inflate the numbers.
 
 ### Key Findings / 关键发现
 
-- **UserCF → ItemCF → SVD** shows the expected jump from neighbourhood heuristics to
-  matrix factorization; SVD is the best accuracy-per-second point on the ladder.
-- **NeuMF** leads HR@10 at 0.3775 / HR@20 at 0.5164 — learned non-linear interaction
-  modelling beats plain factorization on this dataset once candidates are filtered
-  to unseen items.
-- **LightGCN** sits between SVD and NeuMF (HR@10 0.2789) with the best
-  accuracy-per-second among the neural models — competitive with no content features.
-- **MultiModalNCF** trails NeuMF on hit-rate while leading on NDCG (0.0850 / 0.1123):
-  fusing Sentence-BERT text, ResNet-50 image and genre content mainly improves the
-  *ranking* of the items it retrieves — the ablation study quantifies each modality.
+- UserCF → ItemCF → SVD keeps the expected ordering — neighbourhood heuristics give
+  way to matrix factorization — and SVD is the strongest accuracy-per-second point on
+  the ladder (HR@10 0.2534).
+- NeuMF: HR@10 0.3775 / HR@20 0.5164. Non-linear interaction modelling edges out plain
+  factorization once candidates are filtered to unseen items.
+- LightGCN: HR@10 0.2789, between SVD and NeuMF, and the best accuracy per second among
+  the neural models — competitive with no content features at all.
+- MultiModalNCF: HR@10 0.3627 / NDCG@10 0.0850. It trails NeuMF on hit-rate, leads on
+  NDCG, and the ablation study below quantifies each modality's share.
 
 ### Ablation Study / 消融实验
 
@@ -401,9 +400,13 @@ cinerec/
 ├── scripts/               # precompute, ablation, cold-start, train_all, locustfile
 ├── tests/                 # pytest suite
 ├── deploy/                # Streamlit companion (own deps) + notes
+│   ├── streamlit/         # Companion app: streamlit_app.py + its own requirements.txt
 │   └── hf-space/          # Record of the rejected HF Spaces option (see ADR 0001)
 ├── docs/adr/              # Architecture decision records
 ├── reports/               # Measured load-test report + Locust HTML output
+│   ├── loadtest.md        # Curated, measured load-test findings
+│   ├── locust_report.html # Locust HTML report (rendered run)
+│   └── locust_stdout.txt  # Raw Locust stdout captured during the run
 ├── config.py              # Paths, APP_MODE, cache switches
 ├── Dockerfile
 ├── docker-compose.yml
@@ -538,6 +541,7 @@ This does **not** extend to the bundled data:
 <details>
 <summary>展开查看</summary>
 
+- **2026-10-06** — 测试/CI 补齐：Playwright E2E（游客登录→推荐、筛选→详情弹窗、评分→推荐排除已评）+ axe-core 无障碍断言；三个神经模型的 torch 门控 forward 测试；recommend `full` 分支与解释器失败路径测试；CI 新增 `full` 镜像构建 + `/api/health` 冒烟；压测纳入每周定时任务并留趋势（`reports/loadtest_trend.csv`）；`/api/metrics` 补充多副本聚合说明。
 - **2026-10-05** — UI：电影详情弹窗（卡片点击/键盘打开、评分与 IMDb 入口、随语言切换重绘）；数据集取舍与许可写入 [ADR 0004](docs/adr/0004-dataset-choice.md) 与上方 FAQ；Streamlit 伴生应用美化（胶片 logo + KPI 条 + 融合推荐卡 + CSS 柱状图/热力图 + 算法阶梯 + 用户画像）；README 截图全部更新为最新版本。
 - **2026-10-05** — UI：动画背景 + canvas 星空 + 字体改版；Streamlit 伴生应用独立目录与主题。
 - **2026-10-05** — 部署：Render(`lite`) + Streamlit(`full`) 双档免费部署定稿（ADR 0001）。
