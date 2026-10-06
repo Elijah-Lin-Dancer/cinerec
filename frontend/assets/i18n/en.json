@@ -3,7 +3,7 @@
     "login": {
         "title": "CineRec",
         "subtitle": "Your AI Movie Guide",
-        "desc": "Experience 6 recommendation algorithms from classic to cutting-edge, with explainable AI insights.",
+        "desc": "Six recommenders, from UserCF to a multi-modal NCF — every pick comes with a reason.",
         "signin": "Sign In",
         "signup": "Sign Up",
         "submit": "Sign In",

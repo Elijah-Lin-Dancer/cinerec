@@ -3,7 +3,7 @@
     "login": {
         "title": "CineRec",
         "subtitle": "你的 AI 电影指南",
-        "desc": "体验从经典到前沿的 6 种推荐算法，拥有可解释的 AI 洞察。",
+        "desc": "6 种推荐算法，从 UserCF 到多模态 NCF，每条推荐都给出理由。",
         "signin": "登录",
         "signup": "注册",
         "submit": "登录",
