@@ -902,6 +902,20 @@ input, select {
     border-color: rgba(212, 168, 67, 0.2);
 }
 
+/* The poster is wrapped in a real <button> so the card can be opened from the
+   keyboard; strip the browser's button chrome so the card looks unchanged. */
+.movie-card-open {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    cursor: pointer;
+}
+
 .movie-poster {
     width: 100%;
     aspect-ratio: 2 / 3;
@@ -1031,12 +1045,12 @@ input, select {
 }
 
 .movie-card:hover .movie-card-hint,
-.movie-card:focus-visible .movie-card-hint {
+.movie-card:focus-within .movie-card-hint {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
 
-.movie-card:focus-visible,
+.movie-card-open:focus-visible,
 .rec-card:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;

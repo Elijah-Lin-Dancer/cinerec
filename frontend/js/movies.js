@@ -246,18 +246,24 @@ function _movieCard(movie) {
     const card = document.createElement('div');
     card.className = 'movie-card tilt-card spotlight-card';
     card.dataset.id = String(movie.id);
-    // The whole card is the affordance that opens the detail modal, so expose
-    // it to the keyboard as a button as well.
-    card.tabIndex = 0;
-    card.setAttribute('role', 'button');
-    card.setAttribute('aria-label', `${_displayTitle(movie.title)} · ${CineRec.t('detail.viewDetails')}`);
+
+    // The poster is the "open details" control, exposed as a real <button> so
+    // the library is keyboard-usable. It deliberately wraps only the poster:
+    // nesting the Rate button inside a card-wide button would create nested
+    // interactive controls (an axe `nested-interactive` violation). Mouse users
+    // can still click anywhere on the card thanks to event delegation.
+    const openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.className = 'movie-card-open';
+    openBtn.setAttribute('aria-label', `${_displayTitle(movie.title)} · ${CineRec.t('detail.viewDetails')}`);
 
     const poster = _moviePoster(movie);
     const hint = document.createElement('span');
     hint.className = 'movie-card-hint';
     hint.textContent = CineRec.t('detail.viewDetails');
     poster.appendChild(hint);
-    card.appendChild(poster);
+    openBtn.appendChild(poster);
+    card.appendChild(openBtn);
 
     const info = document.createElement('div');
     info.className = 'movie-info';
@@ -411,7 +417,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event delegation: a card click opens the detail modal; the Rate button
     // inside it opens the rating modal instead. Ids come from data-id, so no
-    // title or id is ever interpolated into markup.
+    // title or id is ever interpolated into markup. The keyboard path is the
+    // poster's own <button> (see _movieCard), which triggers this same handler.
     document.getElementById('movies-grid').addEventListener('click', (e) => {
         const card = e.target.closest('.movie-card');
         if (!card) return;
@@ -421,16 +428,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (typeof MovieDetail !== 'undefined') MovieDetail.open(movieId);
-    });
-
-    // Keyboard equivalent of the card click, so the library is usable without a
-    // mouse. Enter/Space on the focused card opens its details.
-    document.getElementById('movies-grid').addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
-        const card = e.target.closest('.movie-card');
-        if (!card || e.target.closest('[data-action="rate"]')) return;
-        e.preventDefault();
-        if (typeof MovieDetail !== 'undefined') MovieDetail.open(Number(card.dataset.id));
     });
 
     // Event delegation for pagination buttons.
@@ -477,8 +474,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         try {
-            await CineRec.api(`/api/movies/${ratingMovieId}/rate?user_id=${CineRec.state.userId}&rating=${rating}`);
-        } catch (e) {}
+            await CineRec.api(
+                `/api/movies/${ratingMovieId}/rate?user_id=${CineRec.state.userId}&rating=${rating}`,
+                { method: 'POST' }
+            );
+        } catch (e) {
+            console.error('Rating failed:', e);
+        }
         document.getElementById('rating-modal').classList.add('hidden');
     });
 
