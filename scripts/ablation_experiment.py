@@ -10,7 +10,7 @@ to the modality that was removed.
 Output: data/processed/ablation_results.json (consumed by evaluation/visualize.py).
 
 This is a small self-contained study on MovieLens-100K; it is not multi-seed and
-makes no significance claims. See docs/ROADMAP.md Phase 4.
+makes no significance claims.
 """
 import os
 import sys

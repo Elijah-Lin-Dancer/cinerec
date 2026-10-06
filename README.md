@@ -548,7 +548,6 @@ This does **not** extend to the bundled data:
 - **2026-10-04** — 评测：6 模型统一评测 + 消融 + 冷启动实验；MLOps：LRU 缓存 + `/api/metrics` + Locust 压测。
 - **2026-07-19** — 初始版本：UserCF / ItemCF / SVD / NeuMF + 前端 + 数据库。
 
-> 详细过程记录见 [`docs/ROADMAP.md`](docs/ROADMAP.md)。
 </details>
 
 ---

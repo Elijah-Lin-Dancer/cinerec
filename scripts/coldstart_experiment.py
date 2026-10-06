@@ -21,7 +21,7 @@ Protocol
    A ``Random`` baseline (fixed seed) is included as the reference floor.
 
 Output: data/processed/coldstart_results.json — consumed by evaluation/visualize.py.
-Small single-seed study on MovieLens-100K; no significance claims. See ROADMAP Phase 4.
+Small single-seed study on MovieLens-100K; no significance claims.
 """
 import os
 import sys
