@@ -6,7 +6,10 @@ name: Keepalive
 # URL below.
 #
 # Configure the target once: Settings → Secrets and variables → Actions →
-# Variables → add `KEEPALIVE_URL` (e.g. https://cinerec.onrender.com).
+# Variables → add `KEEPALIVE_URL`, using the exact host Render assigned —
+# suffix included, e.g. https://cinerec-rfew.onrender.com. The bare service
+# name from render.yaml (cinerec.onrender.com) is a different host and does
+# not serve this app.
 # When it is unset the job is a no-op, so forks do not fail.
 
 on:
@@ -26,6 +29,10 @@ jobs:
             echo "KEEPALIVE_URL is not configured — nothing to ping."
             exit 0
           fi
-          curl -fsS --max-time 30 --retry 2 "$KEEPALIVE_URL/api/health"
+          # A sleeping free instance can take ~30-40 s to answer its first
+          # request, so allow a generous per-attempt ceiling, but give up
+          # quickly when the host is unreachable rather than burning it.
+          curl -fsS --connect-timeout 10 --max-time 90 \
+            --retry 2 --retry-delay 5 "$KEEPALIVE_URL/api/health"
           echo
           echo "OK: $KEEPALIVE_URL is awake."
