@@ -7,18 +7,22 @@
 
 - **Decision**: Commit the minimum set of artifacts needed to serve the app:
   - trained models: `model_usercf.pkl`, `model_itemcf.pkl`, `model_svd.pkl`,
-    `model_neumf.pt`, `model_multimodalncf.pt`
+    `model_lightgcn.pkl`, `model_neumf.pt`, `model_multimodalncf.pt`
   - content features: `text_embeddings.npy`, `image_embeddings.npy`,
     `genre_vectors.npy`
-  - metadata + results: `movies_enriched.json`, `eval_results.json`
+  - metadata + results: `movies_enriched.json`, `eval_results.json`,
+    `ablation_results.json`, `coldstart_results.json`
+  - lite-mode cache: `recs_cache.json` (serves recommendations when `torch`
+    is absent)
   - seed data: `data/raw/ratings.csv` (MovieLens 100K seed for the database)
 
   (`.gitignore` ignores `data/processed/*` by default and re-includes exactly
   these files, so new intermediates do not slip in.)
 
-- **Size budget**: ~74 MB total; the largest single file is `model_itemcf.pkl`
-  at ~34 MB — well under GitHub's 100 MB per-file hard limit, so **Git LFS is
-  not required**. If the set grows past that, migrate the `.pkl` files to LFS.
+- **Size budget**: ~52 MB total (measured); the largest single file is
+  `model_itemcf.pkl` at ~17 MB — well under GitHub's 100 MB per-file hard limit,
+  so **Git LFS is not required**. If the set grows past that, migrate the `.pkl`
+  files to LFS.
 
 - **Consequences**: Deploys work on a fresh clone with no training step. The
   repository is larger; regenerating artifacts (`pytest`-independent
