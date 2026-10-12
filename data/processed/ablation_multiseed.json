@@ -1,0 +1,252 @@
+{
+  "Full (Text+Image+Genre)": {
+    "HR@5": {
+      "mean": 0.2464,
+      "std": 0.0103
+    },
+    "NDCG@5": {
+      "mean": 0.0626,
+      "std": 0.0027
+    },
+    "Recall@5": {
+      "mean": 0.0593,
+      "std": 0.0022
+    },
+    "HR@10": {
+      "mean": 0.365,
+      "std": 0.0077
+    },
+    "NDCG@10": {
+      "mean": 0.0859,
+      "std": 0.0017
+    },
+    "Recall@10": {
+      "mean": 0.1021,
+      "std": 0.0021
+    },
+    "HR@20": {
+      "mean": 0.5073,
+      "std": 0.0148
+    },
+    "NDCG@20": {
+      "mean": 0.1144,
+      "std": 0.0015
+    },
+    "Recall@20": {
+      "mean": 0.1689,
+      "std": 0.0044
+    },
+    "train_time": 74.55,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": []
+  },
+  "w/o Text": {
+    "HR@5": {
+      "mean": 0.2481,
+      "std": 0.0093
+    },
+    "NDCG@5": {
+      "mean": 0.0634,
+      "std": 0.0025
+    },
+    "Recall@5": {
+      "mean": 0.0599,
+      "std": 0.0025
+    },
+    "HR@10": {
+      "mean": 0.3642,
+      "std": 0.01
+    },
+    "NDCG@10": {
+      "mean": 0.0855,
+      "std": 0.0024
+    },
+    "Recall@10": {
+      "mean": 0.1005,
+      "std": 0.003
+    },
+    "HR@20": {
+      "mean": 0.5075,
+      "std": 0.0108
+    },
+    "NDCG@20": {
+      "mean": 0.1144,
+      "std": 0.0025
+    },
+    "Recall@20": {
+      "mean": 0.1684,
+      "std": 0.0036
+    },
+    "train_time": 74.28,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": [
+      "text"
+    ]
+  },
+  "w/o Image": {
+    "HR@5": {
+      "mean": 0.2458,
+      "std": 0.0034
+    },
+    "NDCG@5": {
+      "mean": 0.0616,
+      "std": 0.0014
+    },
+    "Recall@5": {
+      "mean": 0.0593,
+      "std": 0.0015
+    },
+    "HR@10": {
+      "mean": 0.3631,
+      "std": 0.0085
+    },
+    "NDCG@10": {
+      "mean": 0.0842,
+      "std": 0.0026
+    },
+    "Recall@10": {
+      "mean": 0.1008,
+      "std": 0.004
+    },
+    "HR@20": {
+      "mean": 0.508,
+      "std": 0.0029
+    },
+    "NDCG@20": {
+      "mean": 0.1132,
+      "std": 0.0025
+    },
+    "Recall@20": {
+      "mean": 0.1687,
+      "std": 0.0039
+    },
+    "train_time": 72.59,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": [
+      "image"
+    ]
+  },
+  "w/o Genre": {
+    "HR@5": {
+      "mean": 0.249,
+      "std": 0.0036
+    },
+    "NDCG@5": {
+      "mean": 0.0634,
+      "std": 0.0012
+    },
+    "Recall@5": {
+      "mean": 0.0604,
+      "std": 0.0011
+    },
+    "HR@10": {
+      "mean": 0.3673,
+      "std": 0.008
+    },
+    "NDCG@10": {
+      "mean": 0.0857,
+      "std": 0.0015
+    },
+    "Recall@10": {
+      "mean": 0.1017,
+      "std": 0.0025
+    },
+    "HR@20": {
+      "mean": 0.5107,
+      "std": 0.0139
+    },
+    "NDCG@20": {
+      "mean": 0.1144,
+      "std": 0.0016
+    },
+    "Recall@20": {
+      "mean": 0.1687,
+      "std": 0.0049
+    },
+    "train_time": 75.28,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": [
+      "genre"
+    ]
+  },
+  "Behavior only (no content)": {
+    "HR@5": {
+      "mean": 0.2394,
+      "std": 0.009
+    },
+    "NDCG@5": {
+      "mean": 0.0613,
+      "std": 0.0019
+    },
+    "Recall@5": {
+      "mean": 0.058,
+      "std": 0.0019
+    },
+    "HR@10": {
+      "mean": 0.3565,
+      "std": 0.0061
+    },
+    "NDCG@10": {
+      "mean": 0.0844,
+      "std": 0.0024
+    },
+    "Recall@10": {
+      "mean": 0.1007,
+      "std": 0.0033
+    },
+    "HR@20": {
+      "mean": 0.4931,
+      "std": 0.0089
+    },
+    "NDCG@20": {
+      "mean": 0.1123,
+      "std": 0.0033
+    },
+    "Recall@20": {
+      "mean": 0.1659,
+      "std": 0.0053
+    },
+    "train_time": 73.27,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": [
+      "genre",
+      "image",
+      "text"
+    ]
+  }
+}

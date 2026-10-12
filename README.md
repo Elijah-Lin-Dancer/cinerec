@@ -11,9 +11,9 @@
 
 **Multi-Modal Movie Recommendation System**
 
-*Six recommenders on one codebase — from UserCF to a multi-modal NCF — evaluated on
-a single leave-last-5-out split, with the neural models reported as mean ± std over
-five seeds.*
+*Six servable recommenders on one codebase — from UserCF to a multi-modal NCF — plus
+two published SOTA baselines (BPR-MF, VBPR), all on a single leave-last-5-out split,
+with the neural models reported as mean ± std over five seeds.*
 
 [中文文档](#-项目简介) · [Live Demo](#-live-demo--在线演示) · [Demo](#-demo-preview--效果预览) · [Quick Start](#-quick-start--快速开始)
 
@@ -73,7 +73,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 - **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF 全部登记在 [`models/registry.py`](models/registry.py)，前端、API 与预计算脚本都从这一处取。
 - **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合三路内容特征：Sentence-BERT 文本(384d)、ResNet-50 图像(2048d)、类型(18d)。
-- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，6 个模型共用同一套 HR@K / NDCG@K / Recall@K；神经模型固定随机种子，主结果以 5 个种子的均值±标准差报告，不作"最优模型"声明。
+- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，所有模型共用同一套 HR@K / NDCG@K / Recall@K；神经模型固定随机种子，主评测、消融与冷启动均以 5 个种子的均值±标准差报告，并对照 BPR-MF / VBPR 两个公开 SOTA 基线，不作"最优模型"声明。
 - **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）由 `APP_MODE` 切换。
 - **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐，外加一次实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
 - 电影详情弹窗：点击任意卡片（或键盘 Enter）打开无障碍弹窗，含海报、简介、类型、平均评分、评分入口与 IMDb 链接；Escape、关闭按钮或遮罩点击均可关闭，随语言切换重绘。
@@ -191,6 +191,11 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 | 5 | **LightGCN** | Graph Convolution (PyTorch) | Simplified GCN on the user–item bipartite graph: neighbourhood aggregation averaged over layers, trained with BPR. |
 | 6 | **Multi-Modal NCF** ⭐ | Text+Image+Genre Fusion | Core innovation. Replaces item embedding in MLP path with a Content Tower fusing multi-modal features. |
 
+> **Offline SOTA baselines** — BPR-MF and VBPR are implemented
+> ([`models/bpr_mf.py`](models/bpr_mf.py) / [`models/vbpr.py`](models/vbpr.py)) purely
+> for the evaluation comparison; they are **not** part of this servable ladder and
+> never ship to the API.
+
 ### Multi-Modal NCF Architecture (Core Innovation / 核心创新)
 
 ```
@@ -225,6 +230,32 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 ## 📊 Evaluation / 评测结果
 
+> **Scope / 定位说明** — CineRec is a full-stack engineering and trade-off study, not
+> a leaderboard entry. All models share one fixed split; neural numbers are reported
+> as **mean ± std over seeds**, so every claim is read against the measured noise.
+> CineRec 是一个工程与取舍研究项目，不是刷榜：所有模型共用同一划分，神经结果以多种子
+> 均值±标准差报告，结论的强弱以实测噪声为界。
+
+### Research Questions / 研究问题
+
+| # | Question / 问题 | Answered by |
+|:--|:----------------|:------------|
+| **RQ1** | 相比纯行为信号，内容特征（文本/图像/类型）在同一排序任务上带来多大提升？ | [Ablation](#ablation-study--消融实验) |
+| **RQ2** | 这一提升是否大于随机种子的波动？ | 主表与消融表的 **mean ± std** |
+| **RQ3** | 内容特征能否迁移到完全没有交互历史的冷启动条目？ | [Cold-start](#cold-start-study--冷启动实验) |
+| **RQ4** | 与已发表的 SOTA 基线（BPR-MF / VBPR）相比处于什么位置？ | [Baseline comparison](#sota-baselines--sota-基线对比) |
+
+### Contributions / 主要贡献
+
+1. **一个可复现的统一评测协议** —— 单一 leave-last-5-out 划分、跨模型对齐的候选集
+   （剔除用户训练已见条目）、以及覆盖随机种子全链路的多种子评测，主结果以 5 个种子的
+   均值±标准差报告（`make eval-seeds`）。
+2. **Multi-Modal NCF（核心创新）** —— 在 NCF 的 MLP 路径上用 Content Tower 融合
+   Sentence-BERT 文本、ResNet-50 图像与类型多热三路特征。
+3. **诚实的消融与冷启动研究** —— 两者都以多种子报告，明确区分"真实效应"与"种子噪声"。
+4. **与公开 SOTA 基线对照** —— 在同一划分上复现 BPR-MF（Rendle 2009）与
+   VBPR（He & McAuley 2016），作为行为-only 与内容感知两条线的外部参考。
+
 ### Model Comparison on MovieLens 100K (leave-last-5-out)
 
 Protocol: the 5 most recent interactions of each user are held out; every model is
@@ -238,20 +269,21 @@ deterministic, so their spread is exactly zero.
 |:-----:|:-----:|:-------:|:-----:|:-------:|:-----------:|
 | UserCF | 0.0191 ± 0.0000 | 0.0035 ± 0.0000 | 0.0477 ± 0.0000 | 0.0060 ± 0.0000 | 0.1s |
 | ItemCF | 0.0721 ± 0.0000 | 0.0142 ± 0.0000 | 0.1283 ± 0.0000 | 0.0199 ± 0.0000 | 0.3s |
-| SVD | 0.2534 ± 0.0000 | 0.0532 ± 0.0000 | 0.3542 ± 0.0000 | 0.0664 ± 0.0000 | 0.2s |
-| NeuMF | 0.3516 ± 0.0036 | 0.0814 ± 0.0016 | 0.4978 ± 0.0073 | 0.1083 ± 0.0017 | 31.5s |
+| SVD | 0.2534 ± 0.0000 | 0.0532 ± 0.0000 | 0.3542 ± 0.0000 | 0.0664 ± 0.0000 | 0.3s |
+| NeuMF | 0.3516 ± 0.0036 | 0.0814 ± 0.0016 | 0.4978 ± 0.0073 | 0.1083 ± 0.0017 | 31.4s |
 | LightGCN | 0.2850 ± 0.0041 | 0.0614 ± 0.0004 | 0.4250 ± 0.0047 | 0.0816 ± 0.0007 | 10.7s |
-| **MultiModalNCF** ⭐ | **0.3650 ± 0.0077** | **0.0859 ± 0.0017** | **0.5073 ± 0.0148** | **0.1144 ± 0.0015** | 74.8s |
+| **MultiModalNCF** ⭐ | **0.3650 ± 0.0077** | **0.0859 ± 0.0017** | **0.5073 ± 0.0148** | **0.1144 ± 0.0015** | 73.2s |
 
-> **What the numbers say**: averaged over 5 seeds, **MultiModalNCF** leads all four
-> shown metrics — HR@10 0.3650 / NDCG@10 0.0859 / HR@20 0.5073 / NDCG@20 0.1144 —
-> and **NeuMF** is the runner-up (0.3516 / 0.0814). The HR@10 gap (0.0134) is larger
-> than either model's seed spread, while the HR@20 gap (0.0095) sits inside the
-> MultiModalNCF std (0.0148), so only the NDCG and HR@10 leads are read as
-> consistent. **LightGCN** lands between SVD and NeuMF at a fraction of NeuMF's
+> **What the numbers say (six ladder models)**: averaged over 5 seeds,
+> **MultiModalNCF** leads all four shown metrics *within the ladder* — HR@10 0.3650 /
+> NDCG@10 0.0859 / HR@20 0.5073 / NDCG@20 0.1144 — and **NeuMF** is the runner-up
+> (0.3516 / 0.0814). Within the ladder the HR@10 gap (0.0134) is larger than either
+> model's seed spread, while the HR@20 gap (0.0095) sits inside the MultiModalNCF std
+> (0.0148). **LightGCN** lands between SVD and NeuMF at a fraction of NeuMF's
 > training time. The neural models pay for their gains with a much longer training
-> time, making the accuracy/cost trade-off explicit. Multi-seed numbers, but the
-> top gaps are small, so no strong "best model" significance claim is made.
+> time, making the accuracy/cost trade-off explicit — and once the *published*
+> baselines join the comparison, the top margins close further (next section), so no
+> strong "best model" significance claim is made.
 
 ### Key Findings / 关键发现
 
@@ -264,26 +296,60 @@ deterministic, so their spread is exactly zero.
 - LightGCN: HR@10 0.2850 ± 0.0041, between SVD and NeuMF, and the best accuracy per
   second among the neural models — competitive with no content features at all.
 - MultiModalNCF: HR@10 0.3650 ± 0.0077 / NDCG@10 0.0859 ± 0.0017. Averaged over 5
-  seeds it leads both the hit-rate and NDCG columns, and the ablation study below
-  quantifies each modality's share.
+  seeds it leads both the hit-rate and NDCG columns among the six ladder models, and
+  the ablation study below quantifies each modality's share.
+
+### SOTA Baselines / SOTA 基线对比
+
+To place CineRec against the literature rather than only against itself, the same
+split is used to reproduce two published baselines — **BPR-MF** (Rendle et al.,
+UAI 2009) as the behaviour-only reference, and **VBPR** (He & McAuley, AAAI 2016)
+as the content-aware one. They are offline references only: they are not part of
+the servable ladder ([`models/registry.py`](models/registry.py)) and never ship to
+the API.
+
+| Model | Line | HR@10 | NDCG@10 | HR@20 | NDCG@20 | Train Time |
+|:------|:-----|:-----:|:-------:|:-----:|:-------:|:----------:|
+| BPR-MF (Rendle 2009) | behaviour-only | 0.3476 ± 0.0116 | 0.0785 ± 0.0018 | 0.4831 ± 0.0116 | 0.1034 ± 0.0018 | 10.6s |
+| NeuMF (ours) | behaviour-only | 0.3516 ± 0.0036 | 0.0814 ± 0.0016 | 0.4978 ± 0.0073 | 0.1083 ± 0.0017 | 31.4s |
+| VBPR (He & McAuley 2016) | content-aware | 0.3705 ± 0.0048 | 0.0855 ± 0.0009 | 0.5200 ± 0.0096 | 0.1130 ± 0.0008 | 41.9s |
+| **MultiModalNCF** (ours) ⭐ | content-aware | 0.3650 ± 0.0077 | **0.0859 ± 0.0017** | 0.5073 ± 0.0148 | **0.1144 ± 0.0015** | 73.2s |
+
+> **Reading the baseline comparison (RQ4)**: adding content helps *within each pair* —
+> VBPR > BPR-MF and MultiModalNCF > NeuMF. Against the *published* content-aware
+> baseline, MultiModalNCF is statistically tied: VBPR edges HR@10 (0.3705 vs 0.3650)
+> and HR@20 (0.5200 vs 0.5073) by less than one seed std, while MultiModalNCF leads
+> both NDCG columns (0.0859 / 0.1144 vs 0.0855 / 0.1130). Reaching the published
+> baseline's level on its own terms — with a text+image+genre tower rather than a
+> single visual term — is the honest reading; the differences are too small to claim
+> an outright win. One caveat on the budget: MultiModalNCF runs only **10** epochs
+> against VBPR's 30 and BPR-MF's 50, so the baseline numbers come from a longer
+> schedule (though MultiModalNCF still costs the most wall-clock time, 73.2s vs
+> 41.9s, because of its larger content tower).
 
 ### Ablation Study / 消融实验
 
 Each row retrains MultiModalNCF on the same split with one content modality blanked
-at the input, isolating its contribution.
+at the input, isolating its contribution. **Every row is now mean ± std over 5 seeds
+(42–46)** (`make ablation-seeds`), so each delta can be read against the seed noise
+measured on the Full variant.
 
 | Variant | HR@10 | NDCG@10 | HR@20 | NDCG@20 |
 |:--------|:-----:|:-------:|:-----:|:-------:|
-| Full (Text+Image+Genre) | 0.3606 | 0.0846 | 0.5037 | 0.1110 |
-| w/o Text | 0.3552 | 0.0849 | 0.5027 | 0.1120 |
-| w/o Image | 0.3648 | 0.0834 | 0.4984 | 0.1096 |
-| w/o Genre | 0.3648 | 0.0860 | 0.5080 | 0.1122 |
-| **Behavior only (no content)** | 0.3436 | 0.0795 | 0.4825 | 0.1069 |
+| Full (Text+Image+Genre) | 0.3650 ± 0.0077 | 0.0859 ± 0.0017 | 0.5073 ± 0.0148 | 0.1144 ± 0.0015 |
+| w/o Text | 0.3642 ± 0.0100 | 0.0855 ± 0.0024 | 0.5075 ± 0.0108 | 0.1144 ± 0.0025 |
+| w/o Image | 0.3631 ± 0.0085 | 0.0842 ± 0.0026 | 0.5080 ± 0.0029 | 0.1132 ± 0.0025 |
+| w/o Genre | 0.3673 ± 0.0080 | 0.0857 ± 0.0015 | 0.5107 ± 0.0139 | 0.1144 ± 0.0016 |
+| **Behavior only (no content)** | 0.3565 ± 0.0061 | 0.0844 ± 0.0024 | 0.4931 ± 0.0089 | 0.1123 ± 0.0033 |
 
-> **Reading the ablation**: dropping *all* content features (behavior only) consistently
-> hurts every metric — content is doing real work. The single-modality deltas,
-> however, fall within single-seed noise (this is one seed, not a significance
-> test), so no per-modality ranking is claimed.
+> **Reading the ablation (RQ1/RQ2)**: dropping *all* content features (behavior only)
+> lowers **every** metric — HR@10 0.3650→0.3565, NDCG@10 0.0859→0.0844, HR@20
+> 0.5073→0.4931, NDCG@20 0.1144→0.1123 — so content has a consistent, same-signed
+> effect. Its magnitude, though, is about one seed std (Full HR@10 std 0.0077 vs the
+> 0.0085 drop), so it is a **small** effect, not a decisive one. The single-modality
+> deltas sit inside the noise and one even flips sign (w/o Genre edges the Full
+> HR@10), so **no per-modality ranking is claimed** — at this scale the three
+> modalities are close to interchangeable.
 
 <img src="docs/ablation_study.png" width="720" alt="CineRec Ablation Study">
 
@@ -291,17 +357,22 @@ at the input, isolating its contribution.
 
 100 items are removed from training entirely, then ranked within the cold pool
 (the content-aware task). MultiModalNCF scores them through the content tower —
-no trained embedding — while NeuMF is the content-blind control.
+no trained embedding — while NeuMF is the content-blind control. **Reported as
+mean ± std over 5 seeds** (`make coldstart-seeds`).
 
 | Model | HR@10 | NDCG@10 | HR@20 | NDCG@20 |
 |:------|:-----:|:-------:|:-----:|:-------:|
-| **MultiModalNCF (content)** ⭐ | **0.1228** | **0.0382** | **0.2719** | **0.0743** |
-| NeuMF (content-blind) | 0.0965 | 0.0344 | 0.2193 | 0.0630 |
+| **MultiModalNCF (content)** ⭐ | **0.1333 ± 0.0290** | **0.0542 ± 0.0151** | **0.2754 ± 0.0233** | **0.0882 ± 0.0139** |
+| NeuMF (content-blind) | 0.1140 ± 0.0147 | 0.0467 ± 0.0069 | 0.2351 ± 0.0129 | 0.0739 ± 0.0038 |
 | Random | 0.0702 | 0.0288 | 0.2018 | 0.0610 |
 
-> Content-aware scoring beats the content-blind model, which in turn beats the
-> random floor — the multi-modal tower genuinely transfers to items with no
-> collaborative history. Single-seed study on MovieLens 100K; no significance claims.
+> **Reading the cold-start study (RQ3)**: the ordering is identical on every metric —
+> content-aware > content-blind > random (e.g. HR@10 0.1333 > 0.1140 > 0.0702). The
+> multi-modal tower therefore transfers to items with *no* collaborative history,
+> which a behaviour-only model structurally cannot do (its cold embeddings are never
+> trained). The content-aware margin over NeuMF is consistent in sign but its HR@10
+> seed spread is wide (std 0.0290 vs the 0.0193 gap), so it is reported as a
+> direction, not a precise magnitude.
 
 <img src="docs/coldstart.png" width="720" alt="CineRec Cold-Start Study">
 
@@ -347,9 +418,10 @@ make setup && make serve         # runtime deps only, no torch
 make setup-train                 # torch + vision stack
 make data                        # MovieLens 100K + enriched metadata
 make features                    # Sentence-BERT + ResNet-50 content features
-make train && make eval          # train all 6 models → eval_results.json
-make eval-seeds                  # repeat across 5 seeds → eval_multiseed.json
-make ablation && make coldstart  # modality ablation + cold-start study
+make train && make eval          # train all models → eval_results.json
+make eval-seeds                  # 5 seeds → eval_multiseed.json (mean±std)
+make ablation-seeds              # 5-seed modality ablation → ablation_multiseed.json
+make coldstart-seeds             # 5-seed cold-start study → coldstart_multiseed.json
 make charts                      # regenerate docs/*.png from measured results
 make test                        # pytest suite
 ```
@@ -381,7 +453,7 @@ cinerec/
 │   ├── recommend.py      # Model inference + explanation (APP_MODE aware, LRU cache)
 │   ├── metrics.py        # In-process request counters + latency middleware
 │   └── eval_api.py       # Evaluation results API
-├── models/                # 6 recommender models
+├── models/                # 6 servable models + 2 offline SOTA baselines
 │   ├── base.py           # Base recommender class
 │   ├── registry.py       # Single source of truth for the algorithm ladder
 │   ├── user_cf.py        # User-based CF (Pearson)
@@ -390,6 +462,8 @@ cinerec/
 │   ├── neumf.py          # Neural MF (GMF + MLP)
 │   ├── lightgcn.py       # LightGCN graph convolution (BPR)
 │   ├── multimodal_ncf.py # Multi-Modal NCF ⭐ (Core Innovation)
+│   ├── bpr_mf.py         # BPR-MF baseline (Rendle 2009; offline reference only)
+│   ├── vbpr.py           # VBPR baseline (He & McAuley 2016; offline reference only)
 │   └── explain.py        # RecommenderExplainer (XAI)
 ├── evaluation/            # Offline evaluation framework
 │   ├── metrics.py         # HR@K, NDCG@K, Recall@K
@@ -448,11 +522,23 @@ cinerec/
 <details>
 <summary><b>评测为什么只有 single split？多 seed 是怎么跑的？</b></summary>
 
-划分仍是刻意的单一 leave-last-5-out（项目目标是展示算法取舍与工程规范，而非追 SOTA）。
+划分仍是刻意的单一 leave-last-5-out（项目目标是展示算法取舍与工程规范，而非刷 SOTA）。
 神经模型（NeuMF / LightGCN / MultiModalNCF）已固定随机种子并支持多种子评测：`make eval-seeds`
 会用种子 42–46 各训练一次，把均值±标准差写入 `data/processed/eval_multiseed.json`；
 默认单 seed 运行（`make eval`）仍写 `eval_results.json` 供看板读取，二者互不覆盖。
-正文主表即采用 5 seed 均值±标准差，但对领先幅度不作严格显著性声明。
+消融（`make ablation-seeds`）与冷启动（`make coldstart-seeds`）同样支持多种子，
+分别写 `ablation_multiseed.json` / `coldstart_multiseed.json`。正文主表、消融表、
+冷启动表均采用 5 seed 均值±标准差，但对领先幅度不作严格显著性声明。
+</details>
+
+<details>
+<summary><b>BPR-MF / VBPR 是什么？会进入线上服务吗？</b></summary>
+
+它们是两个**公开的 SOTA 基线**，用于在同一划分上做外部对照：BPR-MF（Rendle et al.,
+UAI 2009）是纯行为的 BPR 排序 MF，VBPR（He & McAuley, AAAI 2016）是内容感知的视觉
+BPR。两者只在离线评测中训练与报告（见 [Baseline comparison](#sota-baselines--sota-基线对比)），
+**不登记进 [`models/registry.py`](models/registry.py)，不会部署到 API**——线上服务的仍是
+6 个 ladder 模型。
 </details>
 
 <details>
@@ -553,6 +639,7 @@ This does **not** extend to the bundled data:
 <details>
 <summary>展开查看</summary>
 
+- **2026-10-12** — 含金量：新增两个公开 SOTA 基线 BPR-MF（Rendle et al., 2009）与 VBPR（He & McAuley, 2016）并纳入统一评测（仅离线对照，不进线上服务）；消融与冷启动改为 5 seed 均值±标准差（`make ablation-seeds` / `make coldstart-seeds`，写 `ablation_multiseed.json` / `coldstart_multiseed.json`）；README 新增研究问题（RQ1–RQ4）、主要贡献与 SOTA 基线对比表。
 - **2026-10-12** — 可复现性：NeuMF / LightGCN / MultiModalNCF 增加统一随机种子（`set_seed`）；`evaluation/runner.py` 支持多种子评测（`make eval-seeds`，种子 42–46），主评测表改为均值±标准差并写入 `eval_multiseed.json`；单 seed 运行行为不变，仍写 `eval_results.json` 供看板读取。
 - **2026-10-06** — 测试/CI 补齐：Playwright E2E（游客登录→推荐、筛选→详情弹窗、评分→推荐排除已评）+ axe-core 无障碍断言；三个神经模型的 torch 门控 forward 测试；recommend `full` 分支与解释器失败路径测试；CI 新增 `full` 镜像构建 + `/api/health` 冒烟；压测纳入每周定时任务并留趋势（`reports/loadtest_trend.csv`）；`/api/metrics` 补充多副本聚合说明。
 - **2026-10-05** — UI：电影详情弹窗（卡片点击/键盘打开、评分与 IMDb 入口、随语言切换重绘）；数据集取舍与许可写入 [ADR 0004](docs/adr/0004-dataset-choice.md) 与上方 FAQ；Streamlit 伴生应用美化（胶片 logo + KPI 条 + 融合推荐卡 + CSS 柱状图/热力图 + 算法阶梯 + 用户画像）；README 截图全部更新为最新版本。

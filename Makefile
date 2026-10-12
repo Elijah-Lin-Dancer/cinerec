@@ -5,7 +5,7 @@ PYTHON ?= python
 APP_MODE ?= full
 HOST ?= http://127.0.0.1:8000
 
-.PHONY: help setup setup-train data features train eval eval-seeds ablation coldstart precompute charts serve test lint loadtest docker-build clean
+.PHONY: help setup setup-train data features train eval eval-seeds ablation ablation-seeds coldstart coldstart-seeds precompute charts serve test lint loadtest docker-build clean
 
 help:
 	@echo "Targets:"
@@ -16,7 +16,9 @@ help:
 	@echo "  train         Train all 6 models and write eval_results.json"
 	@echo "  eval-seeds    Repeat the evaluation across 5 seeds → eval_multiseed.json (mean±std)"
 	@echo "  ablation      Run the MultiModalNCF ablation study"
+	@echo "  ablation-seeds  Repeat the ablation across 5 seeds → ablation_multiseed.json (mean±std)"
 	@echo "  coldstart     Run the cold-start study"
+	@echo "  coldstart-seeds Repeat the cold-start study across 5 seeds → coldstart_multiseed.json (mean±std)"
 	@echo "  precompute    Build recs_cache.json for APP_MODE=lite"
 	@echo "  charts        Regenerate docs/*.png from measured results"
 	@echo "  serve         Run the API locally on :8000 (APP_MODE=$(APP_MODE))"
@@ -52,8 +54,14 @@ eval-seeds:
 ablation:
 	$(PYTHON) scripts/ablation_experiment.py
 
+ablation-seeds:
+	$(PYTHON) scripts/ablation_experiment.py --seeds 42 43 44 45 46
+
 coldstart:
 	$(PYTHON) scripts/coldstart_experiment.py
+
+coldstart-seeds:
+	$(PYTHON) scripts/coldstart_experiment.py --seeds 42 43 44 45 46
 
 precompute:
 	$(PYTHON) scripts/precompute.py

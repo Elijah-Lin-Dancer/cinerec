@@ -33,8 +33,9 @@ RATINGS_CSV = """user_id,item_id,rating,timestamp
 """
 
 # The class globals ``run_evaluation`` instantiates (note "SVD" is produced by
-# ``SVDALS``, so the key in ``MODEL_FILES`` is not the attribute name).
-MODEL_GLOBALS = ["UserCF", "ItemCF", "SVDALS", "NeuMF", "LightGCN", "MultiModalNCF"]
+# ``SVDALS``, so the key in ``MODEL_FILES`` is not the attribute name). BPRMF and
+# VBPR are the offline SOTA baselines the runner also trains and evaluates.
+MODEL_GLOBALS = ["UserCF", "ItemCF", "SVDALS", "BPRMF", "NeuMF", "LightGCN", "VBPR", "MultiModalNCF"]
 
 
 def test_load_data_builds_leave_last_n_out_split(tmp_path, monkeypatch):

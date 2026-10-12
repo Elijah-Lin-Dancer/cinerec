@@ -18,20 +18,27 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from models.user_cf import UserCF
 from models.item_cf import ItemCF
 from models.svd_als import SVDALS
+from models.bpr_mf import BPRMF
 from models.neumf import NeuMF
 from models.lightgcn import LightGCN
+from models.vbpr import VBPR
 from models.multimodal_ncf import MultiModalNCF
 from evaluation.metrics import evaluate_model
 
 RAW_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "raw")
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
 
+# BPR-MF and VBPR are the published SOTA baselines (Rendle 2009; He & McAuley
+# 2016). They are evaluated here for comparison but are not part of the servable
+# ladder in ``models/registry.py`` — the app only ships the six ladder models.
 MODEL_FILES = {
     "UserCF": "model_usercf.pkl",
     "ItemCF": "model_itemcf.pkl",
     "SVD": "model_svd.pkl",
+    "BPRMF": "model_bprmf.pkl",
     "NeuMF": "model_neumf.pt",
     "LightGCN": "model_lightgcn.pkl",
+    "VBPR": "model_vbpr.pkl",
     "MultiModalNCF": "model_multimodalncf.pt",
 }
 
@@ -113,8 +120,10 @@ def run_evaluation(n_seeds=1, seeds=None):
         ("UserCF", lambda: UserCF(k=50)),
         ("ItemCF", lambda: ItemCF(k=50)),
         ("SVD", lambda: SVDALS(k=64)),
+        ("BPRMF", lambda: BPRMF(embedding_dim=64, epochs=50)),
         ("NeuMF", lambda: NeuMF(embedding_dim=32, mlp_dims=(128, 64, 32), epochs=10, batch_size=512)),
         ("LightGCN", lambda: LightGCN(embedding_dim=64, num_layers=3, epochs=50, batch_size=4096)),
+        ("VBPR", lambda: VBPR(embedding_dim=64, visual_dim=64, epochs=30)),
         ("MultiModalNCF", lambda: MultiModalNCF(embedding_dim=32, mlp_dims=(128, 64, 32), epochs=10, batch_size=512)),
     ]
 

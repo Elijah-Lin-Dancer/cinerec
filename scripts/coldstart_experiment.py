@@ -20,8 +20,13 @@ Protocol
 
    A ``Random`` baseline (fixed seed) is included as the reference floor.
 
-Output: data/processed/coldstart_results.json — consumed by evaluation/visualize.py.
-Small single-seed study on MovieLens-100K; no significance claims.
+Output
+------
+- single seed (default) → ``data/processed/coldstart_results.json`` (flat metrics)
+- several seeds → ``data/processed/coldstart_multiseed.json`` with ``mean``/``std``
+
+Both are consumed by evaluation/visualize.py. Run several seeds with
+``make coldstart-seeds``.
 """
 import os
 import sys
@@ -41,6 +46,7 @@ from models.neumf import NeuMF
 N_COLD_ITEMS = 100
 K_VALUES = (10, 20)
 TRAIN_KWARGS = dict(embedding_dim=32, mlp_dims=(128, 64, 32), epochs=10, batch_size=512)
+DEFAULT_SEED = 42
 
 
 def choose_cold_items(train_by_user, test_pairs, n=N_COLD_ITEMS):
@@ -109,7 +115,23 @@ def evaluate_cold(rank_fn, pairs, cold_idx, max_k):
     return {m: float(np.mean(v)) if v else 0.0 for m, v in sums.items()}
 
 
-def main():
+def _aggregate(per_seed, seed_list):
+    """Mean/std per metric across seeds, or the raw metrics for a single seed."""
+    agg = {}
+    for metric in per_seed[0]:
+        if len(seed_list) > 1 and metric != "train_time":
+            vals = [r[metric] for r in per_seed]
+            agg[metric] = {
+                "mean": round(float(np.mean(vals)), 4),
+                "std": round(float(np.std(vals)), 4),
+            }
+        else:
+            agg[metric] = per_seed[0][metric]
+    return agg
+
+
+def main(seeds=None):
+    seed_list = list(seeds) if seeds else [DEFAULT_SEED]
     train_data, test_pairs, train_by_user, _ = load_data()
     cold_items = choose_cold_items(train_by_user, test_pairs)
     cold_idx = np.array(sorted(cold_items), dtype=int)
@@ -125,45 +147,44 @@ def main():
             cold_pairs.append((user_id, rel_cold))
     print(f"Cold test pairs: {len(cold_pairs)}  (candidate pool = {len(cold_idx)} cold items)")
 
-    results = {}
     max_k = max(K_VALUES)
+    mm_per_seed, ncf_per_seed = [], []
 
-    # --- MultiModalNCF (content tower) ---
-    print("\nTraining MultiModalNCF on the reduced set...")
-    np.random.seed(42)
-    torch.manual_seed(42)
-    mm = MultiModalNCF(**TRAIN_KWARGS)
-    t = time.time()
-    mm.fit(reduced)
-    mm_time = time.time() - t
+    for seed in seed_list:
+        # --- MultiModalNCF (content tower) ---
+        print(f"\nTraining MultiModalNCF on the reduced set (seed={seed})...")
+        mm = MultiModalNCF(seed=seed, **TRAIN_KWARGS)
+        t = time.time()
+        mm.fit(reduced)
+        mm_metrics = evaluate_cold(
+            lambda u, idx, k: _rank(idx, _cold_mm_scores(mm, u, idx), k),
+            cold_pairs, cold_idx, max_k,
+        )
+        mm_metrics["train_time"] = round(time.time() - t, 2)
+        mm_per_seed.append(mm_metrics)
 
-    def mm_rank(user_id, idx, top_k):
-        return _rank(idx, _cold_mm_scores(mm, user_id, idx), top_k)
+        # --- NeuMF (content-blind control) ---
+        print(f"Training NeuMF on the reduced set (seed={seed})...")
+        ncf = NeuMF(seed=seed, **TRAIN_KWARGS)
+        t = time.time()
+        ncf.fit(reduced)
+        ncf_metrics = evaluate_cold(
+            lambda u, idx, k: _rank(idx, _cold_neumf_scores(ncf, u, idx), k),
+            cold_pairs, cold_idx, max_k,
+        )
+        ncf_metrics["train_time"] = round(time.time() - t, 2)
+        ncf_per_seed.append(ncf_metrics)
 
-    results["MultiModalNCF (content)"] = evaluate_cold(mm_rank, cold_pairs, cold_idx, max_k)
-    results["MultiModalNCF (content)"]["train_time"] = round(mm_time, 2)
-
-    # --- NeuMF (content-blind control) ---
-    print("\nTraining NeuMF on the reduced set...")
-    np.random.seed(42)
-    torch.manual_seed(42)
-    ncf = NeuMF(**TRAIN_KWARGS)
-    t = time.time()
-    ncf.fit(reduced)
-    ncf_time = time.time() - t
-
-    def ncf_rank(user_id, idx, top_k):
-        return _rank(idx, _cold_neumf_scores(ncf, user_id, idx), top_k)
-
-    results["NeuMF (content-blind)"] = evaluate_cold(ncf_rank, cold_pairs, cold_idx, max_k)
-    results["NeuMF (content-blind)"]["train_time"] = round(ncf_time, 2)
-
-    # --- Random floor ---
+    # --- Random floor (deterministic given the user id) ---
     def random_rank(user_id, idx, top_k):
         rng = np.random.default_rng(user_id)
         return [int(i) for i in rng.permutation(idx)[:top_k]]
 
-    results["Random"] = evaluate_cold(random_rank, cold_pairs, cold_idx, max_k)
+    results = {
+        "MultiModalNCF (content)": _aggregate(mm_per_seed, seed_list),
+        "NeuMF (content-blind)": _aggregate(ncf_per_seed, seed_list),
+        "Random": evaluate_cold(random_rank, cold_pairs, cold_idx, max_k),
+    }
 
     payload = {
         "n_cold_items": len(cold_items),
@@ -171,17 +192,27 @@ def main():
         "candidate_pool": "cold items only",
         "metrics": results,
     }
-    out_path = os.path.join(RESULTS_DIR, "coldstart_results.json")
+    if len(seed_list) > 1:
+        payload["seed_list"] = seed_list
+        payload["n_seeds"] = len(seed_list)
+
+    filename = "coldstart_multiseed.json" if len(seed_list) > 1 else "coldstart_results.json"
+    out_path = os.path.join(RESULTS_DIR, filename)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
 
     print("\nCold-start results:")
     for name, m in results.items():
-        print(f"  {name}: " + ", ".join(
-            f"{k}={v:.4f}" for k, v in sorted(m.items()) if k.startswith(("HR", "NDCG", "Recall"))
-        ))
+        hr = m["HR@10"]
+        shown = f"{hr['mean']:.4f} ± {hr['std']:.4f}" if isinstance(hr, dict) else f"{hr:.4f}"
+        print(f"  {name}: HR@10={shown}")
     print(f"\nSaved → {out_path}")
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Content-based cold-start study.")
+    parser.add_argument("--seeds", type=int, nargs="+", default=None,
+                        help="Training seeds; more than one writes coldstart_multiseed.json.")
+    main(seeds=parser.parse_args().seeds)

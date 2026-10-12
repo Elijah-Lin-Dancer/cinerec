@@ -11,7 +11,8 @@
   - content features: `text_embeddings.npy`, `image_embeddings.npy`,
     `genre_vectors.npy`
   - metadata + results: `movies_enriched.json`, `eval_results.json`,
-    `eval_multiseed.json`, `ablation_results.json`, `coldstart_results.json`
+    `eval_multiseed.json`, `ablation_results.json`, `ablation_multiseed.json`,
+    `coldstart_results.json`, `coldstart_multiseed.json`
   - lite-mode cache: `recs_cache.json` (serves recommendations when `torch`
     is absent)
   - seed data: `data/raw/ratings.csv` (MovieLens 100K seed for the database)

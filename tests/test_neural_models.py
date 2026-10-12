@@ -1,8 +1,9 @@
-"""Minimal forward / round-trip tests for the three torch-backed models.
+"""Minimal forward / round-trip tests for the torch-backed models.
 
 The numpy models already have a contract test in ``test_models.py``; these are
-its neural counterpart for NeuMF, LightGCN and MultiModalNCF — the modules that
-otherwise sit near zero coverage because they need torch.
+its neural counterpart for the modules that otherwise sit near zero coverage
+because they need torch: the three ladder neural models (NeuMF, LightGCN,
+MultiModalNCF) plus the two offline SOTA baselines (BPR-MF, VBPR).
 
 Gated with ``pytest.importorskip``: CI installs the CPU wheel so they run there,
 while lite-mode environments (no torch) skip the whole file. Every case trains a
@@ -141,3 +142,63 @@ def test_multimodal_fit_recommend_cold_and_roundtrip(tmp_path, tiny_content_feat
     reloaded.load(path)
     assert (reloaded.num_users, reloaded.num_items) == (NUM_USERS, NUM_ITEMS)
     assert reloaded.text_emb.shape == (NUM_ITEMS, 384)
+
+
+# --- BPR-MF (published baseline) ---------------------------------------------
+
+
+def test_bprmf_fit_predict_recommend_and_roundtrip(tmp_path):
+    from models.bpr_mf import BPRMF
+
+    model = BPRMF(embedding_dim=8, epochs=2, batch_size=4)
+    model.fit(TRAIN)
+    assert (model.num_users, model.num_items) == (NUM_USERS, NUM_ITEMS)
+    assert model.user_emb.shape == (NUM_USERS, 8)
+    assert model.item_emb.shape == (NUM_ITEMS, 8)
+
+    assert np.isfinite(model.predict(0, 1))
+    assert model.predict(-1, 0) == 0.0
+    _assert_recommend_contract(model)
+
+    path = os.path.join(tmp_path, "bprmf.pkl")
+    model.save(path)
+    reloaded = BPRMF()
+    reloaded.load(path)
+    np.testing.assert_allclose(reloaded.user_emb, model.user_emb)
+    assert reloaded.recommend(0, top_k=3) == model.recommend(0, top_k=3)
+
+
+# --- VBPR (published visual baseline) ----------------------------------------
+
+
+@pytest.fixture
+def tiny_image_features(tmp_path, monkeypatch):
+    """Point VBPR at a tiny image-feature array instead of the shipped one."""
+    from models import vbpr as vb
+
+    monkeypatch.setattr(vb, "PROCESSED_DIR", str(tmp_path))
+    rng = np.random.default_rng(0)
+    np.save(os.path.join(tmp_path, "image_embeddings.npy"),
+            rng.normal(size=(NUM_ITEMS, 2048)).astype(np.float32))
+
+
+def test_vbpr_fit_predict_recommend_and_roundtrip(tmp_path, tiny_image_features):
+    from models.vbpr import VBPR
+
+    model = VBPR(embedding_dim=8, visual_dim=8, epochs=2, batch_size=4)
+    model.fit(TRAIN)
+    assert (model.num_users, model.num_items) == (NUM_USERS, NUM_ITEMS)
+    # The projected visual factors are part of the persisted artefact.
+    assert model.item_visual.shape == (NUM_ITEMS, 8)
+    assert model.image_emb.shape == (NUM_ITEMS, 2048)
+
+    assert np.isfinite(model.predict(0, 1))
+    assert model.predict(-1, 0) == 0.0
+    _assert_recommend_contract(model)
+
+    path = os.path.join(tmp_path, "vbpr.pkl")
+    model.save(path)
+    reloaded = VBPR()
+    reloaded.load(path)
+    assert (reloaded.num_users, reloaded.num_items) == (NUM_USERS, NUM_ITEMS)
+    assert reloaded.recommend(0, top_k=3) == model.recommend(0, top_k=3)

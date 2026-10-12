@@ -39,8 +39,10 @@ COLORS = {
     'orange': '#fb923c',
     'cyan': '#22d3ee',
 }
-MODEL_COLORS = ['#4a9eff', '#4ade80', '#d4a843', '#a78bfa', '#22d3ee', '#f87171']
-MODEL_NAMES_ORDER = ['UserCF', 'ItemCF', 'SVD', 'NeuMF', 'LightGCN', 'MultiModalNCF']
+MODEL_COLORS = ['#4a9eff', '#4ade80', '#d4a843', '#f472b6', '#a78bfa', '#22d3ee', '#fb923c', '#f87171']
+# The six servable ladder models plus the two offline SOTA baselines (BPR-MF,
+# VBPR), in ascending order of sophistication.
+MODEL_NAMES_ORDER = ['UserCF', 'ItemCF', 'SVD', 'BPRMF', 'NeuMF', 'LightGCN', 'VBPR', 'MultiModalNCF']
 
 
 def load_json(filename):
@@ -49,6 +51,17 @@ def load_json(filename):
         return None
     with open(path) as f:
         return json.load(f)
+
+
+def _unwrap(value):
+    """Read a metric that is either a scalar or a ``{"mean","std"}`` aggregate.
+
+    Multi-seed artefacts store ``{"mean","std"}`` per metric; the charts plot the
+    mean. Single-seed artefacts store a plain float, which passes through.
+    """
+    if isinstance(value, dict):
+        return value.get("mean", 0.0)
+    return value
 
 
 def plot_model_comparison(results):
@@ -71,7 +84,7 @@ def plot_model_comparison(results):
         values = []
         for model in MODEL_NAMES_ORDER:
             if model in results and metric in results[model]:
-                values.append(results[model][metric])
+                values.append(_unwrap(results[model][metric]))
             else:
                 values.append(0)
         bars = ax.bar(x + i * width, values, width, label=label,
@@ -117,7 +130,7 @@ def plot_training_time(results):
     colors = []
     for i, model in enumerate(MODEL_NAMES_ORDER):
         if model in results and 'train_time' in results[model]:
-            times.append(results[model]['train_time'])
+            times.append(_unwrap(results[model]['train_time']))
             labels.append(model)
             colors.append(MODEL_COLORS[i])
 
@@ -153,8 +166,8 @@ def plot_ablation(ablation):
     variants = [k for k in ablation if not k.startswith("_") and k != "available"]
     if not variants:
         return
-    hr10 = [ablation[v].get('HR@10', 0) for v in variants]
-    ndcg10 = [ablation[v].get('NDCG@10', 0) for v in variants]
+    hr10 = [_unwrap(ablation[v].get('HR@10', 0)) for v in variants]
+    ndcg10 = [_unwrap(ablation[v].get('NDCG@10', 0)) for v in variants]
 
     fig, ax = plt.subplots(figsize=(12, 5))
     fig.patch.set_facecolor(COLORS['bg'])
@@ -206,8 +219,8 @@ def plot_coldstart(data):
         return
 
     names = [k for k in metrics if not k.startswith("_")]
-    hr10 = [metrics[n].get('HR@10', 0) for n in names]
-    ndcg10 = [metrics[n].get('NDCG@10', 0) for n in names]
+    hr10 = [_unwrap(metrics[n].get('HR@10', 0)) for n in names]
+    ndcg10 = [_unwrap(metrics[n].get('NDCG@10', 0)) for n in names]
 
     fig, ax = plt.subplots(figsize=(10, 5))
     fig.patch.set_facecolor(COLORS['bg'])
@@ -253,15 +266,17 @@ def generate_all():
     """Generate all visualization charts from measured artefacts."""
     print("Generating evaluation visualizations...")
 
-    results = load_json("eval_results.json")
+    # Prefer the multi-seed artefacts (mean±std) when present; fall back to the
+    # single-seed ones so charts match whichever run produced the README table.
+    results = load_json("eval_multiseed.json") or load_json("eval_results.json")
     if results:
         plot_model_comparison(results)
         plot_training_time(results)
     else:
         print("No eval_results.json found — skipping model comparison charts.")
 
-    plot_ablation(load_json("ablation_results.json"))
-    plot_coldstart(load_json("coldstart_results.json"))
+    plot_ablation(load_json("ablation_multiseed.json") or load_json("ablation_results.json"))
+    plot_coldstart(load_json("coldstart_multiseed.json") or load_json("coldstart_results.json"))
 
     print("\nVisualizations generated in docs/ (only measured data).")
 
