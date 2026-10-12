@@ -27,9 +27,9 @@ import torch
 import torch.nn.functional as F
 
 from models.base import Recommender, set_seed
+from config import PROCESSED_DIR  # active dataset's processed dir (CINEREC_DATASET)
 
 POSITIVE_THRESHOLD = 4.0
-PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
 
 
 class VBPR(Recommender):

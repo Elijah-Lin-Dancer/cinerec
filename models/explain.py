@@ -8,7 +8,7 @@ import numpy as np
 import os
 import json
 
-PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
+from config import PROCESSED_DIR  # active dataset's processed dir (CINEREC_DATASET)
 
 
 class RecommenderExplainer:

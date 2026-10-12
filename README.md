@@ -73,7 +73,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 - **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF 全部登记在 [`models/registry.py`](models/registry.py)，前端、API 与预计算脚本都从这一处取。
 - **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合三路内容特征：Sentence-BERT 文本(384d)、ResNet-50 图像(2048d)、类型(18d)。
-- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，所有模型共用同一套 HR@K / NDCG@K / Recall@K；神经模型固定随机种子，主评测、消融与冷启动均以 5 个种子的均值±标准差报告，并对照 BPR-MF / VBPR 两个公开 SOTA 基线，不作"最优模型"声明。
+- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，所有模型共用同一套 HR@K / NDCG@K / Recall@K；神经模型固定随机种子，主评测、消融与冷启动均以 5 个种子的均值±标准差报告，并对照 BPR-MF / VBPR 两个公开 SOTA 基线，不作"最优模型"声明；同一协议在 Amazon Video_Games 第二数据集上完整复验。
 - **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）由 `APP_MODE` 切换。
 - **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐，外加一次实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
 - 电影详情弹窗：点击任意卡片（或键盘 Enter）打开无障碍弹窗，含海报、简介、类型、平均评分、评分入口与 IMDb 链接；Escape、关闭按钮或遮罩点击均可关闭，随语言切换重绘。
@@ -233,8 +233,10 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 > **Scope / 定位说明** — CineRec is a full-stack engineering and trade-off study, not
 > a leaderboard entry. All models share one fixed split; neural numbers are reported
 > as **mean ± std over seeds**, so every claim is read against the measured noise.
-> CineRec 是一个工程与取舍研究项目，不是刷榜：所有模型共用同一划分，神经结果以多种子
-> 均值±标准差报告，结论的强弱以实测噪声为界。
+> The whole protocol is re-run unchanged on a second domain (Amazon Video_Games)
+> to check which conclusions travel. CineRec 是一个工程与取舍研究项目，不是刷榜：
+> 所有模型共用同一划分，神经结果以多种子均值±标准差报告，结论的强弱以实测噪声为界；
+> 同一协议在第二个域（Amazon Video_Games）上原样重跑，以检验哪些结论能跨域成立。
 
 ### Research Questions / 研究问题
 
@@ -244,6 +246,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 | **RQ2** | 这一提升是否大于随机种子的波动？ | 主表与消融表的 **mean ± std** |
 | **RQ3** | 内容特征能否迁移到完全没有交互历史的冷启动条目？ | [Cold-start](#cold-start-study--冷启动实验) |
 | **RQ4** | 与已发表的 SOTA 基线（BPR-MF / VBPR）相比处于什么位置？ | [Baseline comparison](#sota-baselines--sota-基线对比) |
+| **RQ5** | 上述结论是否是 MovieLens 特有的？换一个域还成立吗？ | [Cross-dataset](#cross-dataset-validation--跨数据集验证) |
 
 ### Contributions / 主要贡献
 
@@ -255,6 +258,9 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 3. **诚实的消融与冷启动研究** —— 两者都以多种子报告，明确区分"真实效应"与"种子噪声"。
 4. **与公开 SOTA 基线对照** —— 在同一划分上复现 BPR-MF（Rendle 2009）与
    VBPR（He & McAuley 2016），作为行为-only 与内容感知两条线的外部参考。
+5. **跨数据集验证** —— 同一协议与种子列表在第二个域（Amazon Video_Games，
+   2,288 重度用户 × 4,753 物品）上完整重跑主评测/消融/冷启动，检验结论是否
+   随域迁移（[ADR 0005](docs/adr/0005-cross-dataset-validation.md)）。
 
 ### Model Comparison on MovieLens 100K (leave-last-5-out)
 
@@ -376,6 +382,78 @@ mean ± std over 5 seeds** (`make coldstart-seeds`).
 
 <img src="docs/coldstart.png" width="720" alt="CineRec Cold-Start Study">
 
+### Cross-dataset Validation / 跨数据集验证
+
+The whole protocol — same leave-last-5-out split rule, same candidate filtering,
+same eight models, same positive-feedback threshold (≥ 4.0), same seed list
+(42–46) — is re-run unchanged on **Amazon Reviews-2023 Video_Games**
+([ADR 0005](docs/adr/0005-cross-dataset-validation.md)): a heavy-user slice of
+2,288 users × 4,753 items × 75,980 ratings, built by applying *MovieLens 100K's
+own population rule* (users with ≥ 20 ratings, item 5-core) to a different
+domain. The candidate catalogue is ~2.8× larger than ML-100K's, which
+mechanically depresses absolute HR@K — so the comparison reads **relative
+orderings and delta directions**, not absolute values.
+
+| Model | ML-100K HR@10 | Amazon HR@10 | ML-100K NDCG@10 | Amazon NDCG@10 |
+|:------|:-------------:|:------------:|:---------------:|:--------------:|
+| UserCF | 0.0191 ± 0.0000 | 0.0122 ± 0.0000 | 0.0035 ± 0.0000 | 0.0017 ± 0.0000 |
+| ItemCF | 0.0721 ± 0.0000 | 0.0214 ± 0.0000 | 0.0142 ± 0.0000 | 0.0035 ± 0.0000 |
+| SVD | 0.2534 ± 0.0000 | 0.0651 ± 0.0000 | 0.0532 ± 0.0000 | 0.0116 ± 0.0000 |
+| BPR-MF (Rendle 2009) | 0.3476 ± 0.0116 | 0.1055 ± 0.0053 | 0.0785 ± 0.0018 | 0.0198 ± 0.0012 |
+| NeuMF | 0.3516 ± 0.0036 | 0.1053 ± 0.0043 | 0.0814 ± 0.0016 | 0.0190 ± 0.0009 |
+| LightGCN | 0.2850 ± 0.0041 | **0.1187 ± 0.0074** | 0.0614 ± 0.0004 | **0.0222 ± 0.0011** |
+| VBPR (He & McAuley 2016) | **0.3705 ± 0.0048** | 0.1097 ± 0.0050 | 0.0855 ± 0.0009 | 0.0196 ± 0.0017 |
+| **MultiModalNCF** ⭐ | 0.3650 ± 0.0077 | 0.1164 ± 0.0085 | **0.0859 ± 0.0017** | 0.0213 ± 0.0018 |
+
+**Ablation on the second domain (HR@10, mean ± std over 5 seeds)**:
+
+| Variant | ML-100K | Amazon |
+|:--------|:-------:|:------:|
+| Full (Text+Image+Genre) | 0.3650 ± 0.0077 | 0.1164 ± 0.0085 |
+| w/o Text | 0.3642 ± 0.0100 | 0.1159 ± 0.0050 |
+| w/o Image | 0.3631 ± 0.0085 | 0.1177 ± 0.0033 |
+| w/o Genre | 0.3673 ± 0.0080 | 0.1194 ± 0.0017 |
+| Behavior only (no content) | 0.3565 ± 0.0061 | 0.1163 ± 0.0011 |
+
+**Cold-start on the second domain (HR@10)**:
+
+| Model | ML-100K | Amazon |
+|:------|:-------:|:------:|
+| **MultiModalNCF (content)** ⭐ | 0.1333 ± 0.0290 | **0.2364 ± 0.0202** |
+| NeuMF (content-blind) | 0.1140 ± 0.0147 | 0.1204 ± 0.0120 |
+| Random | 0.0702 | 0.1092 |
+| *content / blind ratio* | *1.17×* | *1.96×* |
+
+> **Reading RQ5 — what travels and what doesn't**:
+>
+> **Transfers (agreement strengthens the MovieLens conclusions):**
+> - The ladder ordering **UserCF < ItemCF < SVD** holds in both domains, and the
+>   neural models' lead over SVD is *larger* on Amazon (0.105–0.119 vs 0.065).
+> - **BPR-MF ≈ NeuMF**: the behaviour-only pair stays a statistical tie in both
+>   domains, so the RQ4 reading is not a MovieLens artefact.
+> - The ablation's single-modality deltas stay **inside seed noise** in both
+>   domains (no per-modality ranking claimed anywhere).
+> - **Cold-start is the strongest transfer of all — and it amplifies**: the
+>   content tower's edge over the content-blind control grows from **1.17×**
+>   on ML-100K to **1.96×** on Amazon (0.2364 vs 0.1204 HR@10, gap ≈ 5.6× the
+>   combined std). The sparser the collaborative signal, the more the content
+>   tower is worth — exactly what the modality story predicts.
+>
+> **Does not transfer (reported, not hidden):**
+> - *"MultiModalNCF is the best model in the ladder."* On Amazon, **LightGCN**
+>   takes the top HR@10 point estimate (0.1187 vs 0.1164) — a difference of
+>   0.0023 against a combined seed spread of ~0.011, i.e. a statistical tie
+>   that LightGCN wins at **1/7 of the training cost** (11.2s vs 77.4s). The
+>   honest cross-domain conclusion: the neural band (0.105–0.119) is the same
+>   in both domains, and the preferred model within it is domain-dependent.
+> - *"Removing all content hurts."* On Amazon, Behavior only ≈ Full
+>   (0.1163 vs 0.1164): with sparser implicit feedback, the NCF path re-learns
+>   whatever the content tower added within the 10-epoch budget. On ML-100K
+>   that drop was itself only ~1 seed std — the ablation already called it a
+>   *small* effect, and on the second domain it vanishes entirely.
+
+---
+
 ### Charts from Measured Results / 实测图表
 
 <img src="docs/model_comparison.png" width="720" alt="Model comparison">
@@ -424,6 +502,14 @@ make ablation-seeds              # 5-seed modality ablation → ablation_multise
 make coldstart-seeds             # 5-seed cold-start study → coldstart_multiseed.json
 make charts                      # regenerate docs/*.png from measured results
 make test                        # pytest suite
+
+# Cross-dataset (Amazon Video_Games, see ADR 0005) — same protocol, isolated
+# data/datasets/amazon-video-games subtree; ~20 min of downloads on first run.
+make amazon-data                         # build the heavy-user slice
+make features DATASET=amazon-video-games # content features for the slice
+make eval-seeds DATASET=amazon-video-games
+make ablation-seeds DATASET=amazon-video-games
+make coldstart-seeds DATASET=amazon-video-games
 ```
 </details>
 
@@ -471,9 +557,11 @@ cinerec/
 │   └── visualize.py       # chart generation from measured results
 ├── data/                  # Data pipeline
 │   ├── download.py        # MovieLens 100K download
+│   ├── amazon_dataset.py  # Second dataset: Amazon Video_Games slice builder (ADR 0005)
 │   ├── preprocess.py      # Sentence-BERT / ResNet-50 feature engineering
 │   ├── enrich_tmdb.py     # TMDB poster/plot enrichment
-│   └── processed/         # Committed models, features and results
+│   ├── processed/         # Committed models, features and results
+│   └── datasets/<name>/   # Per-dataset subtree for CINEREC_DATASET runs (raw + processed)
 ├── db/                    # SQLite layer (idempotent schema + first-boot seed)
 ├── frontend/              # Web UI
 │   ├── index.html         # SPA shell
@@ -539,6 +627,19 @@ UAI 2009）是纯行为的 BPR 排序 MF，VBPR（He & McAuley, AAAI 2016）是�
 BPR。两者只在离线评测中训练与报告（见 [Baseline comparison](#sota-baselines--sota-基线对比)），
 **不登记进 [`models/registry.py`](models/registry.py)，不会部署到 API**——线上服务的仍是
 6 个 ladder 模型。
+</details>
+
+<details>
+<summary><b>第二数据集为什么选 Amazon Video_Games？为什么只保留重度用户？</b></summary>
+
+跨数据集验证（[ADR 0005](docs/adr/0005-cross-dataset-validation.md)）需要一个
+**域外**数据集来回答 RQ5：结论是否 MovieLens 特有。Video_Games 的原始 5-core
+基准（94.8k 用户 × 25.6k 物品）在小内存主机上跑不动稠密邻域模型，而随机抽样
+用户的中位交互数只有 ~6，leave-last-5-out 会把大多数用户划成空训练集——所以
+采用与 MovieLens-100K **完全相同的准入规则**：只保留评分数 ≥ 20 的用户并对物品
+重建 5-core，得到 2,288 用户 × 4,753 物品 × 75,980 评分。无随机抽样，切片由
+构造保证确定性；`ratings.csv` 入库固定切片定义，重跑 `make amazon-data` 即可复现。
+该数据集仅用于离线评测，线上服务仍是 MovieLens 100K。
 </details>
 
 <details>

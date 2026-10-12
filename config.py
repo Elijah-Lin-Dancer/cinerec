@@ -15,8 +15,29 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-RAW_DIR = os.path.join(DATA_DIR, "raw")
-PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
+
+#: Which dataset the offline pipeline reads and writes. The default keeps the
+#: original ``data/raw`` + ``data/processed`` layout, so every shipped MovieLens
+#: artefact and the served app are untouched. Any other name resolves to
+#: ``data/datasets/<name>/{raw,processed}`` and is used for the cross-dataset
+#: study by exporting ``CINEREC_DATASET`` (see docs/README "Cross-dataset").
+DATASET = (os.environ.get("CINEREC_DATASET") or "ml-100k").strip() or "ml-100k"
+
+
+def _dataset_dirs(dataset):
+    """Resolve ``(raw, processed)`` for ``dataset``.
+
+    ``ml-100k`` maps to the historical ``data/{raw,processed}`` paths; every
+    other dataset gets an isolated ``data/datasets/<name>`` subtree so a second
+    dataset can never overwrite the served MovieLens artefacts.
+    """
+    if dataset == "ml-100k":
+        return os.path.join(DATA_DIR, "raw"), os.path.join(DATA_DIR, "processed")
+    root = os.path.join(DATA_DIR, "datasets", dataset)
+    return os.path.join(root, "raw"), os.path.join(root, "processed")
+
+
+RAW_DIR, PROCESSED_DIR = _dataset_dirs(DATASET)
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 DB_PATH = os.path.join(BASE_DIR, "db", "cinerec.db")
 

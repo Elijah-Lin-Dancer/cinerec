@@ -83,19 +83,19 @@ def test_encode_images_is_id_aligned(tmp_path, monkeypatch):
     monkeypatch.setattr(preprocess, "PROCESSED_DIR", str(tmp_path))
 
     class _Tensor:
-        def __init__(self, value):
-            self.value = value
+        """A batch of rows; ``numpy`` materialises each row's marker in slot 0."""
 
-        def unsqueeze(self, dim):
-            return self
+        def __init__(self, rows):
+            self.rows = list(rows)
 
-        def squeeze(self):
+        def squeeze(self, dim=-1):
             return self
 
         def numpy(self):
-            vec = np.zeros(2048, dtype=np.float32)
-            vec[0] = float(self.value)
-            return vec
+            arr = np.zeros((len(self.rows), 2048), dtype=np.float32)
+            for i, row in enumerate(self.rows):
+                arr[i, 0] = float(row)
+            return arr
 
     class _Image:
         def __init__(self, payload):
@@ -119,8 +119,8 @@ def test_encode_images_is_id_aligned(tmp_path, monkeypatch):
         def eval(self):
             return self
 
-        def __call__(self, x):
-            return _Tensor(x.value)
+        def __call__(self, tensor):
+            return tensor  # identity: the marker flows straight through
 
     class _NoGrad:
         def __enter__(self):
@@ -141,6 +141,9 @@ def test_encode_images_is_id_aligned(tmp_path, monkeypatch):
         types.SimpleNamespace(
             nn=types.SimpleNamespace(Sequential=lambda *modules: _Sequential()),
             no_grad=lambda: _NoGrad(),
+            set_num_threads=lambda n: None,
+            # Batch the per-image markers into one tensor-like row list.
+            stack=lambda tensors: _Tensor(r for t in tensors for r in t.rows),
         ),
     )
     monkeypatch.setitem(
@@ -152,7 +155,7 @@ def test_encode_images_is_id_aligned(tmp_path, monkeypatch):
                 ResNet50_Weights=types.SimpleNamespace(IMAGENET1K_V1="weights"),
             ),
             transforms=types.SimpleNamespace(
-                Compose=lambda ops: (lambda img: _Tensor(img.payload)),
+                Compose=lambda ops: (lambda img: _Tensor([img.payload])),
                 Resize=lambda *a, **k: None,
                 ToTensor=lambda: None,
                 Normalize=lambda *a, **k: None,

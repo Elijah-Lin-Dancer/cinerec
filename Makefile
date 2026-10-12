@@ -5,13 +5,20 @@ PYTHON ?= python
 APP_MODE ?= full
 HOST ?= http://127.0.0.1:8000
 
-.PHONY: help setup setup-train data features train eval eval-seeds ablation ablation-seeds coldstart coldstart-seeds precompute charts serve test lint loadtest docker-build clean
+# Cross-dataset runs: pass DATASET=amazon-video-games to any pipeline target to
+# redirect its reads/writes to that dataset's isolated subtree (see ADR 0005).
+ifdef DATASET
+export CINEREC_DATASET = $(DATASET)
+endif
+
+.PHONY: help setup setup-train data amazon-data features train eval eval-seeds ablation ablation-seeds coldstart coldstart-seeds precompute charts serve test lint loadtest docker-build clean
 
 help:
 	@echo "Targets:"
 	@echo "  setup         Install runtime dependencies"
 	@echo "  setup-train   Install training/research dependencies (torch, vision, ...)"
 	@echo "  data          Download MovieLens 100K + enrich metadata"
+	@echo "  amazon-data   Build the Amazon Video_Games slice (second dataset)"
 	@echo "  features      Compute text/image/genre content features"
 	@echo "  train         Train all 6 models and write eval_results.json"
 	@echo "  eval-seeds    Repeat the evaluation across 5 seeds → eval_multiseed.json (mean±std)"
@@ -27,6 +34,9 @@ help:
 	@echo "  loadtest      Run the Locust load test against a running server (HOST=$(HOST))"
 	@echo "  docker-build  Build the Docker image (APP_MODE=$(APP_MODE))"
 	@echo "  clean         Remove caches"
+	@echo ""
+	@echo "Cross-dataset: prefix any pipeline target with DATASET=<name>, e.g."
+	@echo "  make amazon-data && make features DATASET=amazon-video-games && make eval-seeds DATASET=amazon-video-games"
 
 setup:
 	$(PYTHON) -m pip install -r requirements.txt
@@ -37,6 +47,9 @@ setup-train:
 data:
 	$(PYTHON) data/download.py
 	$(PYTHON) data/enrich_tmdb.py
+
+amazon-data:
+	CINEREC_DATASET=amazon-video-games $(PYTHON) data/amazon_dataset.py
 
 features:
 	# Set HF_ENDPOINT externally if the default Hugging Face host is unreachable.

@@ -24,9 +24,11 @@ from models.lightgcn import LightGCN
 from models.vbpr import VBPR
 from models.multimodal_ncf import MultiModalNCF
 from evaluation.metrics import evaluate_model
+from config import RAW_DIR, PROCESSED_DIR
 
-RAW_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "raw")
-RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
+# Results live beside the features for the active dataset (CINEREC_DATASET):
+# MovieLens keeps ``data/processed``, a second dataset gets its own subtree.
+RESULTS_DIR = PROCESSED_DIR
 
 # BPR-MF and VBPR are the published SOTA baselines (Rendle 2009; He & McAuley
 # 2016). They are evaluated here for comparison but are not part of the servable

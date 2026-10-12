@@ -43,6 +43,21 @@ data/processed/*
 !data/processed/model_neumf.pt
 !data/processed/model_multimodalncf.pt
 
+# Second-dataset subtrees (CINEREC_DATASET, e.g. amazon-video-games): the heavy
+# upstream downloads and the 20MB+ feature arrays stay out — the shipped evidence
+# is the slice definition (ratings.csv) plus the measured result JSONs. Everything
+# else is rebuilt with the documented make/docker commands.
+data/datasets/*/raw/*
+!data/datasets/*/raw/ratings.csv
+data/datasets/*/processed/*
+!data/datasets/*/processed/eval_results.json
+!data/datasets/*/processed/eval_multiseed.json
+!data/datasets/*/processed/ablation_results.json
+!data/datasets/*/processed/ablation_multiseed.json
+!data/datasets/*/processed/coldstart_results.json
+!data/datasets/*/processed/coldstart_multiseed.json
+!data/datasets/*/processed/category_vocab.json
+
 # Test / coverage artefacts
 .coverage
 .coverage.*

@@ -21,9 +21,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from models.base import Recommender, set_seed
-
-
-PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
+from config import PROCESSED_DIR  # active dataset's processed dir (CINEREC_DATASET)
 
 
 class MultiModalNCFDataset(Dataset):

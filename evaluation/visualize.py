@@ -22,7 +22,8 @@ matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
+from config import PROCESSED_DIR  # noqa: E402  (path set up above)
+
 DOCS_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
 os.makedirs(DOCS_DIR, exist_ok=True)
 

@@ -1,0 +1,252 @@
+{
+  "Full (Text+Image+Genre)": {
+    "HR@5": {
+      "mean": 0.0691,
+      "std": 0.0053
+    },
+    "NDCG@5": {
+      "mean": 0.0152,
+      "std": 0.0014
+    },
+    "Recall@5": {
+      "mean": 0.0147,
+      "std": 0.0013
+    },
+    "HR@10": {
+      "mean": 0.1164,
+      "std": 0.0085
+    },
+    "NDCG@10": {
+      "mean": 0.0213,
+      "std": 0.0018
+    },
+    "Recall@10": {
+      "mean": 0.026,
+      "std": 0.0021
+    },
+    "HR@20": {
+      "mean": 0.1958,
+      "std": 0.0079
+    },
+    "NDCG@20": {
+      "mean": 0.0301,
+      "std": 0.0017
+    },
+    "Recall@20": {
+      "mean": 0.0467,
+      "std": 0.0018
+    },
+    "train_time": 79.19,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": []
+  },
+  "w/o Text": {
+    "HR@5": {
+      "mean": 0.0697,
+      "std": 0.0043
+    },
+    "NDCG@5": {
+      "mean": 0.0151,
+      "std": 0.0009
+    },
+    "Recall@5": {
+      "mean": 0.0147,
+      "std": 0.0009
+    },
+    "HR@10": {
+      "mean": 0.1159,
+      "std": 0.005
+    },
+    "NDCG@10": {
+      "mean": 0.0211,
+      "std": 0.0011
+    },
+    "Recall@10": {
+      "mean": 0.0258,
+      "std": 0.0012
+    },
+    "HR@20": {
+      "mean": 0.1957,
+      "std": 0.0018
+    },
+    "NDCG@20": {
+      "mean": 0.03,
+      "std": 0.0007
+    },
+    "Recall@20": {
+      "mean": 0.0465,
+      "std": 0.0007
+    },
+    "train_time": 76.45,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": [
+      "text"
+    ]
+  },
+  "w/o Image": {
+    "HR@5": {
+      "mean": 0.0683,
+      "std": 0.0043
+    },
+    "NDCG@5": {
+      "mean": 0.0155,
+      "std": 0.0012
+    },
+    "Recall@5": {
+      "mean": 0.0146,
+      "std": 0.001
+    },
+    "HR@10": {
+      "mean": 0.1177,
+      "std": 0.0033
+    },
+    "NDCG@10": {
+      "mean": 0.0217,
+      "std": 0.0011
+    },
+    "Recall@10": {
+      "mean": 0.0261,
+      "std": 0.0008
+    },
+    "HR@20": {
+      "mean": 0.1917,
+      "std": 0.0076
+    },
+    "NDCG@20": {
+      "mean": 0.0298,
+      "std": 0.0012
+    },
+    "Recall@20": {
+      "mean": 0.0453,
+      "std": 0.0013
+    },
+    "train_time": 74.81,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": [
+      "image"
+    ]
+  },
+  "w/o Genre": {
+    "HR@5": {
+      "mean": 0.0705,
+      "std": 0.0035
+    },
+    "NDCG@5": {
+      "mean": 0.0155,
+      "std": 0.0006
+    },
+    "Recall@5": {
+      "mean": 0.015,
+      "std": 0.0007
+    },
+    "HR@10": {
+      "mean": 0.1194,
+      "std": 0.0017
+    },
+    "NDCG@10": {
+      "mean": 0.0217,
+      "std": 0.0004
+    },
+    "Recall@10": {
+      "mean": 0.0264,
+      "std": 0.0005
+    },
+    "HR@20": {
+      "mean": 0.1966,
+      "std": 0.0012
+    },
+    "NDCG@20": {
+      "mean": 0.0305,
+      "std": 0.0004
+    },
+    "Recall@20": {
+      "mean": 0.0471,
+      "std": 0.0005
+    },
+    "train_time": 76.84,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": [
+      "genre"
+    ]
+  },
+  "Behavior only (no content)": {
+    "HR@5": {
+      "mean": 0.0684,
+      "std": 0.0022
+    },
+    "NDCG@5": {
+      "mean": 0.0152,
+      "std": 0.0002
+    },
+    "Recall@5": {
+      "mean": 0.0145,
+      "std": 0.0003
+    },
+    "HR@10": {
+      "mean": 0.1163,
+      "std": 0.0011
+    },
+    "NDCG@10": {
+      "mean": 0.0214,
+      "std": 0.0002
+    },
+    "Recall@10": {
+      "mean": 0.0259,
+      "std": 0.0002
+    },
+    "HR@20": {
+      "mean": 0.1924,
+      "std": 0.0052
+    },
+    "NDCG@20": {
+      "mean": 0.0299,
+      "std": 0.0004
+    },
+    "Recall@20": {
+      "mean": 0.046,
+      "std": 0.0008
+    },
+    "train_time": 74.97,
+    "seed_list": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_seeds": 5,
+    "disabled_features": [
+      "genre",
+      "image",
+      "text"
+    ]
+  }
+}

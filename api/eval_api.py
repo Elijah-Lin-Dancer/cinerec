@@ -9,9 +9,9 @@ import os
 import json
 from fastapi import APIRouter
 
-router = APIRouter()
+from config import PROCESSED_DIR  # active dataset's processed dir (CINEREC_DATASET)
 
-PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
+router = APIRouter()
 
 
 def _load(filename):
