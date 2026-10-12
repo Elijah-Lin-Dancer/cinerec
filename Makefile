@@ -5,7 +5,7 @@ PYTHON ?= python
 APP_MODE ?= full
 HOST ?= http://127.0.0.1:8000
 
-.PHONY: help setup setup-train data features train eval ablation coldstart precompute charts serve test lint loadtest docker-build clean
+.PHONY: help setup setup-train data features train eval eval-seeds ablation coldstart precompute charts serve test lint loadtest docker-build clean
 
 help:
 	@echo "Targets:"
@@ -14,6 +14,7 @@ help:
 	@echo "  data          Download MovieLens 100K + enrich metadata"
 	@echo "  features      Compute text/image/genre content features"
 	@echo "  train         Train all 6 models and write eval_results.json"
+	@echo "  eval-seeds    Repeat the evaluation across 5 seeds → eval_multiseed.json (mean±std)"
 	@echo "  ablation      Run the MultiModalNCF ablation study"
 	@echo "  coldstart     Run the cold-start study"
 	@echo "  precompute    Build recs_cache.json for APP_MODE=lite"
@@ -44,6 +45,9 @@ train:
 
 eval:
 	$(PYTHON) -c "from evaluation.runner import run_evaluation; run_evaluation()"
+
+eval-seeds:
+	$(PYTHON) -c "from evaluation.runner import run_evaluation; run_evaluation(seeds=[42, 43, 44, 45, 46])"
 
 ablation:
 	$(PYTHON) scripts/ablation_experiment.py

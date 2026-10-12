@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from models.base import Recommender
+from models.base import Recommender, set_seed
 
 
 class NeuMFDataset(Dataset):
@@ -89,7 +89,8 @@ class NeuMF(Recommender):
     """NeuMF: Neural Collaborative Filtering with GMF + MLP."""
 
     def __init__(self, embedding_dim=64, mlp_dims=(256, 128, 64), dropout=0.2,
-                 lr=0.001, batch_size=1024, epochs=20, patience=3, num_neg=4):
+                 lr=0.001, batch_size=1024, epochs=20, patience=3, num_neg=4,
+                 seed=42):
         super().__init__()
         self.embedding_dim = embedding_dim
         self.mlp_dims = mlp_dims
@@ -99,6 +100,7 @@ class NeuMF(Recommender):
         self.epochs = epochs
         self.patience = patience
         self.num_neg = num_neg
+        self.seed = seed
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.net = None
         self.num_users = 0
@@ -107,6 +109,7 @@ class NeuMF(Recommender):
 
     def fit(self, train_data):
         """Train NeuMF on user-item interactions."""
+        set_seed(self.seed)
         user_ids = train_data['user_id']
         item_ids = train_data['item_id']
         ratings = train_data['rating']

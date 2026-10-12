@@ -26,6 +26,7 @@ data/raw/ml-100k/
 data/processed/*
 !data/processed/.gitkeep
 !data/processed/eval_results.json
+!data/processed/eval_multiseed.json
 !data/processed/ablation_results.json
 !data/processed/coldstart_results.json
 !data/processed/recs_cache.json

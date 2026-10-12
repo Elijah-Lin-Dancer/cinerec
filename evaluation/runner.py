@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import time
+import numpy as np
 import pandas as pd
 
 # Add project root to path
@@ -77,8 +78,33 @@ def load_data(n_test=5):
     return train_data, test_pairs, train_by_user, df
 
 
-def run_evaluation():
-    """Train all models and evaluate."""
+def _print_results(name, results):
+    """Print one model's metrics; ``mean ± std`` when aggregated across seeds."""
+    print(f"\n{name} Results:")
+    if "error" in results:
+        print(f"  error: {results['error']}")
+        return
+    for metric, value in sorted(results.items()):
+        if metric in ("seed_list", "n_seeds"):
+            continue
+        if metric == "train_time":
+            print(f"  {metric}: {value}s")
+        elif isinstance(value, dict):
+            print(f"  {metric}: {value['mean']:.4f} ± {value['std']:.4f}")
+        else:
+            print(f"  {metric}: {value:.4f}")
+
+
+def run_evaluation(n_seeds=1, seeds=None):
+    """Train all models and evaluate.
+
+    With ``n_seeds=1`` (the default) each model is trained once with its default
+    seed and the JSON contains the raw metrics, as before. With ``n_seeds>1`` the
+    training seeds are varied and the JSON reports ``mean``/``std`` across the
+    runs — a single-seed table makes no claim about seed noise, so numbers that
+    are supposed to support a "best model" statement should come from the
+    multi-seed path.
+    """
     train_data, test_pairs, train_by_user, full_df = load_data()
     k_values = [5, 10, 20]
     all_results = {}
@@ -92,34 +118,50 @@ def run_evaluation():
         ("MultiModalNCF", lambda: MultiModalNCF(embedding_dim=32, mlp_dims=(128, 64, 32), epochs=10, batch_size=512)),
     ]
 
+    seed_list = list(seeds) if seeds is not None else list(range(1, n_seeds + 1))
+
     for name, model_factory in models_to_train:
         print(f"\n{'='*60}")
         print(f"Training {name}...")
         print(f"{'='*60}")
 
-        model = model_factory()
-        start_time = time.time()
-
         try:
-            model.fit(train_data)
-            train_time = time.time() - start_time
+            per_seed = []
+            first_train_time = None
+            for idx, seed in enumerate(seed_list):
+                model = model_factory()
+                if hasattr(model, "seed"):
+                    model.seed = seed
 
-            # Persist the trained artifact so a fresh clone can serve it.
-            save_path = os.path.join(RESULTS_DIR, MODEL_FILES[name])
-            model.save(save_path)
-            print(f"Saved {name} → {save_path}")
+                start_time = time.time()
+                model.fit(train_data)
+                train_time = time.time() - start_time
 
-            print(f"Evaluating {name}...")
-            results = evaluate_model(model, test_pairs, train_by_user, k_values=k_values)
-            results["train_time"] = round(train_time, 2)
+                if idx == 0:
+                    # Persist the first seed's model, so the artefact shipped to a
+                    # fresh clone is the one the reported metrics start from.
+                    save_path = os.path.join(RESULTS_DIR, MODEL_FILES[name])
+                    model.save(save_path)
+                    print(f"Saved {name} → {save_path}")
+                    first_train_time = train_time
 
-            # Print results
-            print(f"\n{name} Results:")
-            for metric, value in sorted(results.items()):
-                if metric != "train_time":
-                    print(f"  {metric}: {value:.4f}")
-                else:
-                    print(f"  {metric}: {value}s")
+                print(f"Evaluating {name} (seed={seed})...")
+                per_seed.append(evaluate_model(model, test_pairs, train_by_user, k_values=k_values))
+
+            results = dict(per_seed[0])
+            results["train_time"] = round(first_train_time, 2)
+
+            if len(seed_list) > 1:
+                for metric in list(results):
+                    if metric == "train_time":
+                        continue
+                    vals = [r[metric] for r in per_seed if metric in r]
+                    results[metric] = {
+                        "mean": round(sum(vals) / len(vals), 4),
+                        "std": round(float(np.std(vals)), 4),
+                    }
+                results["seed_list"] = seed_list
+                results["n_seeds"] = len(seed_list)
 
             all_results[name] = results
 
@@ -129,8 +171,15 @@ def run_evaluation():
             traceback.print_exc()
             all_results[name] = {"error": str(e)}
 
-    # Save results
-    results_path = os.path.join(RESULTS_DIR, "eval_results.json")
+        _print_results(name, all_results[name])
+
+    # Save results. A single-seed run keeps writing eval_results.json (the
+    # artefact the dashboard reads); a multi-seed run adds eval_multiseed.json
+    # instead of overwriting it, so the served numbers stay raw metrics.
+    if len(seed_list) > 1:
+        results_path = os.path.join(RESULTS_DIR, "eval_multiseed.json")
+    else:
+        results_path = os.path.join(RESULTS_DIR, "eval_results.json")
     with open(results_path, "w") as f:
         json.dump(all_results, f, indent=2)
     print(f"\nResults saved to {results_path}")

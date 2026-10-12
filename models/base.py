@@ -4,8 +4,23 @@ Abstract base class for all recommender models.
 from abc import ABC, abstractmethod
 import copy
 import pickle
+import random
 
 import numpy as np
+
+
+def set_seed(seed):
+    """Seed every RNG a neural model touches, so a run is reproducible.
+
+    Called at the top of each neural ``fit``: negative sampling draws from
+    NumPy, DataLoader shuffling and weight init from torch. ``torch`` is imported
+    lazily so the torch-free lite deployment can still import this module.
+    """
+    import torch
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
 class Recommender(ABC):

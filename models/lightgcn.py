@@ -22,7 +22,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from models.base import Recommender
+from models.base import Recommender, set_seed
 
 POSITIVE_THRESHOLD = 4.0
 
@@ -80,8 +80,7 @@ class LightGCN(Recommender):
 
     def fit(self, train_data):
         """Train LightGCN on positive user-item pairs with BPR + negative sampling."""
-        torch.manual_seed(self.seed)
-        np.random.seed(self.seed)
+        set_seed(self.seed)
 
         user_ids = np.asarray(train_data["user_id"])
         item_ids = np.asarray(train_data["item_id"])

@@ -128,3 +128,63 @@ def test_run_evaluation_records_a_failing_model_without_aborting(tmp_path, monke
     # The other five still produced metrics.
     assert "HR@10" in all_results["UserCF"]
     assert "HR@10" in all_results["MultiModalNCF"]
+
+
+class _SeedAwareStub(_StubModel):
+    """Stand-in whose metric is derived from the seed it was constructed with,
+    so the multi-seed aggregation can be checked without training anything."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.seed = kwargs.get("seed", 42)
+
+    def evaluate(self):
+        return {"HR@10": self.seed / 100}
+
+
+class _FailOnSecondSeed(_SeedAwareStub):
+    def fit(self, train_data):
+        if self.seed == 2:
+            raise RuntimeError("boom")
+
+
+def _patch_seed_stubs(monkeypatch, tmp_path, failing=None):
+    results_dir = tmp_path / "processed"
+    results_dir.mkdir()
+    monkeypatch.setattr(runner, "RESULTS_DIR", str(results_dir))
+    monkeypatch.setattr(
+        runner,
+        "load_data",
+        lambda n_test=5: ({"user_id": [], "item_id": [], "rating": []}, [], {}, None),
+    )
+    monkeypatch.setattr(
+        runner,
+        "evaluate_model",
+        lambda model, test_pairs, train_by_user, k_values: model.evaluate(),
+    )
+    for name in MODEL_GLOBALS:
+        monkeypatch.setattr(runner, name, _FailOnSecondSeed if name == failing else _SeedAwareStub)
+    return results_dir
+
+
+def test_run_evaluation_multi_seed_aggregates_mean_std(tmp_path, monkeypatch):
+    """``n_seeds>1`` must vary the training seed and report mean/std per metric."""
+    _patch_seed_stubs(monkeypatch, tmp_path)
+
+    all_results = runner.run_evaluation(n_seeds=2, seeds=[1, 2])
+
+    res = all_results["NeuMF"]
+    assert res["HR@10"] == {"mean": 0.015, "std": 0.005}
+    assert res["seed_list"] == [1, 2]
+    assert res["n_seeds"] == 2
+
+
+def test_run_evaluation_multi_seed_records_a_failing_model_without_aborting(tmp_path, monkeypatch):
+    """A seed blowing up is recorded for that model; the rest still aggregate."""
+    _patch_seed_stubs(monkeypatch, tmp_path, failing="NeuMF")
+
+    all_results = runner.run_evaluation(n_seeds=2, seeds=[1, 2])
+
+    assert "boom" in all_results["NeuMF"]["error"]
+    assert all_results["UserCF"]["n_seeds"] == 2
+    assert all_results["MultiModalNCF"]["HR@10"] == {"mean": 0.015, "std": 0.005}

@@ -12,7 +12,8 @@
 **Multi-Modal Movie Recommendation System**
 
 *Six recommenders on one codebase — from UserCF to a multi-modal NCF — evaluated on
-a single leave-last-5-out split whose numbers are reported as measured.*
+a single leave-last-5-out split, with the neural models reported as mean ± std over
+five seeds.*
 
 [中文文档](#-项目简介) · [Live Demo](#-live-demo--在线演示) · [Demo](#-demo-preview--效果预览) · [Quick Start](#-quick-start--快速开始)
 
@@ -72,7 +73,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 - **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF 全部登记在 [`models/registry.py`](models/registry.py)，前端、API 与预计算脚本都从这一处取。
 - **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合三路内容特征：Sentence-BERT 文本(384d)、ResNet-50 图像(2048d)、类型(18d)。
-- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，6 个模型共用同一套 HR@K / NDCG@K / Recall@K；结论明确标注 single-seed，不作"最优模型"声明。
+- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，6 个模型共用同一套 HR@K / NDCG@K / Recall@K；神经模型固定随机种子，主结果以 5 个种子的均值±标准差报告，不作"最优模型"声明。
 - **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）由 `APP_MODE` 切换。
 - **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐，外加一次实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
 - 电影详情弹窗：点击任意卡片（或键盘 Enter）打开无障碍弹窗，含海报、简介、类型、平均评分、评分入口与 IMDb 链接；Escape、关闭按钮或遮罩点击均可关闭，随语言切换重绘。
@@ -228,36 +229,43 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 Protocol: the 5 most recent interactions of each user are held out; every model is
 scored against the same candidate set (all items minus the user's training items),
-so re-recommending already-seen titles cannot inflate the numbers.
+so re-recommending already-seen titles cannot inflate the numbers. Numbers are
+**mean ± std over 5 random seeds (42–46)**, reproduced with `make eval-seeds`
+(writes `data/processed/eval_multiseed.json`). The three heuristics/MF models are
+deterministic, so their spread is exactly zero.
 
 | Model | HR@10 | NDCG@10 | HR@20 | NDCG@20 | Train Time |
 |:-----:|:-----:|:-------:|:-----:|:-------:|:-----------:|
-| UserCF | 0.0191 | 0.0035 | 0.0477 | 0.0060 | 0.1s |
-| ItemCF | 0.0721 | 0.0142 | 0.1283 | 0.0199 | 0.25s |
-| SVD | 0.2534 | 0.0532 | 0.3542 | 0.0664 | 0.47s |
-| NeuMF | **0.3775** | 0.0838 | **0.5164** | 0.1121 | 48.4s |
-| LightGCN | 0.2789 | 0.0615 | 0.4210 | 0.0804 | 16.4s |
-| **MultiModalNCF** ⭐ | 0.3627 | **0.0850** | 0.5133 | **0.1123** | 93.5s |
+| UserCF | 0.0191 ± 0.0000 | 0.0035 ± 0.0000 | 0.0477 ± 0.0000 | 0.0060 ± 0.0000 | 0.1s |
+| ItemCF | 0.0721 ± 0.0000 | 0.0142 ± 0.0000 | 0.1283 ± 0.0000 | 0.0199 ± 0.0000 | 0.3s |
+| SVD | 0.2534 ± 0.0000 | 0.0532 ± 0.0000 | 0.3542 ± 0.0000 | 0.0664 ± 0.0000 | 0.2s |
+| NeuMF | 0.3516 ± 0.0036 | 0.0814 ± 0.0016 | 0.4978 ± 0.0073 | 0.1083 ± 0.0017 | 31.5s |
+| LightGCN | 0.2850 ± 0.0041 | 0.0614 ± 0.0004 | 0.4250 ± 0.0047 | 0.0816 ± 0.0007 | 10.7s |
+| **MultiModalNCF** ⭐ | **0.3650 ± 0.0077** | **0.0859 ± 0.0017** | **0.5073 ± 0.0148** | **0.1144 ± 0.0015** | 74.8s |
 
-> **What the numbers say**: on this single split the strongest hit-rate result is **NeuMF**
-> (HR@10 0.3775 / HR@20 0.5164), while **MultiModalNCF** leads only on NDCG
-> (0.0850 / 0.1123) — i.e. content features mainly improve the *ranking* of the
-> items the model already retrieves. **LightGCN** lands between SVD and NeuMF at a
-> fraction of NeuMF's training time. The neural models pay for their gains with a
-> much longer training time, making the accuracy/cost trade-off explicit. These are
-> single-seed numbers and the top gaps are small, so no "best model" claim is made.
+> **What the numbers say**: averaged over 5 seeds, **MultiModalNCF** leads all four
+> shown metrics — HR@10 0.3650 / NDCG@10 0.0859 / HR@20 0.5073 / NDCG@20 0.1144 —
+> and **NeuMF** is the runner-up (0.3516 / 0.0814). The HR@10 gap (0.0134) is larger
+> than either model's seed spread, while the HR@20 gap (0.0095) sits inside the
+> MultiModalNCF std (0.0148), so only the NDCG and HR@10 leads are read as
+> consistent. **LightGCN** lands between SVD and NeuMF at a fraction of NeuMF's
+> training time. The neural models pay for their gains with a much longer training
+> time, making the accuracy/cost trade-off explicit. Multi-seed numbers, but the
+> top gaps are small, so no strong "best model" significance claim is made.
 
 ### Key Findings / 关键发现
 
 - UserCF → ItemCF → SVD keeps the expected ordering — neighbourhood heuristics give
   way to matrix factorization — and SVD is the strongest accuracy-per-second point on
-  the ladder (HR@10 0.2534).
-- NeuMF: HR@10 0.3775 / HR@20 0.5164. Non-linear interaction modelling edges out plain
-  factorization once candidates are filtered to unseen items.
-- LightGCN: HR@10 0.2789, between SVD and NeuMF, and the best accuracy per second among
-  the neural models — competitive with no content features at all.
-- MultiModalNCF: HR@10 0.3627 / NDCG@10 0.0850. It trails NeuMF on hit-rate, leads on
-  NDCG, and the ablation study below quantifies each modality's share.
+  the ladder (HR@10 0.2534, and deterministic, so seed-free).
+- NeuMF: HR@10 0.3516 ± 0.0036 / HR@20 0.4978 ± 0.0073. Non-linear interaction
+  modelling edges out plain factorization once candidates are filtered to unseen
+  items, with a small but non-zero seed spread.
+- LightGCN: HR@10 0.2850 ± 0.0041, between SVD and NeuMF, and the best accuracy per
+  second among the neural models — competitive with no content features at all.
+- MultiModalNCF: HR@10 0.3650 ± 0.0077 / NDCG@10 0.0859 ± 0.0017. Averaged over 5
+  seeds it leads both the hit-rate and NDCG columns, and the ablation study below
+  quantifies each modality's share.
 
 ### Ablation Study / 消融实验
 
@@ -340,6 +348,7 @@ make setup-train                 # torch + vision stack
 make data                        # MovieLens 100K + enriched metadata
 make features                    # Sentence-BERT + ResNet-50 content features
 make train && make eval          # train all 6 models → eval_results.json
+make eval-seeds                  # repeat across 5 seeds → eval_multiseed.json
 make ablation && make coldstart  # modality ablation + cold-start study
 make charts                      # regenerate docs/*.png from measured results
 make test                        # pytest suite
@@ -384,7 +393,7 @@ cinerec/
 │   └── explain.py        # RecommenderExplainer (XAI)
 ├── evaluation/            # Offline evaluation framework
 │   ├── metrics.py         # HR@K, NDCG@K, Recall@K
-│   ├── runner.py          # leave-last-5-out evaluation runner
+│   ├── runner.py          # leave-last-5-out evaluation runner (single + multi-seed)
 │   └── visualize.py       # chart generation from measured results
 ├── data/                  # Data pipeline
 │   ├── download.py        # MovieLens 100K download
@@ -437,10 +446,13 @@ cinerec/
 </details>
 
 <details>
-<summary><b>评测为什么只有 single split / single seed？</b></summary>
+<summary><b>评测为什么只有 single split？多 seed 是怎么跑的？</b></summary>
 
-这是刻意的取舍：项目目标是展示算法取舍与工程规范，而非追 SOTA。正文所有结论均标注
-single-seed、不作显著性声明。如需多 seed，可改 `evaluation/runner.py` 重跑。
+划分仍是刻意的单一 leave-last-5-out（项目目标是展示算法取舍与工程规范，而非追 SOTA）。
+神经模型（NeuMF / LightGCN / MultiModalNCF）已固定随机种子并支持多种子评测：`make eval-seeds`
+会用种子 42–46 各训练一次，把均值±标准差写入 `data/processed/eval_multiseed.json`；
+默认单 seed 运行（`make eval`）仍写 `eval_results.json` 供看板读取，二者互不覆盖。
+正文主表即采用 5 seed 均值±标准差，但对领先幅度不作严格显著性声明。
 </details>
 
 <details>
@@ -541,6 +553,7 @@ This does **not** extend to the bundled data:
 <details>
 <summary>展开查看</summary>
 
+- **2026-10-12** — 可复现性：NeuMF / LightGCN / MultiModalNCF 增加统一随机种子（`set_seed`）；`evaluation/runner.py` 支持多种子评测（`make eval-seeds`，种子 42–46），主评测表改为均值±标准差并写入 `eval_multiseed.json`；单 seed 运行行为不变，仍写 `eval_results.json` 供看板读取。
 - **2026-10-06** — 测试/CI 补齐：Playwright E2E（游客登录→推荐、筛选→详情弹窗、评分→推荐排除已评）+ axe-core 无障碍断言；三个神经模型的 torch 门控 forward 测试；recommend `full` 分支与解释器失败路径测试；CI 新增 `full` 镜像构建 + `/api/health` 冒烟；压测纳入每周定时任务并留趋势（`reports/loadtest_trend.csv`）；`/api/metrics` 补充多副本聚合说明。
 - **2026-10-05** — UI：电影详情弹窗（卡片点击/键盘打开、评分与 IMDb 入口、随语言切换重绘）；数据集取舍与许可写入 [ADR 0004](docs/adr/0004-dataset-choice.md) 与上方 FAQ；Streamlit 伴生应用美化（胶片 logo + KPI 条 + 融合推荐卡 + CSS 柱状图/热力图 + 算法阶梯 + 用户画像）；README 截图全部更新为最新版本。
 - **2026-10-05** — UI：动画背景 + canvas 星空 + 字体改版；Streamlit 伴生应用独立目录与主题。

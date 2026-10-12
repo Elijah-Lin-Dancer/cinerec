@@ -20,7 +20,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from models.base import Recommender
+from models.base import Recommender, set_seed
 
 
 PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
@@ -162,7 +162,7 @@ class MultiModalNCF(Recommender):
 
     def __init__(self, embedding_dim=64, mlp_dims=(256, 128, 64), dropout=0.2,
                  lr=0.001, batch_size=1024, epochs=20, patience=3, num_neg=4,
-                 disabled_features=None):
+                 disabled_features=None, seed=42):
         super().__init__()
         self.embedding_dim = embedding_dim
         self.mlp_dims = mlp_dims
@@ -172,6 +172,7 @@ class MultiModalNCF(Recommender):
         self.epochs = epochs
         self.patience = patience
         self.num_neg = num_neg
+        self.seed = seed
         # Ablation hook: zero out selected content modalities ("text"/"image"/"genre")
         # before training, so the study measures what each modality actually contributes.
         self.disabled_features = set(disabled_features or ())
@@ -225,6 +226,7 @@ class MultiModalNCF(Recommender):
 
     def fit(self, train_data):
         """Train Multi-Modal NCF."""
+        set_seed(self.seed)
         user_ids = train_data['user_id']
         item_ids = train_data['item_id']
         ratings = train_data['rating']
