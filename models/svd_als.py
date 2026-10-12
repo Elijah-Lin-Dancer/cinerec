@@ -14,9 +14,10 @@ from models.base import Recommender
 class SVDALS(Recommender):
     """Matrix Factorization using truncated SVD."""
 
-    def __init__(self, k=64):
+    def __init__(self, k=64, seed=42):
         super().__init__()
         self.k = k  # latent factor dimension
+        self.seed = seed  # seeds the deterministic svds start vector
         self.U = None  # (num_users, k) user factors
         self.V = None  # (num_items, k) item factors
         self.num_users = 0
@@ -55,9 +56,12 @@ class SVDALS(Recommender):
             mask = dense[u] != 0
             dense[u][mask] -= self.user_mean[u]
         
-        # Truncated SVD (k must be < min(num_users, num_items))
+        # Truncated SVD (k must be < min(num_users, num_items)). ``svds`` starts
+        # from a *random* vector by default, which makes the factors — and the
+        # persisted artefact — differ run to run; a seeded ``v0`` pins them.
         actual_k = min(self.k, min(self.num_users, self.num_items) - 1)
-        U, sigma, Vt = svds(csr_matrix(dense), k=actual_k)
+        v0 = np.random.default_rng(self.seed).standard_normal(min(dense.shape))
+        U, sigma, Vt = svds(csr_matrix(dense), k=actual_k, v0=v0)
         
         # Sort by descending singular values
         idx = np.argsort(sigma)[::-1]

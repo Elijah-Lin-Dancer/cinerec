@@ -58,6 +58,22 @@ def test_svd_is_truncated_svd_not_als():
     assert model.V.shape[1] == model.k
 
 
+def test_svd_fit_is_bit_reproducible():
+    """Same seed → identical factors.
+
+    ``scipy`` ``svds`` starts from a *random* vector unless given ``v0``, which
+    used to make the factors — and the persisted ``model_svd.pkl`` — differ every
+    run. The seeded start vector pins them.
+    """
+    first = SVDALS(k=3)
+    first.fit(TRAIN)
+    second = SVDALS(k=3)
+    second.fit(TRAIN)
+
+    assert np.array_equal(first.U, second.U)
+    assert np.array_equal(first.V, second.V)
+
+
 @pytest.mark.parametrize(
     "factory",
     [lambda: UserCF(k=2), lambda: ItemCF(k=2), lambda: SVDALS(k=3)],

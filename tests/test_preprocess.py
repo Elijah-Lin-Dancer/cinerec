@@ -7,6 +7,7 @@ tests pin the contract.
 """
 import os
 import sys
+import types
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -42,3 +43,137 @@ def test_encode_genres_ignores_unknown_and_empty():
         finally:
             preprocess.PROCESSED_DIR = original
     assert np.count_nonzero(result) == 0
+
+
+def test_encode_texts_is_id_aligned(tmp_path, monkeypatch):
+    """Row ``i`` = movie ``i``: text features land at the item id, not the batch position."""
+    monkeypatch.setattr(preprocess, "PROCESSED_DIR", str(tmp_path))
+
+    class _FakeEncoder:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def encode(self, texts, **kwargs):
+            # Deterministic, batch-order-dependent value in the first dimension.
+            return np.array(
+                [[float(i + 1)] + [0.0] * 383 for i in range(len(texts))],
+                dtype=np.float32,
+            )
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        types.SimpleNamespace(SentenceTransformer=_FakeEncoder),
+    )
+
+    item_ids = [1, 4]  # sparse, non-contiguous ids
+    result = preprocess.encode_texts(
+        ["a sufficiently long overview", "another long enough overview"], item_ids
+    )
+
+    assert result.shape == (5, 384)
+    # Row 0 (an unused id) stays zero → indexing by id, not position.
+    assert np.count_nonzero(result[0]) == 0
+    assert result[1, 0] == 1.0  # first overview → item 1
+    assert result[4, 0] == 2.0  # second overview → item 4
+
+
+def test_encode_images_is_id_aligned(tmp_path, monkeypatch):
+    """ResNet features land at the item id, not the poster's batch position."""
+    monkeypatch.setattr(preprocess, "PROCESSED_DIR", str(tmp_path))
+
+    class _Tensor:
+        def __init__(self, value):
+            self.value = value
+
+        def unsqueeze(self, dim):
+            return self
+
+        def squeeze(self):
+            return self
+
+        def numpy(self):
+            vec = np.zeros(2048, dtype=np.float32)
+            vec[0] = float(self.value)
+            return vec
+
+    class _Image:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def convert(self, mode):
+            return self
+
+    class _Response:
+        def __init__(self, url):
+            self._payload = url.rsplit("/", 1)[-1].encode()
+
+        @property
+        def content(self):
+            return self._payload
+
+        def raise_for_status(self):
+            pass
+
+    class _Sequential:
+        def eval(self):
+            return self
+
+        def __call__(self, x):
+            return _Tensor(x.value)
+
+    class _NoGrad:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    class _ResNet:
+        def children(self):
+            return []
+
+    # encode_images imports torch/torchvision/PIL/requests *inside* the function,
+    # so we stub the modules themselves rather than the function's globals.
+    monkeypatch.setitem(
+        sys.modules,
+        "torch",
+        types.SimpleNamespace(
+            nn=types.SimpleNamespace(Sequential=lambda *modules: _Sequential()),
+            no_grad=lambda: _NoGrad(),
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "torchvision",
+        types.SimpleNamespace(
+            models=types.SimpleNamespace(
+                resnet50=lambda *a, **k: _ResNet(),
+                ResNet50_Weights=types.SimpleNamespace(IMAGENET1K_V1="weights"),
+            ),
+            transforms=types.SimpleNamespace(
+                Compose=lambda ops: (lambda img: _Tensor(img.payload)),
+                Resize=lambda *a, **k: None,
+                ToTensor=lambda: None,
+                Normalize=lambda *a, **k: None,
+            ),
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "PIL",
+        types.SimpleNamespace(Image=types.SimpleNamespace(open=lambda fp: _Image(int(fp.read())))),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "requests",
+        types.SimpleNamespace(get=lambda url, timeout=None: _Response(url)),
+    )
+
+    item_ids = [1, 4]  # sparse, non-contiguous ids
+    result = preprocess.encode_images(["http://img/1", "http://img/4"], item_ids)
+
+    assert result.shape == (5, 2048)
+    assert np.count_nonzero(result[0]) == 0  # unused id stays zero
+    assert result[1, 0] == 1.0
+    assert result[4, 0] == 4.0
