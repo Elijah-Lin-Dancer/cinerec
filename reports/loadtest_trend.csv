@@ -1,0 +1,2 @@
+timestamp_utc,requests,failures,requests_per_s,avg_ms,median_ms,p95_ms,max_ms
+2026-10-12T10:21:09+00:00,882,0,30.408621867415597,8.910772266439846,4,14,417.59484899999677
