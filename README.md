@@ -73,7 +73,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 - **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF 全部登记在 [`models/registry.py`](models/registry.py)，前端、API 与预计算脚本都从这一处取。
 - **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合三路内容特征：Sentence-BERT 文本(384d)、ResNet-50 图像(2048d)、类型(18d)。
-- **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，所有模型共用同一套 HR@K / NDCG@K / Recall@K；神经模型固定随机种子，主评测、消融与冷启动均以 5 个种子的均值±标准差报告，并对照 BPR-MF / VBPR 两个公开 SOTA 基线，不作"最优模型"声明；同一协议在 Amazon Video_Games 第二数据集上完整复验。
+- **诚实的离线评测** — 单一 leave-last-5-out 划分、候选集剔除训练已见条目；主评测、消融与冷启动均以 5 个种子的均值±标准差报告，对照 BPR-MF / VBPR 两个公开 SOTA 基线且不作"最优模型"声明；同一协议在 Amazon Video_Games 第二数据集上完整复验。
 - **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）由 `APP_MODE` 切换。电影详情弹窗与 Streamlit 伴生应用见[效果预览](#-demo-preview--效果预览)。
 - **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐，外加一次实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
 
@@ -287,9 +287,9 @@ deterministic, so their spread is exactly zero.
 > model's seed spread, while the HR@20 gap (0.0095) sits inside the MultiModalNCF std
 > (0.0148). **LightGCN** lands between SVD and NeuMF at a fraction of NeuMF's
 > training time. The neural models pay for their gains with a much longer training
-> time, making the accuracy/cost trade-off explicit — and once the *published*
-> baselines join the comparison, the top margins close further (next section), so no
-> strong "best model" significance claim is made.
+> time, making the accuracy/cost trade-off explicit. Once the *published*
+> baselines join the comparison (next section), the top margins close further, so
+> no strong "best model" significance claim is made.
 
 ### Key Findings / 关键发现
 
@@ -745,7 +745,7 @@ This does **not** extend to the bundled data:
 <details>
 <summary>展开查看</summary>
 
-- **2026-10-13** — 发布 **v1.0.0**（首个 tag + GitHub Release）；依赖治理：三个 requirements 写入修复版本下限（`urllib3>=2.8.0` / `anyio>=4.14.2` / `setuptools>=83.0` / `torch>=2.13.0`），pip-audit 归零；CI 增加覆盖率门槛（`fail_under = 45`）；第二数据集路径收敛为 `config.SECOND_PROCESSED_DIR` 单一源；资源缓存版本号统一；新增 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)；新增面向读者的技术文档 [`docs/tech-report.md`](docs/tech-report.md)。
+- **2026-10-13** — 发布 **v1.0.0**（首个 tag + GitHub Release）。治理面：三个 requirements 写入修复版本下限（`urllib3>=2.8.0` / `anyio>=4.14.2` / `setuptools>=83.0` / `torch>=2.13.0`）使 pip-audit 归零，CI 增加覆盖率门槛（`fail_under = 45`）。收敛与新增：第二数据集路径统一为 `config.SECOND_PROCESSED_DIR` 单一源，资源缓存版本号统一，新增 [CONTRIBUTING.md](CONTRIBUTING.md)、[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) 与技术文档 [`docs/tech-report.md`](docs/tech-report.md)。
 - **2026-10-12** — 含金量：新增两个公开 SOTA 基线 BPR-MF（Rendle et al., 2009）与 VBPR（He & McAuley, 2016）并纳入统一评测（仅离线对照，不进线上服务）；消融与冷启动改为 5 seed 均值±标准差（`make ablation-seeds` / `make coldstart-seeds`，写 `ablation_multiseed.json` / `coldstart_multiseed.json`）；README 新增研究问题（RQ1–RQ4）、主要贡献与 SOTA 基线对比表。
 - **2026-10-12** — 可复现性：NeuMF / LightGCN / MultiModalNCF 增加统一随机种子（`set_seed`）；`evaluation/runner.py` 支持多种子评测（`make eval-seeds`，种子 42–46），主评测表改为均值±标准差并写入 `eval_multiseed.json`；单 seed 运行行为不变，仍写 `eval_results.json` 供看板读取。
 - **2026-10-06** — 测试/CI 补齐：Playwright E2E（游客登录→推荐、筛选→详情弹窗、评分→推荐排除已评）+ axe-core 无障碍断言；三个神经模型的 torch 门控 forward 测试；recommend `full` 分支与解释器失败路径测试；CI 新增 `full` 镜像构建 + `/api/health` 冒烟；压测纳入每周定时任务并留趋势（`reports/loadtest_trend.csv`）；`/api/metrics` 补充多副本聚合说明。
