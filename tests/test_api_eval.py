@@ -75,3 +75,12 @@ def test_cross_endpoint_pairs_both_domains():
     assert amz["multiseed"] is True
     for model in ("LightGCN", "BPRMF", "VBPR"):
         assert model in amz
+
+
+def test_second_dataset_dir_is_dataset_independent():
+    """The cross-dataset artefacts live at a fixed path that must not follow
+    ``CINEREC_DATASET`` (the second dataset is the object of the study, not the
+    active one), and the shipped result JSONs must actually be there."""
+    from config import SECOND_PROCESSED_DIR
+    assert os.path.isdir(SECOND_PROCESSED_DIR)
+    assert os.path.isfile(os.path.join(SECOND_PROCESSED_DIR, "eval_multiseed.json"))

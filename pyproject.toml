@@ -39,5 +39,9 @@ omit = ["tests/*", "*/__init__.py"]
 
 [tool.coverage.report]
 show_missing = true
+# Regression floor: CI runs with torch and lands well above this; the floor
+# exists to catch a whole test group silently disappearing (e.g. a broken
+# skip condition), not to police per-file percentages.
+fail_under = 45
 # Training/plotting scripts are exercised by running them, not by unit tests.
 exclude_lines = ["if __name__ == .__main__.:"]

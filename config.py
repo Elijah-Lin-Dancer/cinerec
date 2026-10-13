@@ -38,6 +38,11 @@ def _dataset_dirs(dataset):
 
 
 RAW_DIR, PROCESSED_DIR = _dataset_dirs(DATASET)
+#: Second dataset of the cross-dataset study (ADR 0005). Fixed on purpose: it is
+#: the *object* of the study, so its path never follows ``CINEREC_DATASET`` —
+#: only its committed result JSONs are read (API cross endpoint, Streamlit tab).
+SECOND_DATASET = "amazon-video-games"
+SECOND_PROCESSED_DIR = os.path.join(DATA_DIR, "datasets", SECOND_DATASET, "processed")
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 DB_PATH = os.path.join(BASE_DIR, "db", "cinerec.db")
 

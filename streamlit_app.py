@@ -28,18 +28,13 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from config import PROCESSED_DIR
+from config import PROCESSED_DIR, SECOND_PROCESSED_DIR
 from models.explain import RecommenderExplainer
 from models.registry import ALGORITHMS, AlgorithmUnavailable, load_model
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RATINGS_CSV = os.path.join(BASE_DIR, "data", "raw", "ratings.csv")
 MOVIES_JSON = os.path.join(PROCESSED_DIR, "movies_enriched.json")
-#: The second dataset's processed subtree (RQ5 cross-domain evidence, ADR 0005).
-#: Only the result JSONs ship in the repo — exactly what this tab reads.
-AMAZON_PROCESSED_DIR = os.path.join(
-    BASE_DIR, "data", "datasets", "amazon-video-games", "processed"
-)
 
 #: Fixed depth for the side-by-side comparison so columns are comparable.
 COMPARE_K = 10
@@ -1040,7 +1035,7 @@ def tab_crossdataset():
     )
 
     ml_eval = load_artifact("eval_multiseed.json") or load_artifact("eval_results.json")
-    amz_eval = load_artifact("eval_multiseed.json", directory=AMAZON_PROCESSED_DIR)
+    amz_eval = load_artifact("eval_multiseed.json", directory=SECOND_PROCESSED_DIR)
     if not (ml_eval and amz_eval):
         st.info(
             "Cross-dataset artefacts not found. Build the second dataset with `make amazon-data`, "
@@ -1065,8 +1060,8 @@ def tab_crossdataset():
     # --- Ablation on both domains ---
     ml_abl = (load_artifact("ablation_multiseed.json")
               or load_artifact("ablation_results.json"))
-    amz_abl = (load_artifact("ablation_multiseed.json", directory=AMAZON_PROCESSED_DIR)
-               or load_artifact("ablation_results.json", directory=AMAZON_PROCESSED_DIR))
+    amz_abl = (load_artifact("ablation_multiseed.json", directory=SECOND_PROCESSED_DIR)
+               or load_artifact("ablation_results.json", directory=SECOND_PROCESSED_DIR))
     if ml_abl and amz_abl:
         st.markdown("**Ablation on both domains (HR@10, mean ± std over 5 seeds)**")
         st.caption(
@@ -1087,8 +1082,8 @@ def tab_crossdataset():
     # --- Cold start on both domains ---
     ml_cold = (load_artifact("coldstart_multiseed.json")
                or load_artifact("coldstart_results.json"))
-    amz_cold = (load_artifact("coldstart_multiseed.json", directory=AMAZON_PROCESSED_DIR)
-                or load_artifact("coldstart_results.json", directory=AMAZON_PROCESSED_DIR))
+    amz_cold = (load_artifact("coldstart_multiseed.json", directory=SECOND_PROCESSED_DIR)
+                or load_artifact("coldstart_results.json", directory=SECOND_PROCESSED_DIR))
     if ml_cold.get("metrics") and amz_cold.get("metrics"):
         ml_m, amz_m = ml_cold["metrics"], amz_cold["metrics"]
         st.markdown("**Cold start on both domains (HR@10, mean ± std over 5 seeds)**")

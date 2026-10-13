@@ -14,14 +14,9 @@ import os
 import json
 from fastapi import APIRouter
 
-from config import PROCESSED_DIR  # active dataset's processed dir (CINEREC_DATASET)
+from config import PROCESSED_DIR, SECOND_PROCESSED_DIR  # processed dirs (config is the single source)
 
 router = APIRouter()
-
-#: Second-dataset processed subtree; only its result JSONs ship in the repo.
-AMAZON_PROCESSED_DIR = os.path.join(
-    os.path.dirname(PROCESSED_DIR), "datasets", "amazon-video-games", "processed"
-)
 
 
 def _load(filename, directory=None):
@@ -91,8 +86,8 @@ async def get_cross_dataset_results():
             "coldstart": _load_multiseed("coldstart"),
         },
         "amazon": {
-            "eval": _load_multiseed("eval", AMAZON_PROCESSED_DIR),
-            "ablation": _load_multiseed("ablation", AMAZON_PROCESSED_DIR),
-            "coldstart": _load_multiseed("coldstart", AMAZON_PROCESSED_DIR),
+            "eval": _load_multiseed("eval", SECOND_PROCESSED_DIR),
+            "ablation": _load_multiseed("ablation", SECOND_PROCESSED_DIR),
+            "coldstart": _load_multiseed("coldstart", SECOND_PROCESSED_DIR),
         },
     }
