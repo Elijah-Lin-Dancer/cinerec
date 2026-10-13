@@ -1519,6 +1519,27 @@ input, select {
     font-size: 0.82rem;
 }
 
+/* Footnote under the evaluation table (seed protocol / baseline caveat). */
+.dash-note {
+    margin: 0.6rem 0 0;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+/* Small tag marking the offline SOTA baselines in the model column. */
+.offline-tag {
+    display: inline-block;
+    margin-left: 0.45rem;
+    padding: 0.1rem 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
 .eval-table tr:hover td {
     background: rgba(255, 255, 255, 0.02);
 }
