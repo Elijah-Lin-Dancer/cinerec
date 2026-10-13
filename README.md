@@ -236,6 +236,11 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 > 所有模型共用同一划分，神经结果以多种子均值±标准差报告，结论的强弱以实测噪声为界；
 > 同一协议在第二个域（Amazon Video_Games）上原样重跑，以检验哪些结论能跨域成立。
 
+> 📄 **Paper / 论文** — *CineRec: A Practical Multi-Modal Recommender Study with
+> Cross-Dataset Validation and SOTA Baseline Comparison* (arXiv preprint) ships
+> in this repo as [`docs/paper.pdf`](docs/paper.pdf); the protocol, configurations
+> and raw results it draws on are in [`docs/tech-report.md`](docs/tech-report.md).
+
 ### Research Questions / 研究问题
 
 | # | Question / 问题 | Answered by |
@@ -573,9 +578,10 @@ cinerec/
 ├── deploy/                # Streamlit companion (own deps) + notes
 │   ├── streamlit/         # Companion app: streamlit_app.py + its own requirements.txt
 │   └── hf-space/          # Record of the rejected HF Spaces option (see ADR 0001)
-├── docs/                   # Technical report + architecture decision records
+├── docs/                   # Technical report + paper + architecture decision records
 │   ├── adr/                # Architecture decision records
-│   └── tech-report.md      # Protocol, configurations and raw results (paper-facing)
+│   ├── tech-report.md      # Protocol, configurations and raw results (paper-facing)
+│   └── paper.pdf           # arXiv preprint of this study
 ├── reports/               # Measured load-test report + Locust HTML output
 │   ├── loadtest.md        # Curated, measured load-test findings
 │   ├── locust_report.html # Locust HTML report (rendered run)
@@ -745,6 +751,7 @@ This does **not** extend to the bundled data:
 <details>
 <summary>展开查看</summary>
 
+- **2026-10-13** — 论文：arXiv 预印本《CineRec: A Practical Multi-Modal Recommender Study with Cross-Dataset Validation and SOTA Baseline Comparison》入库为 [`docs/paper.pdf`](docs/paper.pdf)，README 评测区挂引用。
 - **2026-10-13** — 发布 **v1.0.0**（首个 tag + GitHub Release）。治理面：三个 requirements 写入修复版本下限（`urllib3>=2.8.0` / `anyio>=4.14.2` / `setuptools>=83.0` / `torch>=2.13.0`）使 pip-audit 归零，CI 增加覆盖率门槛（`fail_under = 45`）。收敛与新增：第二数据集路径统一为 `config.SECOND_PROCESSED_DIR` 单一源，资源缓存版本号统一，新增 [CONTRIBUTING.md](CONTRIBUTING.md)、[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) 与技术文档 [`docs/tech-report.md`](docs/tech-report.md)。
 - **2026-10-12** — 含金量：新增两个公开 SOTA 基线 BPR-MF（Rendle et al., 2009）与 VBPR（He & McAuley, 2016）并纳入统一评测（仅离线对照，不进线上服务）；消融与冷启动改为 5 seed 均值±标准差（`make ablation-seeds` / `make coldstart-seeds`，写 `ablation_multiseed.json` / `coldstart_multiseed.json`）；README 新增研究问题（RQ1–RQ4）、主要贡献与 SOTA 基线对比表。
 - **2026-10-12** — 可复现性：NeuMF / LightGCN / MultiModalNCF 增加统一随机种子（`set_seed`）；`evaluation/runner.py` 支持多种子评测（`make eval-seeds`，种子 42–46），主评测表改为均值±标准差并写入 `eval_multiseed.json`；单 seed 运行行为不变，仍写 `eval_results.json` 供看板读取。
