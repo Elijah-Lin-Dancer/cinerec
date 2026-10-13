@@ -157,7 +157,9 @@ function renderEvalChart(results) {
         legend: { data: metrics.map(k => CineRec.t('dash.' + METRIC_I18N[k])),
                   textStyle: { color: base.axisLabelColor }, top: 5 },
         grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
-        xAxis: { type: 'category', data: models, axisLabel: { color: base.axisLabelColor }, axisLine: { lineStyle: { color: base.splitLineColor } } },
+        xAxis: { type: 'category', data: models,
+                 axisLabel: { color: base.axisLabelColor, rotate: 20, interval: 0, fontSize: 10 },
+                 axisLine: { lineStyle: { color: base.splitLineColor } } },
         yAxis: { type: 'value', axisLabel: { color: base.axisLabelColor, formatter: v => v.toFixed(2) }, splitLine: { lineStyle: { color: base.splitLineColor } } },
         series: metrics.map((metric, i) => ({
             name: metric, type: 'bar', barGap: '10%',
