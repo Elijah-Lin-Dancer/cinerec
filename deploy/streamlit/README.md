@@ -75,8 +75,12 @@ not exist yet. (The Docker image pins 3.10 for the API — unrelated to this app
 1. Open `https://<your-subdomain>.streamlit.app` and let it wake.
 2. **Live recommendation** tab: pick `MultiModalNCF`, confirm a scored grid appears.
 3. **Six-model comparison** tab: confirm six columns of titles plus the offline
-   metrics and the top-10 Jaccard table render.
+   metrics (mean ± std over 5 seeds, incl. the BPR-MF / VBPR baselines) and the
+   top-10 Jaccard table render.
 4. **Multi-modal ablation** tab: blank `image`, confirm the ranking changes and
    the retrained ablation table appears.
 5. **Cold start** tab: confirm the content-only top-10 and the cold-start study
    table appear.
+6. **Cross-dataset (RQ5)** tab: confirm the side-by-side MovieLens vs Amazon
+   Video_Games charts, the two-domain ablation/cold-start tables and the
+   transfer verdicts render.

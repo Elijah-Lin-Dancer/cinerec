@@ -35,6 +35,11 @@ from models.registry import ALGORITHMS, AlgorithmUnavailable, load_model
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RATINGS_CSV = os.path.join(BASE_DIR, "data", "raw", "ratings.csv")
 MOVIES_JSON = os.path.join(PROCESSED_DIR, "movies_enriched.json")
+#: The second dataset's processed subtree (RQ5 cross-domain evidence, ADR 0005).
+#: Only the result JSONs ship in the repo — exactly what this tab reads.
+AMAZON_PROCESSED_DIR = os.path.join(
+    BASE_DIR, "data", "datasets", "amazon-video-games", "processed"
+)
 
 #: Fixed depth for the side-by-side comparison so columns are comparable.
 COMPARE_K = 10
@@ -382,13 +387,31 @@ def load_ratings():
 
 
 @st.cache_data(show_spinner=False)
-def load_artifact(filename):
+def load_artifact(filename, directory=None):
     """One of the committed evaluation JSON artefacts (empty dict when absent)."""
-    path = os.path.join(PROCESSED_DIR, filename)
+    path = os.path.join(directory or PROCESSED_DIR, filename)
     if not os.path.exists(path):
         return {}
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def ms_value(art, key, metric):
+    """``(mean, std)`` from a multiseed artefact, falling back to a flat value.
+
+    Multiseed JSONs store ``{model: {metric: {"mean": m, "std": s}}}``; the
+    single-seed ones store plain numbers. Every chart below works with either.
+    """
+    v = art.get(key, {}).get(metric)
+    if isinstance(v, dict):
+        return float(v.get("mean") or 0.0), float(v.get("std") or 0.0)
+    return float(v or 0.0), 0.0
+
+
+def ms_label(art, key, metric, fmt="{:.4f}"):
+    """``mean ± std`` label, or the plain value when there is no spread."""
+    mean, std = ms_value(art, key, metric)
+    return fmt.format(mean) + (f" ± {std:.4f}" if std else "")
 
 
 @st.cache_data(show_spinner=False)
@@ -565,19 +588,30 @@ _ALGO_COLORS = {
     "UserCF": "#8b8ba6",
     "ItemCF": "#4a9eff",
     "SVD": "#4ade80",
+    "BPRMF": "#f87171",
     "NeuMF": "#a78bfa",
     "LightGCN": "#2dd4bf",
+    "VBPR": "#fb923c",
     "MultiModalNCF": "#d4a843",
 }
 
+#: Display names for the offline SOTA baselines that appear in the evaluation
+#: artefacts but are not servable ladder members (not in ``ALGORITHMS``).
+_EVAL_DISPLAY = {
+    "BPRMF": "BPR-MF (Rendle 2009)",
+    "VBPR": "VBPR (He & McAuley 2016)",
+}
 
-def _bar_chart_html(rows, value_fmt="{:.4f}", baseline=None, baseline_label="baseline"):
+
+def _bar_chart_html(rows, value_fmt="{:.4f}", baseline=None, baseline_label="baseline",
+                    labels=None):
     """Render a horizontal CSS bar chart.
 
     ``rows`` is a list of ``(label, value, color)`` tuples; ``value`` is scaled
     against the maximum so the longest bar fills the track. An optional
     ``baseline`` (a value in the same units) draws a dashed reference line on
-    each track, used for ablation/cold-start studies.
+    each track, used for ablation/cold-start studies. ``labels`` optionally
+    overrides the numeric value shown at the end of each bar (e.g. ``m ± s``).
     """
     if not rows:
         return "<div class='cr-muted' style='color:var(--cr-muted)'>No data.</div>"
@@ -585,7 +619,7 @@ def _bar_chart_html(rows, value_fmt="{:.4f}", baseline=None, baseline_label="bas
     if max_val <= 0:
         max_val = 1.0
     out = ["<div class='cr-chart'>"]
-    for label, val, color in rows:
+    for i, (label, val, color) in enumerate(rows):
         pct = max(2, (val / max_val) * 100)
         bl_pct = (baseline / max_val) * 100 if baseline else None
         bl_marker = (
@@ -593,13 +627,14 @@ def _bar_chart_html(rows, value_fmt="{:.4f}", baseline=None, baseline_label="bas
             f"width:2px;background:var(--cr-red);opacity:.8'></div>"
             if bl_pct is not None else ""
         )
+        shown = labels[i] if labels else value_fmt.format(val)
         out.append(
             f"<div class='cr-bar-row'>"
             f"<div class='cr-bar-label'>{_esc(label)}</div>"
             f"<div class='cr-bar-track' style='position:relative'>{bl_marker}"
             f"<div class='cr-bar-fill' style='width:{pct:.1f}%;background:linear-gradient(90deg,{color},{color}cc)'></div>"
             f"</div>"
-            f"<div class='cr-bar-val'>{value_fmt.format(val)}</div>"
+            f"<div class='cr-bar-val'>{shown}</div>"
             f"</div>"
         )
     if baseline is not None:
@@ -779,37 +814,61 @@ def tab_compare(movies, user_id):
     if unavailable:
         st.warning("Unavailable in this deployment: " + "; ".join(unavailable))
 
-    eval_results = load_artifact("eval_results.json")
+    # Prefer the 5-seed multiseed artefact (8 models incl. the offline SOTA
+    # baselines); fall back to the single-seed one when only that ships.
+    eval_results = load_artifact("eval_multiseed.json") or load_artifact("eval_results.json")
     if eval_results:
-        # --- HR@10 bar chart (all six models, colour-coded) ---
-        st.markdown("**HR@10 — leave-last-5-out on MovieLens 100K**")
-        st.caption("Hit-rate at 10: the fraction of users whose held-out film appears in the top 10.")
-        hr_rows = [(name, eval_results.get(name, {}).get("HR@10", 0) or 0,
-                    _ALGO_COLORS.get(name, "#8b8ba6")) for name in ALGORITHMS]
-        st.markdown(_bar_chart_html(hr_rows, value_fmt="{:.4f}"), unsafe_allow_html=True)
+        eval_names = [n for n in ALGORITHMS if n in eval_results] + [
+            n for n in ("BPRMF", "VBPR") if n in eval_results
+        ]
 
-        # --- NDCG@10 bar chart ---
-        st.markdown("**NDCG@10**")
+        def metric_rows(metric):
+            rows, labels = [], []
+            for name in eval_names:
+                mean, _ = ms_value(eval_results, name, metric)
+                rows.append((name, mean, _ALGO_COLORS.get(name, "#8b8ba6")))
+                labels.append(ms_label(eval_results, name, metric))
+            return rows, labels
+
+        def display_name(name):
+            return _EVAL_DISPLAY.get(name, name)
+
+        st.markdown("**HR@10 — leave-last-5-out, mean ± std over 5 seeds (42–46)**")
+        st.caption(
+            "Hit-rate at 10: the fraction of users whose held-out film appears in the top 10. "
+            "BPR-MF / VBPR are the published SOTA baselines — offline references, not servable."
+        )
+        hr_rows, hr_labels = metric_rows("HR@10")
+        st.markdown(_bar_chart_html(hr_rows, labels=hr_labels), unsafe_allow_html=True)
+
+        st.markdown("**NDCG@10 — mean ± std over 5 seeds**")
         st.caption("Discounted cumulative gain at 10: rewards ranking the held-out film higher.")
-        ndcg_rows = [(name, eval_results.get(name, {}).get("NDCG@10", 0) or 0,
-                      _ALGO_COLORS.get(name, "#8b8ba6")) for name in ALGORITHMS]
-        st.markdown(_bar_chart_html(ndcg_rows, value_fmt="{:.4f}"), unsafe_allow_html=True)
+        ndcg_rows, ndcg_labels = metric_rows("NDCG@10")
+        st.markdown(_bar_chart_html(ndcg_rows, labels=ndcg_labels), unsafe_allow_html=True)
 
-        # --- Training time ---
         st.markdown("**Training time (seconds, CPU)**")
         st.caption("Why the classic models win on cost; why the neural ones win on hit-rate.")
-        tt_rows = [(name, eval_results.get(name, {}).get("train_time", 0) or 0,
-                    _ALGO_COLORS.get(name, "#8b8ba6")) for name in ALGORITHMS]
-        st.markdown(_bar_chart_html(tt_rows, value_fmt="{:.2f}s"), unsafe_allow_html=True)
+        tt_rows, tt_labels = metric_rows("train_time")
+        st.markdown(
+            _bar_chart_html(tt_rows, value_fmt="{:.1f}s", labels=tt_labels),
+            unsafe_allow_html=True,
+        )
 
-        with st.expander("Raw metrics table"):
+        with st.expander("Raw metrics table (mean ± std over seeds)"):
             metrics = ["HR@10", "NDCG@10", "Recall@10", "train_time"]
             frame = pd.DataFrame(
-                {name: {m: eval_results.get(name, {}).get(m) for m in metrics} for name in ALGORITHMS}
+                {
+                    display_name(name): {
+                        m: ms_label(eval_results, name, m,
+                                    "{:.2f}s" if m == "train_time" else "{:.4f}")
+                        for m in metrics
+                    }
+                    for name in eval_names
+                }
             ).T
-            st.dataframe(frame.style.format({"HR@10": "{:.4f}", "NDCG@10": "{:.4f}",
-                                "Recall@10": "{:.4f}", "train_time": "{:.2f}s"}),
-                         use_container_width=True)
+            st.dataframe(frame, use_container_width=True)
+        st.caption("All numbers are reproduced with `make eval-seeds` — mean ± std over seeds "
+                   "42–46; deterministic models have exactly zero spread.")
     else:
         st.info("eval_results.json not found.")
 
@@ -852,27 +911,34 @@ def tab_multimodal(movies, user_id, lang):
     render_cards(recs, movies, lang=lang, columns=5)
 
     st.markdown("**Retrained ablation (rigorous — each configuration is retrained, not just masked)**")
-    st.caption("Drop a modality at the input, retrain the full model, measure. Behavior-only is the floor.")
-    ablation = load_artifact("ablation_results.json")
+    st.caption(
+        "Drop a modality at the input, retrain the full model, measure — mean ± std over 5 seeds. "
+        "Behavior-only is the floor; single-modality deltas sit inside the seed noise."
+    )
+    ablation = load_artifact("ablation_multiseed.json") or load_artifact("ablation_results.json")
     if ablation:
         # HR@10 horizontal bars with a behaviour-only baseline line.
-        baseline_row = ablation.get("Behavior only (no content)", {})
-        baseline = baseline_row.get("HR@10") if baseline_row else None
-        rows = []
+        baseline = ms_value(ablation, "Behavior only (no content)", "HR@10")[0]
+        rows, labels = [], []
         for name, values in ablation.items():
-            rows.append((name, values.get("HR@10", 0) or 0,
+            if not isinstance(values, dict) or "HR@10" not in values:
+                continue
+            rows.append((name, ms_value(ablation, name, "HR@10")[0],
                          _ALGO_COLORS.get("MultiModalNCF", "#d4a843")
                          if name == "Full (Text+Image+Genre)" else "#8b8ba6"))
-        st.markdown(_bar_chart_html(rows, value_fmt="{:.4f}",
+            labels.append(ms_label(ablation, name, "HR@10"))
+        st.markdown(_bar_chart_html(rows, labels=labels,
                                     baseline=baseline,
                                     baseline_label="behavior-only floor"),
                     unsafe_allow_html=True)
-        with st.expander("Raw ablation table"):
+        with st.expander("Raw ablation table (mean ± std over 5 seeds)"):
             metrics = ["HR@10", "NDCG@10", "Recall@10"]
+            variant_names = [r[0] for r in rows]
             frame = pd.DataFrame(
-                {name: {m: values.get(m) for m in metrics} for name, values in ablation.items()}
+                {name: {m: ms_label(ablation, name, m) for m in metrics}
+                 for name in variant_names}
             ).T
-            st.dataframe(frame.style.format("{:.4f}"), use_container_width=True)
+            st.dataframe(frame, use_container_width=True)
         st.caption("Inference-time masking above is a sensitivity probe; the chart is the measured study.")
     else:
         st.info("ablation_results.json not found.")
@@ -903,30 +969,179 @@ def tab_coldstart(movies, user_id, lang):
     render_cards(recs, movies, lang=lang, columns=5)
 
     st.markdown("**Cold-start study (100 genuinely cold items, candidate pool = cold items only)**")
-    study = load_artifact("coldstart_results.json").get("metrics", {})
+    cold_art = (load_artifact("coldstart_multiseed.json")
+                or load_artifact("coldstart_results.json"))
+    study = cold_art.get("metrics", {}) if isinstance(cold_art, dict) else {}
     if study:
         # HR@10 bars with the random floor as a red dashed baseline.
-        random_row = study.get("Random", {})
-        random_floor = random_row.get("HR@10") if random_row else None
-        rows = []
-        for name, values in study.items():
+        random_floor = ms_value(study, "Random", "HR@10")[0] or None
+        rows, labels = [], []
+        for name in study:
+            raw = study[name]
+            # Values are {metric: {mean, std}} dicts; "Random" is a plain float.
+            if not ((isinstance(raw, dict) and "HR@10" in raw)
+                    or isinstance(raw, (int, float))):
+                continue
             color = (_ALGO_COLORS.get("MultiModalNCF", "#d4a843")
                      if "MultiModal" in name else
                      _ALGO_COLORS.get("NeuMF", "#a78bfa") if "NeuMF" in name else "#8b8ba6")
-            rows.append((name, values.get("HR@10", 0) or 0, color))
-        st.markdown(_bar_chart_html(rows, value_fmt="{:.4f}",
+            rows.append((name, ms_value(study, name, "HR@10")[0], color))
+            labels.append(ms_label(study, name, "HR@10"))
+        st.markdown(_bar_chart_html(rows, labels=labels,
                                     baseline=random_floor,
                                     baseline_label="random floor"),
                     unsafe_allow_html=True)
-        st.caption("Content tower beats the content-blind control and the random floor on unseen items.")
-        with st.expander("Raw cold-start table"):
+        n_seeds = cold_art.get("n_seeds")
+        seed_note = f"mean ± std over {n_seeds} seeds" if n_seeds else "values over seeds"
+        st.caption(f"Content tower beats the content-blind control and the random floor on "
+                   f"unseen items ({seed_note}).")
+        with st.expander(f"Raw cold-start table ({seed_note})"):
             metrics = ["HR@10", "NDCG@10", "Recall@10", "HR@20", "NDCG@20", "Recall@20"]
+            model_names = [r[0] for r in rows]
             frame = pd.DataFrame(
-                {name: {m: values.get(m) for m in metrics} for name, values in study.items()}
+                {name: {m: ms_label(study, name, m) for m in metrics}
+                 for name in model_names}
             ).T
-            st.dataframe(frame.style.format("{:.4f}"), use_container_width=True)
+            st.dataframe(frame, use_container_width=True)
     else:
         st.info("coldstart_results.json not found.")
+
+
+# --------------------------------------------------------------------------- #
+# Cross-dataset validation (RQ5)
+# --------------------------------------------------------------------------- #
+def _eval_names(art):
+    """Chart order: the servable ladder first, then the offline SOTA baselines."""
+    return [n for n in ALGORITHMS if n in art] + [n for n in ("BPRMF", "VBPR") if n in art]
+
+
+def _metric_bars(art, metric, names):
+    """``(rows, labels)`` for ``_bar_chart_html`` from a multiseed artefact."""
+    rows = [(n, ms_value(art, n, metric)[0], _ALGO_COLORS.get(n, "#8b8ba6")) for n in names]
+    labels = [ms_label(art, n, metric) for n in names]
+    return rows, labels
+
+
+def _domain_column(art, metric, names, title):
+    st.markdown(f"<div class='cr-bar-label' style='text-align:center'>{_esc(title)}</div>",
+                unsafe_allow_html=True)
+    rows, labels = _metric_bars(art, metric, names)
+    st.markdown(_bar_chart_html(rows, labels=labels), unsafe_allow_html=True)
+
+
+def tab_crossdataset():
+    st.subheader("Cross-dataset validation (RQ5)")
+    st.caption(
+        "The whole protocol — same leave-last-5-out split, same candidate filtering, eight models, "
+        "seed list 42–46 — re-run unchanged on Amazon Reviews-2023 Video_Games (ADR 0005): a "
+        "2,288-user × 4,753-item heavy-user slice built with MovieLens-100K's own population rule. "
+        "The ~2.8× larger catalogue mechanically depresses absolute HR@K — read the orderings, "
+        "not the levels."
+    )
+
+    ml_eval = load_artifact("eval_multiseed.json") or load_artifact("eval_results.json")
+    amz_eval = load_artifact("eval_multiseed.json", directory=AMAZON_PROCESSED_DIR)
+    if not (ml_eval and amz_eval):
+        st.info(
+            "Cross-dataset artefacts not found. Build the second dataset with `make amazon-data`, "
+            "then re-run the evaluation with `CINEREC_DATASET=amazon-video-games make eval-seeds`."
+        )
+        return
+
+    names = [n for n in _eval_names(ml_eval) if n in amz_eval]
+
+    for metric, blurb in [
+        ("HR@10", "Hit-rate at 10: the fraction of users whose held-out item appears in the top 10."),
+        ("NDCG@10", "NDCG at 10: rewards ranking the held-out item higher."),
+    ]:
+        st.markdown(f"**{metric} — MovieLens-100K vs Amazon Video_Games (mean ± std, 5 seeds)**")
+        st.caption(blurb)
+        left, right = st.columns(2)
+        with left:
+            _domain_column(ml_eval, metric, names, "MovieLens-100K (movies)")
+        with right:
+            _domain_column(amz_eval, metric, names, "Amazon Video_Games (games)")
+
+    # --- Ablation on both domains ---
+    ml_abl = (load_artifact("ablation_multiseed.json")
+              or load_artifact("ablation_results.json"))
+    amz_abl = (load_artifact("ablation_multiseed.json", directory=AMAZON_PROCESSED_DIR)
+               or load_artifact("ablation_results.json", directory=AMAZON_PROCESSED_DIR))
+    if ml_abl and amz_abl:
+        st.markdown("**Ablation on both domains (HR@10, mean ± std over 5 seeds)**")
+        st.caption(
+            "Single-modality deltas sit inside the seed noise on *both* domains; the "
+            "behavior-only drop that is ~1 seed std on MovieLens vanishes on Amazon."
+        )
+        abl_rows = []
+        for variant in ml_abl:
+            if not isinstance(ml_abl[variant], dict) or "HR@10" not in ml_abl[variant]:
+                continue
+            abl_rows.append({
+                "Variant": variant,
+                "ML-100K": ms_label(ml_abl, variant, "HR@10"),
+                "Amazon": ms_label(amz_abl, variant, "HR@10"),
+            })
+        st.dataframe(pd.DataFrame(abl_rows).set_index("Variant"), use_container_width=True)
+
+    # --- Cold start on both domains ---
+    ml_cold = (load_artifact("coldstart_multiseed.json")
+               or load_artifact("coldstart_results.json"))
+    amz_cold = (load_artifact("coldstart_multiseed.json", directory=AMAZON_PROCESSED_DIR)
+                or load_artifact("coldstart_results.json", directory=AMAZON_PROCESSED_DIR))
+    if ml_cold.get("metrics") and amz_cold.get("metrics"):
+        ml_m, amz_m = ml_cold["metrics"], amz_cold["metrics"]
+        st.markdown("**Cold start on both domains (HR@10, mean ± std over 5 seeds)**")
+        st.caption(
+            "Content-aware ranking of items with no collaborative history. The content tower's "
+            "edge over the content-blind control *amplifies* on the sparser domain — the "
+            "strongest cross-domain transfer in the study."
+        )
+        cold_rows = []
+        for model in ml_m:
+            if not isinstance(ml_m[model], dict) and not isinstance(ml_m[model], (int, float)):
+                continue
+            cold_rows.append({
+                "Model": model,
+                "ML-100K": ms_label(ml_m, model, "HR@10"),
+                "Amazon": ms_label(amz_m, model, "HR@10"),
+            })
+        c_ml = (ms_value(ml_m, "MultiModalNCF (content)", "HR@10")[0]
+                / max(ms_value(ml_m, "NeuMF (content-blind)", "HR@10")[0], 1e-9))
+        c_amz = (ms_value(amz_m, "MultiModalNCF (content)", "HR@10")[0]
+                 / max(ms_value(amz_m, "NeuMF (content-blind)", "HR@10")[0], 1e-9))
+        cold_rows.append({"Model": "content / blind ratio",
+                          "ML-100K": f"{c_ml:.2f}×", "Amazon": f"{c_amz:.2f}×"})
+        st.dataframe(pd.DataFrame(cold_rows).set_index("Model"), use_container_width=True)
+
+    with st.expander("What transfers and what doesn't (RQ5 verdicts)"):
+        st.markdown(
+            "**Transfers** — agreement strengthens the MovieLens conclusions:\n"
+            "- The ladder ordering **UserCF < ItemCF < SVD** holds in both domains, and the "
+            "neural lead over SVD is *larger* on Amazon.\n"
+            "- **BPR-MF ≈ NeuMF**: the behaviour-only pair is a statistical tie in both domains.\n"
+            "- Single-modality ablation deltas stay **inside seed noise** in both domains.\n"
+            "- **Cold start amplifies**: the content/blind edge grows 1.17× → 1.96× — the "
+            "sparser the collaborative signal, the more the content tower is worth.\n\n"
+            "**Does not transfer** — reported, not hidden:\n"
+            "- *\"MultiModalNCF is the best ladder model\"*: on Amazon **LightGCN** takes the top "
+            "HR@10 point estimate (0.1187 vs 0.1164) — a statistical tie won at 1/7 of the "
+            "training cost. The neural band (0.105–0.119) is the same; the pick inside it is "
+            "domain-dependent.\n"
+            "- *\"Removing all content hurts\"*: on Amazon Behavior only ≈ Full (0.1163 vs 0.1164)."
+        )
+
+    with st.expander("Raw cross-domain metrics"):
+        eval_tbl = {
+            _EVAL_DISPLAY.get(n, n): {
+                "ML HR@10": ms_label(ml_eval, n, "HR@10"),
+                "Amazon HR@10": ms_label(amz_eval, n, "HR@10"),
+                "ML NDCG@10": ms_label(ml_eval, n, "NDCG@10"),
+                "Amazon NDCG@10": ms_label(amz_eval, n, "NDCG@10"),
+            }
+            for n in names
+        }
+        st.dataframe(pd.DataFrame(eval_tbl).T, use_container_width=True)
 
 
 # --------------------------------------------------------------------------- #
@@ -945,8 +1160,10 @@ def main():
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<div class='cr-sub'>The six trained recommenders running in-process on MovieLens-100K — "
-        "the <code>full</code> counterpart to the cached product deployment.</div>",
+        "<div class='cr-sub'>The six trained recommenders running in-process on MovieLens-100K, "
+        "with the 5-seed evaluation, the published SOTA baselines and the RQ5 cross-dataset "
+        "study (Amazon Video_Games) — the <code>full</code> counterpart to the cached product "
+        "deployment.</div>",
         unsafe_allow_html=True,
     )
 
@@ -968,10 +1185,12 @@ def main():
         top_k = st.slider("Top-K", 1, 20, 10)
         lang = st.radio("Explanation language", ["中文", "English"], horizontal=True)
         st.divider()
-        st.caption(f"{len(movies)} films · {len(all_user_ids())} users · 6 algorithms")
+        st.caption(f"{len(movies)} films · {len(all_user_ids())} users · "
+                   f"{len(ALGORITHMS)} servable + 2 baselines · 2 datasets")
 
-    live, compare, multimodal, cold = st.tabs(
-        ["Live recommendation", "Six-model comparison", "Multi-modal ablation", "Cold start"]
+    live, compare, multimodal, cold, cross = st.tabs(
+        ["Live recommendation", "Six-model comparison", "Multi-modal ablation",
+         "Cold start", "Cross-dataset (RQ5)"]
     )
     with live:
         tab_live(movies, user_id, algorithm, top_k, lang)
@@ -981,6 +1200,8 @@ def main():
         tab_multimodal(movies, user_id, lang)
     with cold:
         tab_coldstart(movies, user_id, lang)
+    with cross:
+        tab_crossdataset()
 
 
 if __name__ == "__main__":
