@@ -1,7 +1,7 @@
 <div align="center">
 
 <img src="https://img.shields.io/badge/Python-3.10-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
-<img src="https://img.shields.io/badge/PyTorch-2.0-EE4C2C?style=flat&logo=pytorch&logoColor=white" alt="PyTorch">
+<img src="https://img.shields.io/badge/PyTorch-2.13-EE4C2C?style=flat&logo=pytorch&logoColor=white" alt="PyTorch">
 <img src="https://img.shields.io/badge/FastAPI-0.100-009688?style=flat&logo=fastapi&logoColor=white" alt="FastAPI">
 <img src="https://img.shields.io/badge/License-MIT-F5C518?style=flat" alt="License">
 
@@ -74,10 +74,8 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 - **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF 全部登记在 [`models/registry.py`](models/registry.py)，前端、API 与预计算脚本都从这一处取。
 - **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合三路内容特征：Sentence-BERT 文本(384d)、ResNet-50 图像(2048d)、类型(18d)。
 - **诚实的离线评测** — 单一 leave-last-5-out 划分，候选集剔除训练已见条目，所有模型共用同一套 HR@K / NDCG@K / Recall@K；神经模型固定随机种子，主评测、消融与冷启动均以 5 个种子的均值±标准差报告，并对照 BPR-MF / VBPR 两个公开 SOTA 基线，不作"最优模型"声明；同一协议在 Amazon Video_Games 第二数据集上完整复验。
-- **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）由 `APP_MODE` 切换。
+- **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）由 `APP_MODE` 切换。电影详情弹窗与 Streamlit 伴生应用见[效果预览](#-demo-preview--效果预览)。
 - **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐，外加一次实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
-- 电影详情弹窗：点击任意卡片（或键盘 Enter）打开无障碍弹窗，含海报、简介、类型、平均评分、评分入口与 IMDb 链接；Escape、关闭按钮或遮罩点击均可关闭，随语言切换重绘。
-- Streamlit 伴生应用：胶片 logo、KPI 条、融合推荐卡、纯 CSS 柱状图/热力图、算法阶梯与用户画像。
 
 ---
 
@@ -526,7 +524,7 @@ make coldstart-seeds DATASET=amazon-video-games
 | **Frontend** | Vanilla JS (SPA), GSAP 3, Lenis, Canvas star field, ECharts |
 | **Data** | MovieLens 100K + enriched metadata (plot summaries & posters) |
 | **Deployment** | Docker / docker-compose · Render free tier (`lite`) · Streamlit Community Cloud (`full`) |
-| **Quality** | ruff, black, pytest + coverage, pre-commit, GitHub Actions CI |
+| **Quality** | ruff, black, pytest + coverage floor, pip-audit, pre-commit, GitHub Actions CI |
 
 ---
 
@@ -575,17 +573,22 @@ cinerec/
 ├── deploy/                # Streamlit companion (own deps) + notes
 │   ├── streamlit/         # Companion app: streamlit_app.py + its own requirements.txt
 │   └── hf-space/          # Record of the rejected HF Spaces option (see ADR 0001)
-├── docs/adr/              # Architecture decision records
+├── docs/                   # Technical report + architecture decision records
+│   ├── adr/                # Architecture decision records
+│   └── tech-report.md      # Protocol, configurations and raw results (paper-facing)
 ├── reports/               # Measured load-test report + Locust HTML output
 │   ├── loadtest.md        # Curated, measured load-test findings
 │   ├── locust_report.html # Locust HTML report (rendered run)
 │   └── locust_stdout.txt  # Raw Locust stdout captured during the run
 ├── config.py              # Paths, APP_MODE, cache switches
+├── pyproject.toml         # Lint/format/test config + coverage floor
 ├── Dockerfile
 ├── docker-compose.yml
 ├── render.yaml
 ├── Makefile
 ├── requirements.txt / requirements-train.txt
+├── CONTRIBUTING.md        # Dev setup, PR checklist
+├── CODE_OF_CONDUCT.md     # Contributor Covenant 2.1
 ├── streamlit_app.py       # live-inference companion (entry: deploy/streamlit/)
 └── README.md
 ```
@@ -742,6 +745,7 @@ This does **not** extend to the bundled data:
 <details>
 <summary>展开查看</summary>
 
+- **2026-10-13** — 发布 **v1.0.0**（首个 tag + GitHub Release）；依赖治理：三个 requirements 写入修复版本下限（`urllib3>=2.8.0` / `anyio>=4.14.2` / `setuptools>=83.0` / `torch>=2.13.0`），pip-audit 归零；CI 增加覆盖率门槛（`fail_under = 45`）；第二数据集路径收敛为 `config.SECOND_PROCESSED_DIR` 单一源；资源缓存版本号统一；新增 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)；新增面向读者的技术文档 [`docs/tech-report.md`](docs/tech-report.md)。
 - **2026-10-12** — 含金量：新增两个公开 SOTA 基线 BPR-MF（Rendle et al., 2009）与 VBPR（He & McAuley, 2016）并纳入统一评测（仅离线对照，不进线上服务）；消融与冷启动改为 5 seed 均值±标准差（`make ablation-seeds` / `make coldstart-seeds`，写 `ablation_multiseed.json` / `coldstart_multiseed.json`）；README 新增研究问题（RQ1–RQ4）、主要贡献与 SOTA 基线对比表。
 - **2026-10-12** — 可复现性：NeuMF / LightGCN / MultiModalNCF 增加统一随机种子（`set_seed`）；`evaluation/runner.py` 支持多种子评测（`make eval-seeds`，种子 42–46），主评测表改为均值±标准差并写入 `eval_multiseed.json`；单 seed 运行行为不变，仍写 `eval_results.json` 供看板读取。
 - **2026-10-06** — 测试/CI 补齐：Playwright E2E（游客登录→推荐、筛选→详情弹窗、评分→推荐排除已评）+ axe-core 无障碍断言；三个神经模型的 torch 门控 forward 测试；recommend `full` 分支与解释器失败路径测试；CI 新增 `full` 镜像构建 + `/api/health` 冒烟；压测纳入每周定时任务并留趋势（`reports/loadtest_trend.csv`）；`/api/metrics` 补充多副本聚合说明。
