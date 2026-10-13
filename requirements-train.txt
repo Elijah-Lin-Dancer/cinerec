@@ -3,9 +3,11 @@
 # runtime requirements: these are NOT required to serve `lite` deployments.
 -r requirements.txt
 
-torch>=2.0
+torch>=2.13.0
 torchvision>=0.15
 sentence-transformers>=2.2
 Pillow>=10.0
 matplotlib>=3.7
 seaborn>=0.12
+# Build tool pulled in by the stack above; floored to the fixed release.
+setuptools>=83.0

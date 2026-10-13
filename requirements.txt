@@ -8,3 +8,7 @@ uvicorn>=0.23
 pydantic>=2.0
 requests>=2.31
 python-dotenv>=1.0
+# Floors for transitive deps with published advisories (pip-audit clean);
+# kept explicit so a resolved install can never land below the fixed version.
+urllib3>=2.8.0
+anyio>=4.14.2

@@ -13,7 +13,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 streamlit>=1.30
-torch>=2.0
+torch>=2.13.0
 
 # The `lite` runtime set, mirrored from the repository root. It is duplicated
 # instead of pulled in with `-r ../requirements.txt` because pip and uv resolve
@@ -26,3 +26,5 @@ uvicorn>=0.23
 pydantic>=2.0
 requests>=2.31
 python-dotenv>=1.0
+urllib3>=2.8.0
+anyio>=4.14.2
