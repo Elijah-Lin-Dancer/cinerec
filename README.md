@@ -268,7 +268,9 @@ Protocol: the 5 most recent interactions of each user are held out; every model 
 scored against the same candidate set (all items minus the user's training items),
 so re-recommending already-seen titles cannot inflate the numbers. Numbers are
 **mean ± std over 5 random seeds (42–46)**, reproduced with `make eval-seeds`
-(writes `data/processed/eval_multiseed.json`). The three heuristics/MF models are
+(writes `data/processed/eval_multiseed.json`). The Train Time column is the same
+5-seed mean from that file; a single-seed run's wall-clock lives in
+`eval_results.json` (the server-side artefact). The three heuristics/MF models are
 deterministic, so their spread is exactly zero.
 
 | Model | HR@10 | NDCG@10 | HR@20 | NDCG@20 | Train Time |

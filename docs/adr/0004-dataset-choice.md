@@ -34,8 +34,9 @@
      canonical citation, so our HR@K / NDCG@K numbers sit next to a large body of
      literature instead of being uncomparable.
   2. **It is small enough to be honest about cost.** All six models train in
-     seconds-to-minutes on CPU (0.1s UserCF → 93.5s Multi-Modal NCF, see the
-     README table), which lets us report a real accuracy/cost trade-off and commit
+     seconds-to-minutes on CPU (0.1s UserCF → 73.2s Multi-Modal NCF, the 5-seed
+     means in the README table), which lets us report a real accuracy/cost
+     trade-off and commit
      the trained artefacts plus content features so a fresh clone serves
      recommendations with **zero training** (ADR 0002).
   3. **It has explicit feedback and item side-info.** Explicit 1–5 ratings make
