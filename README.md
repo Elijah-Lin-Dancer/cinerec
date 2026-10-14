@@ -15,20 +15,25 @@
 two published SOTA baselines (BPR-MF, VBPR), all on a single leave-last-5-out split,
 with the neural models reported as mean ± std over five seeds.*
 
-[中文文档](#-项目简介) · [Live Demo](#-live-demo--在线演示) · [Demo](#-demo-preview--效果预览) · [Quick Start](#-quick-start--快速开始)
+English · [简体中文](README.zh-CN.md)
+
+📄 **Companion paper**: *CineRec: A Practical Multi-Modal Recommender Study with
+Cross-Dataset Validation and SOTA Baseline Comparison* — [`docs/paper.pdf`](docs/paper.pdf)
+
+[Live Demo](#-live-demo) · [Demo](#-demo-preview) · [Evaluation](#-evaluation) · [Quick Start](#-quick-start)
 
 </div>
 
 ---
 
-## 🔗 Live Demo / 在线演示
+## 🔗 Live Demo
 
 One codebase, two runtime modes (`APP_MODE`), each hosted on the free tier it fits
 ([ADR 0001](docs/adr/0001-dual-mode-deployment.md)):
 
 | Mode | What it shows | Link |
 |------|---------------|------|
-| **`lite`** — product | The bilingual FastAPI web app. Recommendations come from a precomputed cache, so it fits a 512 MB instance. No account needed: click **游客体验 / Try as Guest**. | **https://cinerec-rfew.onrender.com** |
+| **`lite`** — product | The bilingual FastAPI web app. Recommendations come from a precomputed cache, so it fits a 512 MB instance. No account needed: click **Try as Guest**. | **https://cinerec-rfew.onrender.com** |
 | **`full`** — companion | A Streamlit app that loads the trained PyTorch models and runs them **live**: live inference, the six-model comparison, the modality ablation, the cold-start study. | **https://cinerec-movie-recommend.streamlit.app** |
 
 > Both run on free tiers and sleep when idle — the first visit can take a few
@@ -38,77 +43,87 @@ One codebase, two runtime modes (`APP_MODE`), each hosted on the free tier it fi
 
 ## 📋 Table of Contents
 
-- [Live Demo / 在线演示](#-live-demo--在线演示)
-- [Project Introduction / 项目简介](#-project-introduction--项目简介)
-- [Key Features / 核心亮点](#-key-features--核心亮点)
-- [Demo Preview / 效果预览](#-demo-preview--效果预览)
-- [Architecture / 系统架构](#-architecture--系统架构)
-- [Algorithms / 算法说明](#-algorithms--算法说明)
-- [Evaluation / 评测结果](#-evaluation--评测结果)
-- [Quick Start / 快速开始](#-quick-start--快速开始)
-- [Tech Stack / 技术栈](#-tech-stack--技术栈)
-- [Project Structure / 项目结构](#-project-structure--项目结构)
-- [FAQ / 常见问题](#-faq--常见问题)
+- [Live Demo](#-live-demo)
+- [Project Introduction](#-project-introduction)
+- [Key Features](#-key-features)
+- [Demo Preview](#-demo-preview)
+- [Architecture](#-architecture)
+- [Algorithms](#-algorithms)
+- [Evaluation](#-evaluation)
+- [Quick Start](#-quick-start)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [FAQ](#-faq)
 - [License](#-license)
-- [Changelog / 更新日志](#-changelog--更新日志)
+- [Changelog](#-changelog)
 
 ---
 
-## 📖 Project Introduction / 项目简介
+## 📖 Project Introduction
 
 CineRec is a full-stack movie recommender that implements six models in ascending
 order of complexity and scores all of them against the same candidate set. It ships
 a bilingual dark-cinema web frontend, a REST API, and a Docker build that serves
 either runtime mode from the same image.
 
-CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模型，并在同一候选集上统一
-评测。它包含双语暗色 Web 前端、REST API，以及可用同一镜像服务两种运行模式的 Docker 构建。
-
 > 💡 **"Don't just use models — understand them."**
-> 不要只是用模型，要理解它们。CineRec 的每一层算法都展示了推荐系统从传统到前沿的演进路径。
+> Every layer of CineRec's algorithm ladder shows one step of the evolution from
+> classical to frontier recommender systems.
 
 ---
 
-## ✨ Key Features / 核心亮点
+## ✨ Key Features
 
-- **6 个模型，一个真相源** — UserCF → ItemCF → SVD → NeuMF → LightGCN → Multi-Modal NCF 全部登记在 [`models/registry.py`](models/registry.py)，前端、API 与预计算脚本都从这一处取。
-- **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合三路内容特征：Sentence-BERT 文本(384d)、ResNet-50 图像(2048d)、类型(18d)。
-- **诚实的离线评测** — 单一 leave-last-5-out 划分、候选集剔除训练已见条目；主评测、消融与冷启动均以 5 个种子的均值±标准差报告，对照 BPR-MF / VBPR 两个公开 SOTA 基线且不作"最优模型"声明；同一协议在 Amazon Video_Games 第二数据集上完整复验。
-- **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）与 `full`（实时推理）由 `APP_MODE` 切换。电影详情弹窗与 Streamlit 伴生应用见[效果预览](#-demo-preview--效果预览)。
-- **可观测** — 推理 LRU 缓存、`/api/metrics` 进程内延迟/吞吐，外加一次实测 Locust 压测 → [`reports/loadtest.md`](reports/loadtest.md)。
+- **6 models, one source of truth** — UserCF → ItemCF → SVD → NeuMF → LightGCN →
+  Multi-Modal NCF are all registered in [`models/registry.py`](models/registry.py);
+  the frontend, the API and the precompute scripts all read from that single place.
+- **Multi-modal fusion (core innovation)** — Multi-Modal NCF fuses three content
+  streams on the MLP path through a Content Tower: Sentence-BERT text (384d),
+  ResNet-50 image (2048d), and genre multi-hot (18d).
+- **Honest offline evaluation** — a single leave-last-5-out split, candidate sets
+  stripped of training-seen items; the main, ablation and cold-start results are all
+  reported as mean ± std over 5 seeds, benchmarked against the two published SOTA
+  baselines (BPR-MF / VBPR) with no "best model" claims; the same protocol is
+  re-validated end-to-end on a second dataset (Amazon Video_Games).
+- **Explainable · bilingual · dual-mode** — every recommendation ships a reason;
+  EN/ZH frontend; `lite` (precomputed cache) vs `full` (live inference) switched by
+  `APP_MODE`. The movie detail modal and the Streamlit companion are in the
+  [Demo Preview](#-demo-preview).
+- **Observable** — inference LRU cache, `/api/metrics` in-process latency/throughput,
+  plus one measured Locust load test → [`reports/loadtest.md`](reports/loadtest.md).
 
 ---
 
-## 🖼 Demo Preview / 效果预览
+## 🖼 Demo Preview
 
-### Recommendation Engine / 推荐引擎
+### Recommendation Engine
 > Real-time personalized recommendations with algorithm switching and explainable reasons.
 
 <img src="screenshots/recommend.png" width="800" alt="CineRec Recommendation Page">
 
-### Movie Library / 电影库
+### Movie Library
 > Browse 1,682 movies with real posters, search, genre filtering, and pagination. Click any card to open a detail popup with synopsis, rating, and IMDb link.
 
 <img src="screenshots/movies.png" width="800" alt="CineRec Movie Library">
 
-### Movie Detail Modal / 电影详情弹窗
+### Movie Detail Modal
 > Click any movie card (or press Enter on a focused card) to open an accessible detail popup — poster, synopsis, genres, average rating, and actions to rate or view on IMDb. Closes with Escape, close button, or backdrop click; re-renders on language switch.
 
 <img src="screenshots/detail_modal.png" width="800" alt="CineRec Movie Detail Modal">
 
-### Evaluation Dashboard / 评测看板
+### Evaluation Dashboard
 > Interactive model comparison with real leave-last-5-out evaluation metrics — all six models side by side.
 
 <img src="screenshots/dashboard.png" width="800" alt="CineRec Evaluation Dashboard">
 
-### Ablation Charts / 消融实验图表
+### Ablation Charts
 > A scrolled view of the evaluation page: the ablation study (one modality blanked at a time). Rendered from the committed JSON results — no hard-coded numbers.
 
 <img src="screenshots/eval_charts.png" width="800" alt="Ablation study charts">
 
 > Cold-start is covered separately with its own measured chart in the **Measured Results** section below.
 
-### Streamlit Companion (Full Mode) / Streamlit 伴生应用
+### Streamlit Companion (Full Mode)
 > Live inference companion with a film-strip logo, KPI strip, CSS bar charts, a Jaccard overlap heatmap, an algorithm ladder, and a user profile mini-card.
 
 <table>
@@ -124,7 +139,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 ---
 
-## 🏗 Architecture / 系统架构
+## 🏗 Architecture
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
@@ -144,26 +159,24 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 │  (demo login)   (CRUD + posters) (6 Models + Explainer)       │
 │        │              │                  │                   │
 ├────────┼──────────────┼──────────────────┼───────────────────┤
-│        │       ┌──────┴──────────────────┴───────┐           │
-│        │       │      Model Layer (6 Models)      │           │
-│        │       │                                   │           │
-│        │       │  ┌─────────┐  ┌─────────┐        │           │
-│        │       │  │  UserCF  │  │  ItemCF  │        │           │
-│        │       │  │ (Pearson)│  │(Adj Cos)│        │           │
-│        │       │  └─────────┘  └─────────┘        │           │
-│        │       │  ┌─────────┐  ┌─────────┐        │           │
-│        │       │  │   SVD    │  │  NeuMF   │        │           │
-│        │       │  │(SVD,k=64)│  │(GMF+MLP) │        │           │
-│        │       │  └─────────┘  └─────────┘        │           │
-│        │       │  ┌───────────────────────┐      │           │
-│        │       │  │       LightGCN         │      │           │
-│        │       │  │  Graph Convolution (BPR)│      │           │
-│        │       │  └───────────────────────┘      │           │
-│        │       │  ┌───────────────────────┐      │           │
-│        │       │  │   Multi-Modal NCF ⭐   │      │           │
-│        │       │  │ Text+Image+Genre Fusion│      │           │
-│        │       │  └───────────────────────┘      │           │
-│        │       └──────────────────────────────────┘           │
+│        │       Model Layer (6 Models)                      │
+│        │                                                   │
+│        │  ┌─────────┐  ┌─────────┐                        │
+│        │  │  UserCF  │  │  ItemCF  │                       │
+│        │  │ (Pearson)│  │(Adj Cos)│                         │
+│        │  └─────────┘  └─────────┘                        │
+│        │  ┌─────────┐  ┌─────────┐                        │
+│        │  │   SVD    │  │  NeuMF   │                       │
+│        │  │(SVD,k=64)│  │(GMF+MLP) │                        │
+│        │  └─────────┘  └─────────┘                        │
+│        │  ┌───────────────────────┐                      │
+│        │  │       LightGCN         │                      │
+│        │  │  Graph Convolution (BPR)│                     │
+│        │  └───────────────────────┘                      │
+│        │  ┌───────────────────────┐                      │
+│        │  │   Multi-Modal NCF ⭐   │                      │
+│        │  │ Text+Image+Genre Fusion│                      │
+│        │  └───────────────────────┘                      │
 ├────────┼─────────────────────────────────────────────────────┤
 │        │       Feature Engineering (Pre-computed)            │
 │  ┌─────┴─────┐  ┌──────────────┐  ┌──────────────┐        │
@@ -178,7 +191,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 ---
 
-## 🧮 Algorithms / 算法说明
+## 🧮 Algorithms
 
 | Level | Model | Method | Description |
 |:-----:|-------|--------|-------------|
@@ -194,7 +207,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 > for the evaluation comparison; they are **not** part of this servable ladder and
 > never ship to the API.
 
-### Multi-Modal NCF Architecture (Core Innovation / 核心创新)
+### Multi-Modal NCF Architecture (Core Innovation)
 
 ```
                     ┌──────────────────┐
@@ -226,44 +239,45 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 ---
 
-## 📊 Evaluation / 评测结果
+## 📊 Evaluation
 
-> **Scope / 定位说明** — CineRec is a full-stack engineering and trade-off study, not
+> **Scope** — CineRec is a full-stack engineering and trade-off study, not
 > a leaderboard entry. All models share one fixed split; neural numbers are reported
 > as **mean ± std over seeds**, so every claim is read against the measured noise.
 > The whole protocol is re-run unchanged on a second domain (Amazon Video_Games)
-> to check which conclusions travel. CineRec 是一个工程与取舍研究项目，不是刷榜：
-> 所有模型共用同一划分，神经结果以多种子均值±标准差报告，结论的强弱以实测噪声为界；
-> 同一协议在第二个域（Amazon Video_Games）上原样重跑，以检验哪些结论能跨域成立。
+> to check which conclusions travel.
 
-> 📄 **Paper / 论文** — *CineRec: A Practical Multi-Modal Recommender Study with
-> Cross-Dataset Validation and SOTA Baseline Comparison* (arXiv preprint) ships
-> in this repo as [`docs/paper.pdf`](docs/paper.pdf); the protocol, configurations
-> and raw results it draws on are in [`docs/tech-report.md`](docs/tech-report.md).
+> 📄 **Companion paper** — *CineRec: A Practical Multi-Modal Recommender Study with
+> Cross-Dataset Validation and SOTA Baseline Comparison* ships in this repo as
+> [`docs/paper.pdf`](docs/paper.pdf); the protocol, configurations and raw results
+> behind it are documented in [`docs/tech-report.md`](docs/tech-report.md).
 
-### Research Questions / 研究问题
+### Research Questions
 
-| # | Question / 问题 | Answered by |
-|:--|:----------------|:------------|
-| **RQ1** | 相比纯行为信号，内容特征（文本/图像/类型）在同一排序任务上带来多大提升？ | [Ablation](#ablation-study--消融实验) |
-| **RQ2** | 这一提升是否大于随机种子的波动？ | 主表与消融表的 **mean ± std** |
-| **RQ3** | 内容特征能否迁移到完全没有交互历史的冷启动条目？ | [Cold-start](#cold-start-study--冷启动实验) |
-| **RQ4** | 与已发表的 SOTA 基线（BPR-MF / VBPR）相比处于什么位置？ | [Baseline comparison](#sota-baselines--sota-基线对比) |
-| **RQ5** | 上述结论是否是 MovieLens 特有的？换一个域还成立吗？ | [Cross-dataset](#cross-dataset-validation--跨数据集验证) |
+| # | Question | Answered by |
+|:--|:---------|:------------|
+| **RQ1** | How much do content features (text/image/genre) improve the same ranking task over behaviour-only signals? | [Ablation](#ablation-study) |
+| **RQ2** | Is that improvement larger than random-seed noise? | The **mean ± std** in the main and ablation tables |
+| **RQ3** | Do content features transfer to cold-start items with zero interaction history? | [Cold-start](#cold-start-study) |
+| **RQ4** | Where does CineRec stand against the published SOTA baselines (BPR-MF / VBPR)? | [Baseline comparison](#sota-baselines) |
+| **RQ5** | Are the conclusions above MovieLens-specific? Do they hold in another domain? | [Cross-dataset](#cross-dataset-validation) |
 
-### Contributions / 主要贡献
+### Contributions
 
-1. **一个可复现的统一评测协议** —— 单一 leave-last-5-out 划分、跨模型对齐的候选集
-   （剔除用户训练已见条目）、以及覆盖随机种子全链路的多种子评测，主结果以 5 个种子的
-   均值±标准差报告（`make eval-seeds`）。
-2. **Multi-Modal NCF（核心创新）** —— 在 NCF 的 MLP 路径上用 Content Tower 融合
-   Sentence-BERT 文本、ResNet-50 图像与类型多热三路特征。
-3. **诚实的消融与冷启动研究** —— 两者都以多种子报告，明确区分"真实效应"与"种子噪声"。
-4. **与公开 SOTA 基线对照** —— 在同一划分上复现 BPR-MF（Rendle 2009）与
-   VBPR（He & McAuley 2016），作为行为-only 与内容感知两条线的外部参考。
-5. **跨数据集验证** —— 同一协议与种子列表在第二个域（Amazon Video_Games，
-   2,288 重度用户 × 4,753 物品）上完整重跑主评测/消融/冷启动，检验结论是否
-   随域迁移（[ADR 0005](docs/adr/0005-cross-dataset-validation.md)）。
+1. **A reproducible unified evaluation protocol** — a single leave-last-5-out split,
+   candidate sets aligned across models (training-seen items removed), and multi-seed
+   evaluation covering the whole random-seed chain; main results are reported as
+   mean ± std over 5 seeds (`make eval-seeds`).
+2. **Multi-Modal NCF (core innovation)** — fuses Sentence-BERT text, ResNet-50 image
+   and genre multi-hot features through a Content Tower on the NCF MLP path.
+3. **Honest ablation and cold-start studies** — both reported over multiple seeds,
+   explicitly separating real effects from seed noise.
+4. **Published-baseline comparison** — BPR-MF (Rendle et al., 2009) and
+   VBPR (He & McAuley, 2016) reproduced on the same split as the behaviour-only and
+   content-aware external references.
+5. **Cross-dataset validation** — the same protocol and seed list re-run end-to-end
+   on a second domain (Amazon Video_Games, 2,288 heavy users × 4,753 items) to test
+   which conclusions travel ([ADR 0005](docs/adr/0005-cross-dataset-validation.md)).
 
 ### Model Comparison on MovieLens 100K (leave-last-5-out)
 
@@ -296,7 +310,7 @@ deterministic, so their spread is exactly zero.
 > baselines join the comparison (next section), the top margins close further, so
 > no strong "best model" significance claim is made.
 
-### Key Findings / 关键发现
+### Key Findings
 
 - UserCF → ItemCF → SVD keeps the expected ordering — neighbourhood heuristics give
   way to matrix factorization — and SVD is the strongest accuracy-per-second point on
@@ -310,7 +324,7 @@ deterministic, so their spread is exactly zero.
   seeds it leads both the hit-rate and NDCG columns among the six ladder models, and
   the ablation study below quantifies each modality's share.
 
-### SOTA Baselines / SOTA 基线对比
+### SOTA Baselines
 
 To place CineRec against the literature rather than only against itself, the same
 split is used to reproduce two published baselines — **BPR-MF** (Rendle et al.,
@@ -338,10 +352,10 @@ the API.
 > schedule (though MultiModalNCF still costs the most wall-clock time, 73.2s vs
 > 41.9s, because of its larger content tower).
 
-### Ablation Study / 消融实验
+### Ablation Study
 
 Each row retrains MultiModalNCF on the same split with one content modality blanked
-at the input, isolating its contribution. **Every row is now mean ± std over 5 seeds
+at the input, isolating its contribution. **Every row is mean ± std over 5 seeds
 (42–46)** (`make ablation-seeds`), so each delta can be read against the seed noise
 measured on the Full variant.
 
@@ -364,7 +378,7 @@ measured on the Full variant.
 
 <img src="docs/ablation_study.png" width="720" alt="CineRec Ablation Study">
 
-### Cold-Start Study / 冷启动实验
+### Cold-Start Study
 
 100 items are removed from training entirely, then ranked within the cold pool
 (the content-aware task). MultiModalNCF scores them through the content tower —
@@ -387,7 +401,7 @@ mean ± std over 5 seeds** (`make coldstart-seeds`).
 
 <img src="docs/coldstart.png" width="720" alt="CineRec Cold-Start Study">
 
-### Cross-dataset Validation / 跨数据集验证
+### Cross-dataset Validation
 
 The whole protocol — same leave-last-5-out split rule, same candidate filtering,
 same eight models, same positive-feedback threshold (≥ 4.0), same seed list
@@ -459,21 +473,21 @@ orderings and delta directions**, not absolute values.
 
 ---
 
-### Charts from Measured Results / 实测图表
+### Charts from Measured Results
 
 <img src="docs/model_comparison.png" width="720" alt="Model comparison">
 <img src="docs/training_time.png" width="600" alt="Training time comparison">
 
 ---
 
-## 🚀 Quick Start / 快速开始
+## 🚀 Quick Start
 
 > **Zero-training start**: the trained models, content features and a MovieLens
 > seed ship in the repo (see [ADR 0002](docs/adr/0002-artifact-storage.md)), and the
 > database is seeded on first boot — so a fresh clone serves real recommendations
 > without downloading or training anything.
 
-### Docker (Recommended / 推荐)
+### Docker (Recommended)
 
 ```bash
 git clone https://github.com/ElijahZhao/cinerec.git
@@ -482,7 +496,7 @@ docker compose up --build        # APP_MODE=full by default
 # Visit http://localhost:8000
 ```
 
-### Local / 本地
+### Local
 
 ```bash
 git clone https://github.com/ElijahZhao/cinerec.git
@@ -495,7 +509,7 @@ make setup && make serve         # runtime deps only, no torch
 `recs_cache.json` — that is the mode used on the always-on free tier.
 
 <details>
-<summary><b>Reproduce from scratch / 一键复现（可选）</b></summary>
+<summary><b>Reproduce from scratch (optional)</b></summary>
 
 ```bash
 make setup-train                 # torch + vision stack
@@ -520,7 +534,7 @@ make coldstart-seeds DATASET=amazon-video-games
 
 ---
 
-## 🔧 Tech Stack / 技术栈
+## 🔧 Tech Stack
 
 | Layer | Technologies |
 |-------|-------------|
@@ -533,7 +547,7 @@ make coldstart-seeds DATASET=amazon-video-games
 
 ---
 
-## 📁 Project Structure / 项目结构
+## 📁 Project Structure
 
 ```
 cinerec/
@@ -578,10 +592,10 @@ cinerec/
 ├── deploy/                # Streamlit companion (own deps) + notes
 │   ├── streamlit/         # Companion app: streamlit_app.py + its own requirements.txt
 │   └── hf-space/          # Record of the rejected HF Spaces option (see ADR 0001)
-├── docs/                   # Technical report + paper + architecture decision records
-│   ├── adr/                # Architecture decision records
-│   ├── tech-report.md      # Protocol, configurations and raw results (paper-facing)
-│   └── paper.pdf           # arXiv preprint of this study
+├── docs/                  # Technical report + companion paper + architecture decision records
+│   ├── adr/               # Architecture decision records
+│   ├── tech-report.md     # Protocol, configurations and raw results (paper-facing)
+│   └── paper.pdf          # Companion paper of this study
 ├── reports/               # Measured load-test report + Locust HTML output
 │   ├── loadtest.md        # Curated, measured load-test findings
 │   ├── locust_report.html # Locust HTML report (rendered run)
@@ -596,94 +610,96 @@ cinerec/
 ├── CONTRIBUTING.md        # Dev setup, PR checklist
 ├── CODE_OF_CONDUCT.md     # Contributor Covenant 2.1
 ├── streamlit_app.py       # live-inference companion (entry: deploy/streamlit/)
-└── README.md
+├── README.md              # This file — English edition
+└── README.zh-CN.md        # Chinese edition of this README
 ```
 
 ---
 
-## ❓ FAQ / 常见问题
+## ❓ FAQ
 
 <details>
-<summary><b>为什么有 lite 和 full 两种模式？</b></summary>
+<summary><b>Why are there both a lite and a full mode?</b></summary>
 
-`full` 需要 torch 并实时推理；`lite` 用预计算的 `recs_cache.json` 换取极小内存占用，
-以便在 512 MB 免费实例上常驻。两者是同一代码库，由 `APP_MODE` 切换。详见
-[ADR 0001](docs/adr/0001-dual-mode-deployment.md)。
+`full` needs torch and serves live inference; `lite` trades live inference for a
+precomputed `recs_cache.json` and a minimal memory footprint, so it can stay
+resident on a 512 MB free instance. Both are the same codebase, switched by
+`APP_MODE`. See [ADR 0001](docs/adr/0001-dual-mode-deployment.md).
 </details>
 
 <details>
-<summary><b>新注册用户的推荐为什么是热门榜？</b></summary>
+<summary><b>Why does a brand-new user get popular items?</b></summary>
 
-预计算缓存只覆盖已有用户；新用户不在缓存内，接口会回退到热门推荐并**显式标注**，
-而不是报错。见 ADR 0001 的 "Consequences"。
+The precomputed cache only covers existing users; a new user is not in it, so the
+API falls back to popular recommendations and **labels that fallback explicitly**
+instead of erroring. See the "Consequences" of ADR 0001.
 </details>
 
 <details>
-<summary><b>评测为什么只有 single split？多 seed 是怎么跑的？</b></summary>
+<summary><b>Why a single split? How does multi-seed evaluation work?</b></summary>
 
-划分仍是刻意的单一 leave-last-5-out（项目目标是展示算法取舍与工程规范，而非刷 SOTA）。
-神经模型（NeuMF / LightGCN / MultiModalNCF）已固定随机种子并支持多种子评测：`make eval-seeds`
-会用种子 42–46 各训练一次，把均值±标准差写入 `data/processed/eval_multiseed.json`；
-默认单 seed 运行（`make eval`）仍写 `eval_results.json` 供看板读取，二者互不覆盖。
-消融（`make ablation-seeds`）与冷启动（`make coldstart-seeds`）同样支持多种子，
-分别写 `ablation_multiseed.json` / `coldstart_multiseed.json`。正文主表、消融表、
-冷启动表均采用 5 seed 均值±标准差，但对领先幅度不作严格显著性声明。
+The split remains a deliberate single leave-last-5-out (the project's goal is to
+demonstrate algorithm trade-offs and engineering rigour, not to chase leaderboards).
+The neural models (NeuMF / LightGCN / MultiModalNCF) are seeded and support
+multi-seed evaluation: `make eval-seeds` trains once per seed 42–46 and writes
+mean ± std into `data/processed/eval_multiseed.json`. The default single-seed run
+(`make eval`) still writes `eval_results.json` for the dashboard; the two never
+overwrite each other. Ablation (`make ablation-seeds`) and cold-start
+(`make coldstart-seeds`) support multi-seed the same way, writing
+`ablation_multiseed.json` / `coldstart_multiseed.json`. All tables in this README
+use 5-seed mean ± std, and no strict significance claims are made about the margins.
 </details>
 
 <details>
-<summary><b>BPR-MF / VBPR 是什么？会进入线上服务吗？</b></summary>
+<summary><b>What are BPR-MF / VBPR? Do they serve live traffic?</b></summary>
 
-它们是两个**公开的 SOTA 基线**，用于在同一划分上做外部对照：BPR-MF（Rendle et al.,
-UAI 2009）是纯行为的 BPR 排序 MF，VBPR（He & McAuley, AAAI 2016）是内容感知的视觉
-BPR。两者只在离线评测中训练与报告（见 [Baseline comparison](#sota-baselines--sota-基线对比)），
-**不登记进 [`models/registry.py`](models/registry.py)，不会部署到 API**——线上服务的仍是
-6 个 ladder 模型。
+They are two **published SOTA baselines** used as external references on the same
+split: BPR-MF (Rendle et al., UAI 2009) is a purely behavioural BPR-optimized MF,
+and VBPR (He & McAuley, AAAI 2016) is a content-aware visual BPR. Both are trained
+and reported in the offline evaluation only (see
+[Baseline comparison](#sota-baselines)); they are **not** registered in
+[`models/registry.py`](models/registry.py) and **never deploy to the API** — the
+serving ladder remains the 6 ladder models.
 </details>
 
 <details>
-<summary><b>第二数据集为什么选 Amazon Video_Games？为什么只保留重度用户？</b></summary>
+<summary><b>Why Amazon Video_Games as the second dataset? Why keep only heavy users?</b></summary>
 
-跨数据集验证（[ADR 0005](docs/adr/0005-cross-dataset-validation.md)）需要一个
-**域外**数据集来回答 RQ5：结论是否 MovieLens 特有。Video_Games 的原始 5-core
-基准（94.8k 用户 × 25.6k 物品）在小内存主机上跑不动稠密邻域模型，而随机抽样
-用户的中位交互数只有 ~6，leave-last-5-out 会把大多数用户划成空训练集——所以
-采用与 MovieLens-100K **完全相同的准入规则**：只保留评分数 ≥ 20 的用户并对物品
-重建 5-core，得到 2,288 用户 × 4,753 物品 × 75,980 评分。无随机抽样，切片由
-构造保证确定性；`ratings.csv` 入库固定切片定义，重跑 `make amazon-data` 即可复现。
-该数据集仅用于离线评测，线上服务仍是 MovieLens 100K。
+The cross-dataset validation ([ADR 0005](docs/adr/0005-cross-dataset-validation.md))
+needs an **out-of-domain** dataset to answer RQ5: are the conclusions
+MovieLens-specific? The raw Video_Games 5-core benchmark (94.8k users × 25.6k items)
+does not fit the dense neighbourhood models on a small-memory host, and randomly
+sampled users have a median of ~6 interactions — leave-last-5-out would leave most
+of them with empty training sets. So the rule is exactly MovieLens-100K's own
+admission rule: keep users with ≥ 20 ratings and rebuild the item 5-core, yielding
+2,288 users × 4,753 items × 75,980 ratings. There is no random sampling — the slice
+is deterministic by construction; `ratings.csv` is committed to pin the slice
+definition, and re-running `make amazon-data` reproduces it. The dataset is used
+for offline evaluation only; the live service remains MovieLens 100K.
 </details>
 
 <details>
-<summary><b>SVD 用的是 ALS 吗？</b></summary>
+<summary><b>Does SVD use ALS?</b></summary>
 
-不是。文件名 `models/svd_als.py` 是历史命名，实现是 truncated SVD
-（`scipy.sparse.linalg.svds`），[ADR 0003](docs/adr/0003-algorithm-ladder.md) 已说明。
+No. The filename `models/svd_als.py` is a historical name; the implementation is
+truncated SVD (`scipy.sparse.linalg.svds`), as documented in
+[ADR 0003](docs/adr/0003-algorithm-ladder.md).
 </details>
 
 <details>
-<summary><b>如何用 Docker 跑 lite 模式？</b></summary>
+<summary><b>How do I run the lite mode with Docker?</b></summary>
 
 ```bash
 docker build --build-arg APP_MODE=lite -t cinerec:lite .
 docker run -p 8000:8000 cinerec:lite
 ```
-健康检查：`GET /api/health`；进程指标：`GET /api/metrics`。
+Health check: `GET /api/health`; process metrics: `GET /api/metrics`.
 </details>
 
 <details>
-<summary><b>为什么数据集里的电影都这么老？/ Why are all the movies so old?</b></summary>
+<summary><b>Why are all the movies so old?</b></summary>
 
-**中文** — 因为数据集是 **MovieLens 100K**，它是在 **1997-09-19 到 1998-04-22** 这七个月里
-从 MovieLens 网站收集的，片目覆盖 **1922–1998**，所以片库里最新的电影就是 1998 年的——
-这是**原始数据的年代范围**，不是我们的数据管道出问题。
-
-选它是一次明确的取舍：它只有 100,000 条评分（943 用户 × 1,682 部电影，每人都至少评过 20 部），
-六模型全部可在 CPU 上秒级到分钟级训练完，因此我们能把"精度 vs 训练耗时"的真实权衡讲清楚，
-并把训练好的模型与特征直接入库，让一个新克隆**零训练**即可跑起来（见 [ADR 0002](docs/adr/0002-artifact-storage.md)）。
-它同时是学术界通行、可引用的基准，便于把 HR@K / NDCG@K 与文献对照。
-完整的取舍与被否决的选项见 [ADR 0004](docs/adr/0004-dataset-choice.md)。
-
-**English** — Because the dataset is **MovieLens 100K**, collected through the
+Because the dataset is **MovieLens 100K**, collected through the
 MovieLens website over the seven months from **19 Sep 1997 to 22 Apr 1998**; its
 catalogue spans **1922–1998**, so a 1998 title is the *end of the range*, not a
 stale mirror. That is a property of the source data, not a pipeline bug.
@@ -698,20 +714,9 @@ and the rejected alternatives are in [ADR 0004](docs/adr/0004-dataset-choice.md)
 </details>
 
 <details>
-<summary><b>数据从哪里来？商用 / 再分发的许可如何？/ Where does the data come from, and what about commercial use & redistribution?</b></summary>
+<summary><b>Where does the data come from, and what about commercial use & redistribution?</b></summary>
 
-**中文** — 三份材料，三套许可，互不覆盖：
-
-1. **本项目代码** —— MIT（见 [LICENSE](LICENSE)）。
-2. **MovieLens 100K 评分数据** —— 由明尼苏达大学 GroupLens Research Project 提供，**仅供研究/非商业**用途：
-   未经许可**不得再分发**，**不得用于任何商业或盈利目的**，且不得暗示获得明尼苏达大学的背书。
-   本项目是**非商业的个人作品集项目**，正是按此条件使用。若在出版物中使用，请引用
-   Harper & Konstan (2015), *The MovieLens Datasets: History and Context*, ACM TiiS 5(4)。
-   原始数据经 [`data/download.py`](data/download.py) 从 `files.grouplens.org` 获取（https-only + 白名单）。
-3. **海报与剧情简介（元数据）** —— 通过 TMDB API 获取（[`data/enrich_tmdb.py`](data/enrich_tmdb.py)），
-   受 TMDB 条款约束；1,682 部中有 1,400 部有简介、1,366 部有海报，未匹配的会优雅降级。
-
-**English** — Three inputs, three licences, none of which covers the others:
+Three inputs, three licences, none of which covers the others:
 
 1. **This project's code** — MIT (see [LICENSE](LICENSE)).
 2. **The MovieLens 100K ratings** — provided by the GroupLens Research Project,
@@ -740,27 +745,63 @@ This does **not** extend to the bundled data:
 - **MovieLens 100K** (ratings, titles, genres, years) is © GroupLens Research,
   University of Minnesota, provided for **non-commercial research use**. It may
   not be redistributed or used commercially without permission. See the
-  [FAQ entry above](#-faq--常见问题) and [ADR 0004](docs/adr/0004-dataset-choice.md).
+  [FAQ entry above](#-faq) and [ADR 0004](docs/adr/0004-dataset-choice.md).
 - **Poster and overview metadata** are fetched from the TMDB API
   ([`data/enrich_tmdb.py`](data/enrich_tmdb.py)); TMDB's terms apply.
 
 ---
 
-## 📝 Changelog / 更新日志
+## 📝 Changelog
 
 <details>
-<summary>展开查看</summary>
+<summary>Expand</summary>
 
-- **2026-10-13** — 论文：arXiv 预印本《CineRec: A Practical Multi-Modal Recommender Study with Cross-Dataset Validation and SOTA Baseline Comparison》入库为 [`docs/paper.pdf`](docs/paper.pdf)，README 评测区挂引用。
-- **2026-10-13** — 发布 **v1.0.0**（首个 tag + GitHub Release）。治理面：三个 requirements 写入修复版本下限（`urllib3>=2.8.0` / `anyio>=4.14.2` / `setuptools>=83.0` / `torch>=2.13.0`）使 pip-audit 归零，CI 增加覆盖率门槛（`fail_under = 45`）。收敛与新增：第二数据集路径统一为 `config.SECOND_PROCESSED_DIR` 单一源，资源缓存版本号统一，新增 [CONTRIBUTING.md](CONTRIBUTING.md)、[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) 与技术文档 [`docs/tech-report.md`](docs/tech-report.md)。
-- **2026-10-12** — 含金量：新增两个公开 SOTA 基线 BPR-MF（Rendle et al., 2009）与 VBPR（He & McAuley, 2016）并纳入统一评测（仅离线对照，不进线上服务）；消融与冷启动改为 5 seed 均值±标准差（`make ablation-seeds` / `make coldstart-seeds`，写 `ablation_multiseed.json` / `coldstart_multiseed.json`）；README 新增研究问题（RQ1–RQ4）、主要贡献与 SOTA 基线对比表。
-- **2026-10-12** — 可复现性：NeuMF / LightGCN / MultiModalNCF 增加统一随机种子（`set_seed`）；`evaluation/runner.py` 支持多种子评测（`make eval-seeds`，种子 42–46），主评测表改为均值±标准差并写入 `eval_multiseed.json`；单 seed 运行行为不变，仍写 `eval_results.json` 供看板读取。
-- **2026-10-06** — 测试/CI 补齐：Playwright E2E（游客登录→推荐、筛选→详情弹窗、评分→推荐排除已评）+ axe-core 无障碍断言；三个神经模型的 torch 门控 forward 测试；recommend `full` 分支与解释器失败路径测试；CI 新增 `full` 镜像构建 + `/api/health` 冒烟；压测纳入每周定时任务并留趋势（`reports/loadtest_trend.csv`）；`/api/metrics` 补充多副本聚合说明。
-- **2026-10-05** — UI：电影详情弹窗（卡片点击/键盘打开、评分与 IMDb 入口、随语言切换重绘）；数据集取舍与许可写入 [ADR 0004](docs/adr/0004-dataset-choice.md) 与上方 FAQ；Streamlit 伴生应用美化（胶片 logo + KPI 条 + 融合推荐卡 + CSS 柱状图/热力图 + 算法阶梯 + 用户画像）；README 截图全部更新为最新版本。
-- **2026-10-05** — UI：动画背景 + canvas 星空 + 字体改版；Streamlit 伴生应用独立目录与主题。
-- **2026-10-05** — 部署：Render(`lite`) + Streamlit(`full`) 双档免费部署定稿（ADR 0001）。
-- **2026-10-04** — 评测：6 模型统一评测 + 消融 + 冷启动实验；MLOps：LRU 缓存 + `/api/metrics` + Locust 压测。
-- **2026-07-19** — 初始版本：UserCF / ItemCF / SVD / NeuMF + 前端 + 数据库。
+- **2026-10-13** — README split into two single-language editions: `README.md`
+  (English) and `README.zh-CN.md` (Chinese), with identical structure, tables and
+  numbers.
+- **2026-10-13** — Paper: the companion paper *CineRec: A Practical Multi-Modal
+  Recommender Study with Cross-Dataset Validation and SOTA Baseline Comparison*
+  ships as [`docs/paper.pdf`](docs/paper.pdf), referenced from the Evaluation
+  section.
+- **2026-10-13** — Released **v1.0.0** (first tag + GitHub Release). Governance:
+  the three requirements files pin fixed version floors (`urllib3>=2.8.0` /
+  `anyio>=4.14.2` / `setuptools>=83.0` / `torch>=2.13.0`) to zero out pip-audit,
+  and CI gains a coverage gate (`fail_under = 45`). Consolidations & additions:
+  second-dataset paths unified under the `config.SECOND_PROCESSED_DIR` single
+  source, asset cache versions unified, plus new [CONTRIBUTING.md](CONTRIBUTING.md),
+  [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and the technical report
+  [`docs/tech-report.md`](docs/tech-report.md).
+- **2026-10-12** — Substance: two published SOTA baselines, BPR-MF (Rendle et al.,
+  2009) and VBPR (He & McAuley, 2016), added to the unified evaluation (offline
+  comparison only, never served); ablation and cold-start re-run as 5-seed
+  mean ± std (`make ablation-seeds` / `make coldstart-seeds`, writing
+  `ablation_multiseed.json` / `coldstart_multiseed.json`); README gains research
+  questions (RQ1–RQ4), contributions and the SOTA baseline comparison table.
+- **2026-10-12** — Reproducibility: NeuMF / LightGCN / MultiModalNCF get a unified
+  seeding utility (`set_seed`); `evaluation/runner.py` supports multi-seed
+  evaluation (`make eval-seeds`, seeds 42–46); the main table switches to
+  mean ± std written to `eval_multiseed.json`; single-seed behaviour is unchanged
+  and still writes `eval_results.json` for the dashboard.
+- **2026-10-06** — Tests/CI: Playwright E2E (guest login → recommendation,
+  filtering → detail modal, rating → recommendation excludes rated) + axe-core
+  accessibility assertions; torch-gated forward tests for the three neural models;
+  tests for the recommend `full` branch and the explainer failure path; CI gains a
+  `full` image build + `/api/health` smoke test; the load test joins a weekly
+  schedule with a trend file (`reports/loadtest_trend.csv`); `/api/metrics`
+  documents multi-replica aggregation.
+- **2026-10-05** — UI: movie detail modal (open by click/keyboard, rating and IMDb
+  entry points, re-renders on language switch); dataset trade-offs and licensing
+  written into [ADR 0004](docs/adr/0004-dataset-choice.md) and the FAQ; Streamlit
+  companion restyled (film-strip logo + KPI strip + fusion card + CSS bar
+  charts/heatmap + algorithm ladder + user profile); all README screenshots
+  refreshed.
+- **2026-10-05** — UI: animated background + canvas star field + typography rework;
+  Streamlit companion moves to its own directory and theme.
+- **2026-10-05** — Deployment: Render (`lite`) + Streamlit (`full`) dual free-tier
+  deployment finalized (ADR 0001).
+- **2026-10-04** — Evaluation: unified 6-model evaluation + ablation + cold-start;
+  MLOps: LRU cache + `/api/metrics` + Locust load test.
+- **2026-07-19** — Initial version: UserCF / ItemCF / SVD / NeuMF + frontend + database.
 
 </details>
 
