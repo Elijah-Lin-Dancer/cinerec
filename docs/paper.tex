@@ -202,9 +202,9 @@ targets; the CI figures refer to the same release.
 \subsection{Datasets}
 We conduct experiments on two datasets:
 \begin{itemize}
-  \item \textbf{MovieLens 100K}: 943 users, 1,682 items, 100,000 ratings
+  \item \textbf{MovieLens 100K}~\cite{harper2015}: 943 users, 1,682 items, 100,000 ratings
         (1--5 scale). Users with $\geq20$ ratings.
-  \item \textbf{Amazon Video\_Games}: 2,288 users, 4,753 items, 75,980 ratings
+  \item \textbf{Amazon Video\_Games}~\cite{hou2024}: 2,288 users, 4,753 items, 75,980 ratings
         (1--5 scale). Heavy users with $\geq20$ ratings.
 \end{itemize}
 
@@ -214,6 +214,10 @@ item 5-core rule.
 The original 5-core dataset is publicly available from the Amazon Reviews
 dataset repository; our slice definition and processing scripts are included in
 the codebase.
+
+Poster and overview metadata are retrieved from the TMDB API and remain subject
+to TMDB's terms; MovieLens 100K is used under its non-commercial research terms,
+and the project's code is released under the MIT licence.
 
 \subsection{Main Results}
 Table~\ref{tab:main} shows the main model comparison on MovieLens 100K. Key
@@ -445,16 +449,21 @@ This project was developed as an independent study. The author thanks the
 open-source community for providing baseline implementations and datasets.
 
 \textbf{AI use disclosure:} This project was assisted by AI tools throughout
-development, including code generation, debugging, and documentation writing.
-This disclosure is consistent with the project's public repository, which has
-stated this on its README footer since the first release (v1.0.0).
+development and manuscript preparation, including code generation, debugging,
+and documentation writing. The author is solely responsible for the study
+design, the verification of all reported results, and the content of this paper.
 \end{acks}
 
-\begin{thebibliography}{8}
+\begin{thebibliography}{10}
 \bibitem{deshpande2004}
 Mukund Deshpande and George Karypis. 2004. Item-based top-N recommendation
 algorithms. \emph{ACM Transactions on Information Systems (TOIS)} 22, 1 (2004),
 143--177.
+
+\bibitem{harper2015}
+F. Maxwell Harper and Joseph A. Konstan. 2015. The MovieLens Datasets: History
+and Context. \emph{ACM Transactions on Interactive Intelligent Systems (TiiS)}
+5, 4 (2015), 19:1--19:19.
 
 \bibitem{he2016resnet}
 Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. 2016. Deep residual
@@ -476,6 +485,11 @@ conference on research and development in information retrieval}. 639--648.
 Xiangnan He, Lizi Liao, Hanwang Zhang, Liqiang Nie, Xia Hu, and Tat-Seng Chua.
 2017. Neural collaborative filtering. In \emph{Proceedings of the 26th
 international conference on world wide web}. 173--182.
+
+\bibitem{hou2024}
+Yupeng Hou, Jiacheng Li, Zhankui He, An Yan, Xiusi Chen, and Julian McAuley.
+2024. Bridging Language and Items for Retrieval and Recommendation.
+\emph{arXiv preprint arXiv:2403.03952}.
 
 \bibitem{koren2009}
 Yehuda Koren, Robert Bell, and Chris Volinsky. 2009. Matrix factorization
