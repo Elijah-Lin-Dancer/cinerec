@@ -595,7 +595,8 @@ cinerec/
 ├── docs/                  # Technical report + companion paper + architecture decision records
 │   ├── adr/               # Architecture decision records
 │   ├── tech-report.md     # Protocol, configurations and raw results (paper-facing)
-│   └── paper.pdf          # Companion paper of this study
+│   ├── paper.pdf          # Companion paper of this study
+│   └── paper.tex          # LaTeX source of the companion paper
 ├── reports/               # Measured load-test report + Locust HTML output
 │   ├── loadtest.md        # Curated, measured load-test findings
 │   ├── locust_report.html # Locust HTML report (rendered run)
