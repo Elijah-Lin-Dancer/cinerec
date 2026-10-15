@@ -350,20 +350,21 @@ difference well inside the combined spread, and Behaviour-only~$\approx$~Full
 \end{table*}
 
 \subsection{Reproducibility and Engineering Quality}
-To support reproducibility, we maintain a fully tested codebase with continuous
+To support reproducibility, we maintain a well-tested codebase with continuous
 integration:
 \begin{itemize}
   \item \textbf{Test suite}: 125 tests passed, with 50.9\% line coverage
         (minimum threshold 45\%). Tests cover data loading, model training
         loops, and evaluation metrics.
-  \item \textbf{CI pipeline}: Three jobs run on every commit: linting + tests
+  \item \textbf{CI pipeline}: Three jobs run on every push to main and every
+        pull request: linting + tests
         with coverage, end-to-end accessibility tests, and Docker image builds
         for both deployment modes (lite and full).
   \item \textbf{Dependency hygiene}: We use pinned version lower bounds to
         ensure reproducible environments. Initial vulnerability scans flagged
         known advisories in transitive dependencies; after updating to
         patched versions, no known vulnerabilities remain (as of October 2026).
-  \item \textbf{Documentation}: All architectural decisions are documented in
+  \item \textbf{Documentation}: Key architectural decisions are documented in
         Architecture Decision Records (ADRs). The codebase includes make
         commands for setup, data preparation, training, and evaluation,
         allowing full reproduction from scratch.
