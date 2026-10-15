@@ -18,7 +18,7 @@ SOTA 基线（BPR-MF、VBPR），全部在同一 leave-last-5-out 划分上评�
 [English](README.md) · 简体中文
 
 📄 **伴随论文**：*CineRec: A Practical Multi-Modal Recommender Study with
-Cross-Dataset Validation and SOTA Baseline Comparison* —— [`docs/paper.pdf`](docs/paper.pdf)
+Cross-Dataset Validation and Published-Baseline Comparison* —— [`docs/paper.pdf`](docs/paper.pdf)
 
 [在线演示](#-在线演示) · [效果预览](#-效果预览) · [评测结果](#-评测结果) · [快速开始](#-快速开始)
 
@@ -238,7 +238,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 > （Amazon Video_Games）上原样重跑，以检验哪些结论能跨域成立。
 
 > 📄 **伴随论文** — *CineRec: A Practical Multi-Modal Recommender Study with
-> Cross-Dataset Validation and SOTA Baseline Comparison* 已随本仓库交付于
+> Cross-Dataset Validation and Published-Baseline Comparison* 已随本仓库交付于
 > [`docs/paper.pdf`](docs/paper.pdf)；其协议、配置与原始结果记录在
 > [`docs/tech-report.md`](docs/tech-report.md)。
 
@@ -698,7 +698,7 @@ MIT 许可**不**覆盖随仓库交付的数据：
 - **2026-10-13** — README 拆分为两个单语版本：`README.md`（英文）与 `README.zh-CN.md`
   （中文），结构、表格与数字完全一致。
 - **2026-10-13** — 论文：伴随论文《CineRec: A Practical Multi-Modal Recommender
-  Study with Cross-Dataset Validation and SOTA Baseline Comparison》入库为
+  Study with Cross-Dataset Validation and Published-Baseline Comparison》入库为
   [`docs/paper.pdf`](docs/paper.pdf)，README 评测区挂引用。
 - **2026-10-13** — 发布 **v1.0.0**（首个 tag + GitHub Release）。治理面：三个 requirements 写入修复版本下限（`urllib3>=2.8.0` / `anyio>=4.14.2` / `setuptools>=83.0` / `torch>=2.13.0`）使 pip-audit 归零，CI 增加覆盖率门槛（`fail_under = 45`）。收敛与新增：第二数据集路径统一为 `config.SECOND_PROCESSED_DIR` 单一源，资源缓存版本号统一，新增 [CONTRIBUTING.md](CONTRIBUTING.md)、[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) 与技术文档 [`docs/tech-report.md`](docs/tech-report.md)。
 - **2026-10-12** — 含金量：新增两个公开 SOTA 基线 BPR-MF（Rendle et al., 2009）与 VBPR（He & McAuley, 2016）并纳入统一评测（仅离线对照，不进线上服务）；消融与冷启动改为 5 seed 均值±标准差（`make ablation-seeds` / `make coldstart-seeds`，写 `ablation_multiseed.json` / `coldstart_multiseed.json`）；README 新增研究问题（RQ1–RQ4）、主要贡献与 SOTA 基线对比表。

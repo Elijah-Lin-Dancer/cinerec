@@ -17,7 +17,7 @@
 \begin{document}
 
 \title{CineRec: A Practical Multi-Modal Recommender Study with
-Cross-Dataset Validation and SOTA Baseline Comparison}
+Cross-Dataset Validation and Published-Baseline Comparison}
 
 \author{Yulin Zhao}
 \affiliation{%
@@ -34,7 +34,7 @@ rigorous statistical validation against published baselines. We present
 CineRec, a practical study that evaluates six recommendation models of
 increasing complexity---UserCF, ItemCF, SVD, NeuMF, LightGCN, and
 MultiModalNCF---on two domains: MovieLens 100K and Amazon Video\_Games. We
-reproduce two published SOTA baselines (BPR-MF and VBPR) under the same
+reproduce two published baselines (BPR-MF and VBPR) under the same
 evaluation protocol, report results as mean$\pm$standard deviation over five
 random seeds, and conduct both modality ablation and cold-start studies. Our
 findings show that (1) the ranking of models is largely consistent across
@@ -73,7 +73,7 @@ descriptions, images, and knowledge graphs.
 Despite this rapid progress, many comparative studies in recommender systems
 suffer from three limitations: (1) they are evaluated on a single dataset,
 limiting the generalizability of conclusions, (2) they lack comparison against
-published SOTA baselines under matched conditions, and (3) results are often
+published baselines under matched conditions, and (3) results are often
 reported as single-point estimates without statistical significance testing.
 
 In this work, we present CineRec, a practical study designed to address these
@@ -83,7 +83,7 @@ gaps. Our contributions are as follows:
   \item We implement and evaluate six recommendation models spanning the full
         evolution from classical neighborhood methods to deep multi-modal
         models, under a unified evaluation protocol.
-  \item We reproduce two published SOTA baselines---BPR-MF~\cite{rendle2009}
+  \item We reproduce two published baselines---BPR-MF~\cite{rendle2009}
         and VBPR~\cite{he2016vbpr}---on the same split, allowing direct
         comparison against established methods.
   \item We validate all conclusions across two datasets: MovieLens 100K and
@@ -195,6 +195,10 @@ We precompute content features shared across all content-aware models:
 \end{itemize}
 
 \section{Experiments}
+All experimental results below are read from the committed result artefacts of
+release v1.0.0 (2026-10-13) and are reproducible via the repository's make
+targets; the CI figures refer to the same release.
+
 \subsection{Datasets}
 We conduct experiments on two datasets:
 \begin{itemize}
@@ -422,7 +426,7 @@ Table~\ref{tab:main}.
 
 \section{Conclusion}
 We presented CineRec, a practical comparative study of six recommendation
-models across two domains, with two published SOTA baselines and rigorous
+models across two domains, with two published baselines and rigorous
 multi-seed validation. Our findings confirm that (1) model rankings are largely
 consistent across datasets, (2) content features provide measurable benefits in
 cold-start scenarios, and (3) a simple multi-modal extension of NeuMF can

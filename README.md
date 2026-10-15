@@ -18,7 +18,7 @@ with the neural models reported as mean ± std over five seeds.*
 English · [简体中文](README.zh-CN.md)
 
 📄 **Companion paper**: *CineRec: A Practical Multi-Modal Recommender Study with
-Cross-Dataset Validation and SOTA Baseline Comparison* — [`docs/paper.pdf`](docs/paper.pdf)
+Cross-Dataset Validation and Published-Baseline Comparison* — [`docs/paper.pdf`](docs/paper.pdf)
 
 [Live Demo](#-live-demo) · [Demo](#-demo-preview) · [Evaluation](#-evaluation) · [Quick Start](#-quick-start)
 
@@ -248,7 +248,7 @@ either runtime mode from the same image.
 > to check which conclusions travel.
 
 > 📄 **Companion paper** — *CineRec: A Practical Multi-Modal Recommender Study with
-> Cross-Dataset Validation and SOTA Baseline Comparison* ships in this repo as
+> Cross-Dataset Validation and Published-Baseline Comparison* ships in this repo as
 > [`docs/paper.pdf`](docs/paper.pdf); the protocol, configurations and raw results
 > behind it are documented in [`docs/tech-report.md`](docs/tech-report.md).
 
@@ -761,7 +761,7 @@ This does **not** extend to the bundled data:
   (English) and `README.zh-CN.md` (Chinese), with identical structure, tables and
   numbers.
 - **2026-10-13** — Paper: the companion paper *CineRec: A Practical Multi-Modal
-  Recommender Study with Cross-Dataset Validation and SOTA Baseline Comparison*
+  Recommender Study with Cross-Dataset Validation and Published-Baseline Comparison*
   ships as [`docs/paper.pdf`](docs/paper.pdf), referenced from the Evaluation
   section.
 - **2026-10-13** — Released **v1.0.0** (first tag + GitHub Release). Governance:
