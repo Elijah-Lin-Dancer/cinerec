@@ -204,8 +204,9 @@ We conduct experiments on two datasets:
         (1--5 scale). Heavy users with $\geq20$ ratings.
 \end{itemize}
 
-The Amazon slice is constructed by applying the same population rule (users
-with $\geq20$ ratings) to the 5-core Amazon Reviews 2023 Video\_Games dataset.
+The Amazon slice is built deterministically from the 5-core Amazon Reviews 2023
+Video\_Games dataset by keeping users with $\geq20$ ratings and re-applying the
+item 5-core rule.
 The original 5-core dataset is publicly available from the Amazon Reviews
 dataset repository; our slice definition and processing scripts are included in
 the codebase.
@@ -362,8 +363,9 @@ integration:
         Architecture Decision Records (ADRs). The codebase includes make
         commands for setup, data preparation, training, and evaluation,
         allowing full reproduction from scratch.
-  \item \textbf{Repository hygiene}: Automated scans for sensitive information
-        and secrets return zero hits across all text files in the repository.
+  \item \textbf{Repository hygiene}: Pre-commit hooks reject large files,
+        malformed YAML, and merge-conflict markers before each commit, and the
+        tracked text files contain no credentials or secret material.
 \end{itemize}
 
 Figure~\ref{fig:train} reports the per-model training cost behind
