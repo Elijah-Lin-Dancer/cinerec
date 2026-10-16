@@ -102,7 +102,7 @@ either runtime mode from the same image.
 <img src="screenshots/recommend.png" width="800" alt="CineRec Recommendation Page">
 
 ### Movie Library
-> Browse 1,682 movies with real posters, search, genre filtering, and pagination. Click any card to open a detail popup with synopsis, rating, and IMDb link.
+> Browse the 1,682-movie catalogue with real posters where available (1,366/1,682), search, genre filtering, and pagination. Click any card to open a detail popup with synopsis, rating, and IMDb link.
 
 <img src="screenshots/movies.png" width="800" alt="CineRec Movie Library">
 
@@ -454,7 +454,7 @@ orderings and delta directions**, not absolute values.
 >   domains (no per-modality ranking claimed anywhere).
 > - **Cold-start is the strongest transfer of all — and it amplifies**: the
 >   content tower's edge over the content-blind control grows from **1.17×**
->   on ML-100K to **1.96×** on Amazon (0.2364 vs 0.1204 HR@10, gap ≈ 5.6× the
+>   on ML-100K to **1.96×** on Amazon (0.2364 vs 0.1204 HR@10, gap ≈ 4.9× the
 >   combined std). The sparser the collaborative signal, the more the content
 >   tower is worth — exactly what the modality story predicts.
 >

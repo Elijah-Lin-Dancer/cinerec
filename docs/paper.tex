@@ -416,9 +416,12 @@ Table~\ref{tab:main}.
 \subsection{Key Findings}
 \begin{enumerate}
   \item \textbf{Model ordering is largely consistent across domains.} The
-        relative ranking of models holds on both MovieLens and Amazon,
-        suggesting that the observed patterns are not dataset-specific
-        artifacts.
+        ladder backbone (UserCF $<$ ItemCF $<$ SVD) and the neural band's lead
+        over SVD hold on both MovieLens and Amazon, suggesting these patterns
+        are not dataset-specific artifacts. Which model leads \emph{within} the
+        neural band is domain-dependent, however (VBPR/MultiModalNCF on
+        MovieLens, LightGCN on Amazon), so no cross-domain ``best model'' is
+        claimed.
   \item \textbf{Content features help in cold-start, but not much in overall
         ranking.} Modality ablation shows that removing content features has
         limited impact on overall ranking quality, but cold-start experiments
