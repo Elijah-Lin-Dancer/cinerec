@@ -10,7 +10,7 @@
   The most obvious flaw is age: browse the library and the newest film is from
   **1998**. That is not a bug in our pipeline. MovieLens 100K was collected
   through the MovieLens website over the seven-month window **19 Sep 1997 –
-  22 Apr 1998**; its catalogue spans **1,922–1,998**, so a title from 1998 is the
+  22 Apr 1998**; its catalogue spans **1922–1998**, so a title from 1998 is the
   end of the range, not a stale mirror.
 
 - **Decision**: Ship **MovieLens 100K** as the ratings dataset, enriched with
