@@ -14,6 +14,9 @@
 \acmYear{2026}
 \copyrightyear{2026}
 
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric}
+
 \begin{document}
 
 \title{CineRec: A Practical Multi-Modal Recommender Study with
@@ -95,10 +98,40 @@ gaps. Our contributions are as follows:
         the contribution of each content channel.
 \end{enumerate}
 
-The remainder of this paper is organized as follows. Section 2 reviews related
+The study design is summarised in Figure~\ref{fig:overview}. The remainder of
+this paper is organized as follows. Section 2 reviews related
 work. Section 3 describes our methodology and model suite. Section 4 presents
 experimental setup and results. Section 5 discusses findings and limitations.
 Section 6 concludes.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[
+      font=\footnotesize, >=Latex, every node/.style={align=center},
+      s/.style={draw, rounded corners=3pt, fill=blue!6, inner sep=4pt,
+                text width=3.05cm, minimum height=1.75cm},
+      a/.style={-{Latex[length=2mm]}, thick}
+    ]
+    \node[s] (d) {\textbf{Two domains}\\MovieLens-100K
+      (943u/1682i)\\Amazon Video\_Games (2288u/4753i)};
+    \node[s, right=6mm of d] (f) {\textbf{Content features}\\Text: SBERT 384d\\
+      Image: ResNet-50 2048d\\Genre: multi-hot 18d};
+    \node[s, right=6mm of f] (m) {\textbf{Model ladder (8)}\\UserCF, ItemCF, SVD\\
+      BPR-MF$^\star$, NeuMF, LightGCN\\VBPR$^\star$, MultiModalNCF};
+    \node[s, right=6mm of m] (e) {\textbf{Protocol \& outputs}\\leave-last-5-out
+      split, 5 seeds\\HR@K / NDCG@K; ablation,\\cold-start,
+      cross-dataset};
+    \draw[a] (d)--(f);
+    \draw[a] (f)--(m);
+    \draw[a] (m)--(e);
+  \end{tikzpicture}
+  \caption{Overview of the CineRec study. Two domains feed precomputed
+  text/image/genre content features into a ladder of eight recommenders---six
+  ladder models plus two reproduced published baselines (marked $^\star$)---all
+  evaluated under a single leave-last-5-out protocol with five-seed
+  mean$\pm$std reporting.}
+  \label{fig:overview}
+\end{figure*}
 
 \section{Related Work}
 \subsection{Neighborhood-Based Collaborative Filtering}
@@ -134,7 +167,8 @@ research area, incorporating text, images, and other side information.
 \section{Methodology}
 \subsection{Model Suite}
 We evaluate six models of increasing complexity, plus two published baselines.
-Table~\ref{tab:config} summarizes all model configurations.
+Table~\ref{tab:config} summarizes all model configurations; Figure~\ref{fig:model}
+details the MultiModalNCF architecture.
 
 Key details:
 \begin{itemize}
@@ -143,13 +177,76 @@ Key details:
   \item \textbf{LightGCN}: Simplified graph convolutional network with BPR loss.
   \item \textbf{MultiModalNCF}: Our multi-modal extension of NeuMF. A content
         tower projects each modality (text 384d, image 2048d, genre 18d) to
-        64 dimensions, concatenates to 192d, then projects to 64d before fusing
-        with the behavioural embedding.
+        32 dimensions each, concatenates to 96d, then projects to 32d before
+        fusing with the behavioural embedding.
   \item \textbf{Positive threshold}: Neural models binarise ratings
         $\geq4$ as positive during training.
   \item \textbf{Negative sampling}: 4 negatives per positive for NeuMF and
         MultiModalNCF; BPR-based models use standard BPR sampling.
 \end{itemize}
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[
+      font=\tiny, >=Latex, every node/.style={align=center},
+      b/.style={draw, rounded corners=1pt, inner sep=3pt, minimum height=5mm,
+                fill=blue!7},
+      e/.style={draw, rounded corners=1pt, inner sep=3pt, minimum height=5mm,
+                fill=green!12},
+      a/.style={-{Latex[length=1.4mm]}, semithick}
+    ]
+    % behavioural (GMF) path
+    \node[b] (uid) at (0,0.7)     {user id};
+    \node[e] (eu)  at (2.0,0.7)   {emb 32};
+    \node[b] (iid) at (0,-0.7)    {item id};
+    \node[e] (ei)  at (2.0,-0.7)  {emb 32};
+    \node[circle,draw,inner sep=1pt,minimum size=4.5mm,fill=orange!15]
+          (dot) at (4.1,0) {$\odot$};
+    \node[e] (gmf) at (5.8,0)     {GMF 32};
+    % content tower
+    \node[b] (tx) at (0,-2.4) {text 384d};
+    \node[b] (im) at (0,-3.2) {image 2048d};
+    \node[b] (ge) at (0,-4.0) {genre 18d};
+    \node[b] (ftx) at (2.2,-2.4) {FC $\to$ 32};
+    \node[b] (fim) at (2.2,-3.2) {FC $\to$ 32};
+    \node[b] (fge) at (2.2,-4.0) {FC $\to$ 32};
+    \node[b] (cat) at (4.1,-3.2) {concat 96};
+    \node[e] (cemb) at (5.9,-3.2) {FC $\to$ 32};
+    % MLP path
+    \node[b] (mcat) at (7.6,-1.7) {concat 64};
+    \node[b] (mlp)  at (9.4,-1.7) {MLP\\128$\to$64$\to$32};
+    % fusion
+    \node[b] (fuse) at (11.5,-0.85) {concat 64};
+    \node[b] (fc)   at (13.0,-0.85) {FC $\to$ 1};
+    \node[b] (sig)  at (14.3,-0.85) {$\sigma$};
+    \node[e,fill=red!12] (out) at (15.5,-0.85) {score};
+    % edges
+    \draw[a] (uid)--(eu);
+    \draw[a] (iid)--(ei);
+    \draw[a] (eu)--(dot);
+    \draw[a] (ei)--(dot);
+    \draw[a] (dot)--(gmf);
+    \draw[a] (tx)--(ftx); \draw[a] (im)--(fim); \draw[a] (ge)--(fge);
+    \draw[a] (ftx)--(cat); \draw[a] (fim)--(cat); \draw[a] (fge)--(cat);
+    \draw[a] (cat)--(cemb);
+    \draw[a] (eu) -- (mcat);
+    \draw[a] (cemb) -- (mcat);
+    \draw[a] (mcat)--(mlp);
+    \draw[a] (gmf) -- (fuse);
+    \draw[a] (mlp) -- (fuse);
+    \draw[a] (fuse)--(fc); \draw[a] (fc)--(sig); \draw[a] (sig)--(out);
+    \node[draw, dashed, rounded corners, fit=(tx)(ftx)(fge)(cat)(cemb),
+          inner sep=4pt, label={[font=\tiny]above:Content tower}] {};
+  \end{tikzpicture}
+  \caption{MultiModalNCF architecture (the configuration used in all reported
+  runs). Behavioural path: GMF over user/item embeddings ($d{=}32$). Content
+  tower: text/image/genre are each projected to 32 dims, concatenated to 96,
+  then projected to a 32-dim content embedding; the MLP path replaces the item
+  embedding with this content embedding. The two paths are concatenated (64)
+  and mapped to a score. In the cold-start path the GMF item vector is zeroed,
+  so only the content tower drives scoring.}
+  \label{fig:model}
+\end{figure*}
 
 \begin{table*}[t]
   \caption{Model configurations}
@@ -168,8 +265,8 @@ Key details:
             patience 8 \\
     VBPR & behaviour dim 64, visual dim 64, epochs 30, lr 0.005 \\
     MultiModalNCF & dim 32, MLP (128, 64, 32), epochs 10, batch 512; content
-            tower projects 384/2048/18$\to$64 each, concatenated
-            (192)$\to$64 \\
+            tower projects 384/2048/18$\to$32 each, concatenated
+            (96)$\to$32 \\
     \bottomrule
   \end{tabular}
 \end{table*}
@@ -183,7 +280,47 @@ Figure~\ref{fig:main}.
 
 Neural models and both baselines are trained with five random seeds (42--46)
 and reported as mean$\pm$standard deviation. Deterministic models (UserCF,
-ItemCF, SVD) have zero spread.
+ItemCF, SVD) have zero spread. Figure~\ref{fig:protocol} summarises the
+protocol.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[
+      font=\footnotesize, >=Latex, every node/.style={align=center},
+      b/.style={draw, rounded corners=2pt, fill=teal!7, inner sep=3pt,
+                minimum height=6mm},
+      a/.style={-{Latex[length=1.6mm]}, thick}
+    ]
+    \node[b] (rat) {per-user\\interactions};
+    \node[b, right=6mm of rat] (split) {leave-last-5-out\\split};
+    \node[b, right=6mm of split, yshift=5mm] (train) {train\\interactions};
+    \node[b, right=6mm of split, yshift=-5mm] (test) {held-out\\test (5 items)};
+    \node[b, right=9mm of test] (cand) {candidate set\\= all items $-$ train};
+    \node[b, right=7mm of cand] (rank) {rank\\by score};
+    \node[b, right=7mm of rank] (met) {HR@K, NDCG@K\\($K\in\{10,20\}$)};
+    \node[b, right=7mm of met] (seed) {5 seeds (42--46)\\mean$\pm$std};
+    \draw[a] (rat)--(split);
+    \draw[a] (split)--(train);
+    \draw[a] (split)--(test);
+    \draw[a] (test)--(cand);
+    \draw[a] (cand)--(rank);
+    \draw[a] (rank)--(met);
+    \draw[a] (met)--(seed);
+    \node[draw, dashed, rounded corners, fit=(test)(cand)(rank)(met)(seed),
+          inner sep=6pt,
+          label={[font=\footnotesize]below:run independently on MovieLens-100K
+          and Amazon Video\_Games}] {};
+    \node[font=\footnotesize, anchor=north west]
+          at ($(split.south west)+(-6mm,-2mm)$)
+          {deterministic models have zero seed spread};
+  \end{tikzpicture}
+  \caption{Evaluation protocol. A per-user leave-last-5-out split defines
+  training and held-out interactions; held-out items are ranked against a
+  candidate set of all non-training items; HR@K and NDCG@K
+  ($K\in\{10,20\}$) are reported over five seeds (42--46) as mean$\pm$std. The
+  protocol is run independently on both domains.}
+  \label{fig:protocol}
+\end{figure*}
 
 \subsection{Content Features}
 We precompute content features shared across all content-aware models:

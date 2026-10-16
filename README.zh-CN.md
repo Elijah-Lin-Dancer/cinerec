@@ -204,7 +204,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 ```
                     ┌──────────────────┐
                     │   User Tower     │
-                    │ user_id → Emb(64)│
+                    │ user_id → Emb(32)│
                     └────────┬─────────┘
                              │
               ┌──────────────┼──────────────┐
@@ -214,17 +214,17 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
      │ user⊙item  │  │              │
      │ (behavior) │  │  Content Tower (⭐)
      └─────┬──────┘  │  ┌────────────────────┐
-           │         │  │ Text(384)→FC(64)    │
-           │         │  │ Image(2048)→FC(64)   │
-           │         │  │ Genre(18)→FC(64)    │
-           │         │  │ Concat(192)→FC(64)  │
+           │         │  │ Text(384)→FC(32)    │
+           │         │  │ Image(2048)→FC(32)   │
+           │         │  │ Genre(18)→FC(32)    │
+           │         │  │ Concat(96)→FC(32)   │
            │         │  └──────────┬─────────┘
            │         │             │
            │         │  Concat(user, content)
-           │         │      FC(128→256→128→64)
+           │         │      FC(128→64→32)
            │         └──────┬──────┘
            │                │
-           └─────── Concat(GMF, MLP) ──→ FC(128→1) ──→ Sigmoid ──→ Prediction
+           └─────── Concat(GMF, MLP) ──→ FC(64→1) ──→ Sigmoid ──→ Prediction
 ```
 
 **冷启动支持**：新物品仅使用 `content_emb`，GMF 路径补零向量。

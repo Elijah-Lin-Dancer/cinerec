@@ -77,7 +77,7 @@ The exact constructors used by the single- and multi-seed runners
 | NeuMF | dim 32, MLP (128, 64, 32), epochs 10, batch 512, 4 negatives, patience 3 |
 | LightGCN | dim 64, 3 layers, epochs 50, batch 4096, BPR objective, patience 8 |
 | VBPR | behaviour dim 64, visual dim 64, epochs 30, lr 0.005 |
-| MultiModalNCF | dim 32, MLP (128, 64, 32), epochs 10, batch 512; content tower projects 384/2048/18 → 64 each, concatenated (192) → 64 |
+| MultiModalNCF | dim 32, MLP (128, 64, 32), epochs 10, batch 512; content tower projects 384/2048/18 → 32 each, concatenated (96) → 32 |
 
 Schedule caveat: MultiModalNCF runs 10 epochs against VBPR's 30 and BPR-MF's
 50, so the baseline numbers come from longer schedules; wall-clock time is
