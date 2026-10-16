@@ -198,7 +198,7 @@ We precompute content features shared across all content-aware models:
 \section{Experiments}
 All experimental results below are read from the committed result artefacts of
 release v1.0.0 (2026-10-13) and are reproducible via the repository's make
-targets; the CI figures refer to the same release.
+targets; the CI figures are as reported by the CI run on v1.0.0.
 
 \subsection{Datasets}
 We conduct experiments on two datasets:
@@ -454,8 +454,8 @@ Table~\ref{tab:main}.
 
 \section{Conclusion}
 We presented CineRec, a practical comparative study of six recommendation
-models across two domains, with two published baselines and rigorous
-multi-seed validation. Our findings confirm that (1) model rankings are largely
+models across two domains, with two published baselines and multi-seed
+validation. Our findings confirm that (1) model rankings are largely
 consistent across datasets, (2) content features provide measurable benefits in
 cold-start scenarios, and (3) a simple multi-modal extension of NeuMF can
 compete with established content-aware baselines like VBPR.
