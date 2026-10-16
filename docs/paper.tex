@@ -178,7 +178,8 @@ Key details:
 We use the standard leave-last-5-out split: the five most recent interactions of
 each user are held out as the test set. All models are evaluated against the
 same candidate set (all items minus the user's training interactions). We
-report HR@K, NDCG@K, and Recall@K for $K\in\{5,10,20\}$.
+report HR@K and NDCG@K at $K\in\{10,20\}$; Recall@10 is additionally plotted in
+Figure~\ref{fig:main}.
 
 Neural models and both baselines are trained with five random seeds (42--46)
 and reported as mean$\pm$standard deviation. Deterministic models (UserCF,
@@ -326,13 +327,18 @@ visualises the three-way comparison.
 \end{table*}
 
 \subsection{Cross-Dataset Validation}
-Table~\ref{tab:cross} compares performance across both datasets.
+Table~\ref{tab:cross} compares performance across both datasets, and
+Table~\ref{tab:amazon-ablation} repeats the modality ablation on Amazon.
 
-What transfers: the ladder ordering, the BPR-MF~$\approx$~NeuMF tie, and the
-``single-modality deltas are inside seed noise'' conclusion. What does not: on
-Amazon the top HR@10 point estimate belongs to LightGCN (0.1187 vs 0.1164), a
-difference well inside the combined spread, and Behaviour-only~$\approx$~Full
-(0.1163 vs 0.1164).
+What transfers: the ladder ordering, the BPR-MF~$\approx$~NeuMF tie, the
+``single-modality deltas are inside seed noise'' conclusion (on Amazon removing
+any single modality moves HR@10 by at most 0.0030, still inside the 0.0085
+full-model spread), and the cold-start direction---the content model reaches
+HR@10 0.2364$\pm$0.0202 against 0.1204$\pm$0.0120 for the content-blind model and
+0.1092 for random, a content/blind ratio of 1.96$\times$ (1.17$\times$ on
+MovieLens). What does not: on Amazon the top HR@10 point estimate belongs to
+LightGCN (0.1187 vs 0.1164), a difference well inside the combined spread, and
+Behaviour-only~$\approx$~Full (0.1163 vs 0.1164).
 
 \begin{table*}[t]
   \caption{Cross-dataset validation: HR@10 / NDCG@10 comparison}
@@ -352,6 +358,23 @@ difference well inside the combined spread, and Behaviour-only~$\approx$~Full
     \bottomrule
   \end{tabular}
 \end{table*}
+
+\begin{table}[t]
+  \caption{Modality ablation on Amazon Video\_Games (MultiModalNCF, HR@10,
+  mean$\pm$std over 5 seeds)}
+  \label{tab:amazon-ablation}
+  \begin{tabular}{@{}lr@{}}
+    \toprule
+    Variant & HR@10 \\
+    \midrule
+    Full           & 0.1164$\pm$0.0085 \\
+    w/o Text       & 0.1159$\pm$0.0050 \\
+    w/o Image      & 0.1177$\pm$0.0033 \\
+    w/o Genre      & 0.1194$\pm$0.0017 \\
+    Behaviour only & 0.1163$\pm$0.0011 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsection{Reproducibility and Engineering Quality}
 To support reproducibility, we maintain a well-tested codebase with continuous
