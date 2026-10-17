@@ -11,7 +11,7 @@ ifdef DATASET
 export CINEREC_DATASET = $(DATASET)
 endif
 
-.PHONY: help setup setup-train data amazon-data features train eval eval-seeds ablation ablation-seeds coldstart coldstart-seeds precompute charts serve test lint loadtest docker-build clean
+.PHONY: help setup setup-train data amazon-data features train eval eval-seeds ablation ablation-seeds coldstart coldstart-seeds precompute charts paper-charts serve test lint loadtest docker-build clean
 
 help:
 	@echo "Targets:"
@@ -28,6 +28,7 @@ help:
 	@echo "  coldstart-seeds Repeat the cold-start study across 5 seeds → coldstart_multiseed.json (mean±std)"
 	@echo "  precompute    Build recs_cache.json for APP_MODE=lite"
 	@echo "  charts        Regenerate docs/*.png from measured results"
+	@echo "  paper-charts  Regenerate the white 300 dpi docs/paper_*.png used by the companion paper"
 	@echo "  serve         Run the API locally on :8000 (APP_MODE=$(APP_MODE))"
 	@echo "  test          Run the test suite"
 	@echo "  lint          Run ruff"
@@ -81,6 +82,9 @@ precompute:
 
 charts:
 	$(PYTHON) -c "from evaluation.visualize import generate_all; generate_all()"
+
+paper-charts:
+	$(PYTHON) -c "from evaluation.visualize import generate_paper; generate_paper()"
 
 serve:
 	APP_MODE=$(APP_MODE) $(PYTHON) -m uvicorn api.main:app --host 0.0.0.0 --port 8000

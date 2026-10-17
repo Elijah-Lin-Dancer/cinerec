@@ -1,674 +1,798 @@
-%% CineRec companion paper.
+%% CineRec companion paper — ChinaXiv (ChinaXiv.org) single-column preprint.
 %%
-%% Rebuilt LaTeX source for the previously source-less ``docs/paper.pdf``
-%% (originally compiled with pdfTeX + acmart). Published as an independent
-%% research preprint: the ACM conference/copyright/DOI front-matter block and
-%% the "ACM Reference Format" block are intentionally suppressed because the
-%% work has not been submitted for publication. All numbers are transcribed
-%% verbatim from the evaluation artefacts under ``data/``; see
-%% ``docs/tech-report.md`` for the single source of truth.
-\documentclass[sigconf,nonacm]{acmart}
-\settopmatter{printacmref=false}
-\setcopyright{none}
+%% Rebuilt from the previous acmart/sigconf two-column source to follow the
+%% single-column English template of the Chinese Preprint Platform (附件2) and
+%% the 2016-02-01 submission-format specification:
+%%   * A4, single column; Times New Roman throughout.
+%%   * Title 18 pt bold centred, sentence case; authors 12 pt centred with a
+%%     "*" marking the corresponding author; affiliations 9 pt, left, with
+%%     city + country + postcode.
+%%   * Five-part structured abstract (Objective / Methods / Results /
+%%     Limitations / Conclusions) at 9 pt, each part its own paragraph.
+%%   * Author contribution statement (9 pt) after the affiliations.
+%%   * Body sections follow the template order: 1 Introduction, 2 Literature
+%%     review, 3 Methodology, 4 Results, 5 Discussion, 6 Conclusion.
+%%   * References in the template's author-year-entry style with DOI / URL.
+%%   * All figure captions collected on a "Figure Legends" page; each figure
+%%     and each table occupies its own page, separated by page breaks, in the
+%%     "Figures" and "Tables" sections at the end (spec: 图表编排).
+%%   * Figures are white-background 300 dpi renders (docs/paper_*.png), or
+%%     white-background line art, so they print correctly.
+%%
+%% All numeric results are transcribed verbatim from the evaluation artefacts
+%% under ``data/``; see ``docs/tech-report.md`` for the single source of truth.
+\documentclass[11pt,a4paper]{article}
 
-\acmYear{2026}
-\copyrightyear{2026}
-
+%% --- page & fonts -----------------------------------------------------------
+\usepackage[a4paper,top=25mm,bottom=25mm,left=30mm,right=30mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{txfonts}           % full Times New Roman family (text, maths, tt)
+\usepackage{microtype}         % better justification, fewer overfull boxes
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amssymb}
+\usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+%% Type sizes fixed by the submission spec.
+\newcommand{\authfont}{\fontsize{12}{14}\selectfont}
+\newcommand{\affilfont}{\fontsize{9}{11}\selectfont}
+\newcommand{\absfont}{\fontsize{9}{12}\selectfont}
+\newcommand{\contribfont}{\fontsize{9}{12}\selectfont}
+\newcommand{\refsfont}{\fontsize{9}{11}\selectfont}
+\newcommand{\figfont}{\fontsize{8}{10}\selectfont}
+\renewcommand{\footnotesize}{\fontsize{8}{10}\selectfont}  % page footnotes: spec 8 pt
+
+\makeatletter
+\renewcommand\normalsize{\@setfontsize\normalsize{10.5}{13.5}}
+\makeatother
+\normalsize
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt plus 1pt}
+\setlength{\emergencystretch}{2em}
+
+%% Heading sizes (spec): L1 12 pt bold, L2 11 pt bold, L3 10.5 pt bold.
+\titleformat{\section}{\normalfont\bfseries\fontsize{12}{14}\selectfont\raggedright}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{12pt}{5pt}
+\titleformat{\subsection}{\normalfont\bfseries\fontsize{11}{13}\selectfont\raggedright}{\thesubsection}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{9pt}{4pt}
+\titleformat{\subsubsection}{\normalfont\bfseries\fontsize{10.5}{12.5}\selectfont\raggedright}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\subsubsection}{0pt}{8pt}{3pt}
+\titleformat{name=\section,numberless}{\normalfont\bfseries\fontsize{12}{14}\selectfont\raggedright}{}{0pt}{}
+
+%% First-page footnote without a number (footnote text carries its own "*").
+\newcommand\blfootnote[1]{%
+  \begingroup
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup
+}
+
+\captionsetup{font=scriptsize,labelfont=scriptsize,labelsep=period,
+              justification=justified,singlelinecheck=false}
 
 \begin{document}
 
-\title{CineRec: A Practical Multi-Modal Recommender Study with
-Cross-Dataset Validation and Published-Baseline Comparison}
+%% --- title block ------------------------------------------------------------
+\begin{center}
+  {\fontsize{18}{22}\selectfont\bfseries
+   CineRec: A practical multi-modal recommender study with cross-dataset
+   validation and published-baseline comparison\par}
+  \vspace{8pt}
+  {\authfont Yulin ZHAO\textsuperscript{1*}\par}
+\end{center}
+\vspace{4pt}
+{\affilfont 1 Independent Researcher, Gongyi 451200, China\par}
+\blfootnote{\textsuperscript{*} Corresponding author (E-mail: yulinzhao04@gmail.com).}
 
-\author{Yulin Zhao}
-\affiliation{%
-  \institution{Independent Researcher}
-  \country{China}}
-\email{yulinzhao04@gmail.com}
-\thanks{Independent research preprint; not submitted for publication.}
+%% --- author contribution statement -----------------------------------------
+\vspace{6pt}
+{\contribfont
+\textbf{Author contribution statement.} Yulin ZHAO: proposed the research
+question and designed the study, including the model suite, the content-feature
+pipeline and the evaluation protocol; implemented the code and carried out all
+experiments; collected, cleaned and analysed the data; drafted the manuscript
+and revised and approved the final version.\par}
 
-\begin{abstract}
-Recommender systems have evolved from simple neighborhood-based methods to
-complex deep learning models that incorporate side information such as text and
-images. However, many comparative studies focus on a single dataset and lack
-rigorous statistical validation against published baselines. We present
-CineRec, a practical study that evaluates six recommendation models of
-increasing complexity---UserCF, ItemCF, SVD, NeuMF, LightGCN, and
-MultiModalNCF---on two domains: MovieLens 100K and Amazon Video\_Games. We
-reproduce two published baselines (BPR-MF and VBPR) under the same
-evaluation protocol, report results as mean$\pm$standard deviation over five
-random seeds, and conduct both modality ablation and cold-start studies. Our
-findings show that (1) the ranking of models is largely consistent across
-domains, (2) content features provide measurable gains in cold-start settings
-but have limited impact on overall ranking quality, and (3) MultiModalNCF
-performs on par with VBPR, a well-established content-aware baseline. We
-release the full codebase and evaluation scripts, and provide instructions to
-reproduce all datasets from public sources, to support reproducibility.
-\end{abstract}
+%% --- structured abstract ----------------------------------------------------
+\section*{Abstract}
+{\absfont
+\textbf{Objective:} Many comparative studies in recommender systems are
+evaluated on a single dataset and lack statistical validation against published
+baselines. This study asks whether model rankings and the contribution of
+content features transfer across domains.\par
+\textbf{Methods:} We implement six recommenders of increasing complexity
+(UserCF, ItemCF, SVD, NeuMF, LightGCN and MultiModalNCF), reproduce two
+published baselines (BPR-MF and VBPR) under the same leave-last-5-out protocol,
+and evaluate them on MovieLens 100K and an Amazon Video\_Games slice. Neural
+models are reported as five-seed mean$\pm$standard deviation, together with
+modality-ablation and cold-start studies.\par
+\textbf{Results:} The ladder ordering (UserCF $<$ ItemCF $<$ SVD) and the neural
+band's lead over SVD hold on both domains; MultiModalNCF is statistically tied
+with VBPR. Removing all content costs about one seed standard deviation on
+MovieLens and nothing measurable on Amazon, whereas in the cold-start study the
+content model clearly outranks the content-blind model.\par
+\textbf{Limitations:} Conclusions rest on a single data split without formal
+significance testing, epoch budgets are not equalised across models, and the
+Amazon slice covers heavy users only.\par
+\textbf{Conclusions:} A simple concatenation-based multi-modal extension of
+NeuMF is competitive with a published content-aware baseline, and content
+features matter mainly for cold-start rather than for overall ranking quality.
+The full codebase and evaluation scripts are released for reproduction.\par}
 
-\begin{CCSXML}
-<ccs2012>
- <concept>
-  <concept_id>10002951.10003317.10003347</concept_id>
-  <concept_desc>Information systems~Recommender systems</concept_desc>
-  <concept_significance>500</concept_significance>
- </concept>
-</ccs2012>
-\end{CCSXML}
+%% --- keywords ---------------------------------------------------------------
+\vspace{6pt}
+{\fontsize{10.5}{13}\selectfont
+\textbf{Keywords:} Recommender systems; Multi-modal recommendation; Cold-start;
+Cross-dataset validation; Reproducibility\par}
 
-\ccsdesc[500]{Information systems~Recommender systems}
-
-\keywords{Recommender systems, multi-modal recommendation, cold-start,
-cross-dataset validation, BPR-MF, VBPR}
-
-\maketitle
-
+%% ===========================================================================
 \section{Introduction}
 Recommender systems are a core component of modern information retrieval,
-powering personalized content discovery across e-commerce, media, and social
+powering personalised content discovery across e-commerce, media and social
 platforms. The field has seen a rapid evolution of methods, from early
-collaborative filtering approaches based on user-item interaction matrices to
+collaborative filtering approaches based on user--item interaction matrices to
 modern deep learning models that incorporate rich side information such as text
-descriptions, images, and knowledge graphs.
+descriptions, images and knowledge graphs.
 
 Despite this rapid progress, many comparative studies in recommender systems
 suffer from three limitations: (1) they are evaluated on a single dataset,
-limiting the generalizability of conclusions, (2) they lack comparison against
-published baselines under matched conditions, and (3) results are often
+limiting the generalisability of conclusions; (2) they lack comparison against
+published baselines under matched conditions; and (3) results are often
 reported as single-point estimates without statistical significance testing.
 
-In this work, we present CineRec, a practical study designed to address these
+In this work we present CineRec, a practical study designed to address these
 gaps. Our contributions are as follows:
 
-\begin{enumerate}
+\begin{enumerate}[leftmargin=2em,itemsep=1pt,topsep=3pt]
   \item We implement and evaluate six recommendation models spanning the full
-        evolution from classical neighborhood methods to deep multi-modal
+        evolution from classical neighbourhood methods to deep multi-modal
         models, under a unified evaluation protocol.
-  \item We reproduce two published baselines---BPR-MF~\cite{rendle2009}
-        and VBPR~\cite{he2016vbpr}---on the same split, allowing direct
-        comparison against established methods.
-  \item We validate all conclusions across two datasets: MovieLens 100K and
-        Amazon Video\_Games, testing whether observed patterns generalize
+  \item We reproduce two published baselines---BPR-MF [1] and VBPR [2]---on the
+        same split, allowing direct comparison against established methods.
+  \item We validate all conclusions across two datasets, MovieLens 100K and
+        Amazon Video\_Games, testing whether observed patterns generalise
         across domains.
   \item We report all neural model results as mean$\pm$standard deviation over
         five random seeds, distinguishing real effects from seed noise.
-  \item We conduct both modality ablation and cold-start studies, quantifying
+  \item We conduct both a modality ablation and a cold-start study, quantifying
         the contribution of each content channel.
 \end{enumerate}
 
-The study design is summarised in Figure~\ref{fig:overview}. The remainder of
-this paper is organized as follows. Section 2 reviews related
-work. Section 3 describes our methodology and model suite. Section 4 presents
-experimental setup and results. Section 5 discusses findings and limitations.
+The study design is summarised in Figure 1. The remainder of this paper is
+organised as follows. Section 2 reviews related work. Section 3 describes our
+methodology, datasets and evaluation protocol. Section 4 presents the
+experimental results. Section 5 discusses the findings and their limitations.
 Section 6 concludes.
 
-\begin{figure*}[t]
-  \centering
-  \begin{tikzpicture}[
-      font=\footnotesize, >=Latex, every node/.style={align=center},
-      s/.style={draw, rounded corners=3pt, fill=blue!6, inner sep=4pt,
-                text width=3.05cm, minimum height=1.75cm},
-      a/.style={-{Latex[length=2mm]}, thick}
-    ]
-    \node[s] (d) {\textbf{Two domains}\\MovieLens-100K
-      (943u/1682i)\\Amazon Video\_Games (2288u/4753i)};
-    \node[s, right=6mm of d] (f) {\textbf{Content features}\\Text: SBERT 384d\\
-      Image: ResNet-50 2048d\\Genre: multi-hot 18d};
-    \node[s, right=6mm of f] (m) {\textbf{Model ladder (8)}\\UserCF, ItemCF, SVD\\
-      BPR-MF$^\star$, NeuMF, LightGCN\\VBPR$^\star$, MultiModalNCF};
-    \node[s, right=6mm of m] (e) {\textbf{Protocol \& outputs}\\leave-last-5-out
-      split, 5 seeds\\HR@K / NDCG@K; ablation,\\cold-start,
-      cross-dataset};
-    \draw[a] (d)--(f);
-    \draw[a] (f)--(m);
-    \draw[a] (m)--(e);
-  \end{tikzpicture}
-  \caption{Overview of the CineRec study. Two domains feed precomputed
-  text/image/genre content features into a ladder of eight recommenders---six
-  ladder models plus two reproduced published baselines (marked $^\star$)---all
-  evaluated under a single leave-last-5-out protocol with five-seed
-  mean$\pm$std reporting.}
-  \label{fig:overview}
-\end{figure*}
+\section{Literature review}
+\subsection{Neighbourhood-based collaborative filtering}
+User-based and item-based collaborative filtering [3] are among the earliest and
+simplest recommendation approaches. They rely on similarity measures between
+users or items to generate recommendations. While simple, they remain
+competitive baselines and serve as the foundation for more complex methods.
 
-\section{Related Work}
-\subsection{Neighborhood-Based Collaborative Filtering}
-User-based and item-based collaborative filtering~\cite{deshpande2004} are
-among the earliest and simplest recommendation approaches. They rely on
-similarity measures between users or items to generate recommendations. While
-simple, they remain competitive baselines and serve as the foundation for more
-complex methods.
+\subsection{Matrix factorisation}
+Matrix factorisation methods such as SVD [4] and BPR [1] transform the
+recommendation problem into a latent factor space. BPR, in particular,
+introduced a pairwise ranking loss that has become a standard for implicit
+feedback recommendation.
 
-\subsection{Matrix Factorization}
-Matrix factorization methods such as SVD~\cite{koren2009} and
-BPR~\cite{rendle2009} transform the recommendation problem into a latent factor
-space. BPR, in particular, introduced a pairwise ranking loss that has become a
-standard for implicit feedback recommendation.
+\subsection{Neural collaborative filtering}
+NeuMF [5] combined matrix factorisation with multi-layer perceptrons to model
+non-linear user--item interactions, demonstrating that deep learning can improve
+recommendation quality over traditional matrix factorisation.
 
-\subsection{Neural Collaborative Filtering}
-NeuMF~\cite{he2017ncf} combined matrix factorization with multi-layer
-perceptrons to model non-linear user-item interactions, demonstrating that deep
-learning can improve recommendation quality over traditional matrix
-factorization.
+\subsection{Graph-based recommendation}
+LightGCN [6] simplified graph convolutional networks for recommendation by
+removing feature transformation and non-linear activation, achieving strong
+performance with increased efficiency.
 
-\subsection{Graph-Based Recommendation}
-LightGCN~\cite{he2020lightgcn} simplified graph convolutional networks for
-recommendation by removing feature transformation and non-linear activation,
-achieving strong performance with increased efficiency.
+\subsection{Multi-modal recommendation}
+VBPR [2] extended BPR with visual features, demonstrating that content
+information can improve recommendation accuracy, especially for cold-start
+items. Multi-modal recommendation has since become an active research area,
+incorporating text, images and other side information.
 
-\subsection{Multi-Modal Recommendation}
-VBPR~\cite{he2016vbpr} extended BPR with visual features, demonstrating that
-content information can improve recommendation accuracy, especially for
-cold-start items. Multi-modal recommendation has since become an active
-research area, incorporating text, images, and other side information.
-
-\section{Methodology}
-\subsection{Model Suite}
-We evaluate six models of increasing complexity, plus two published baselines.
-Table~\ref{tab:config} summarizes all model configurations; Figure~\ref{fig:model}
-details the MultiModalNCF architecture.
-
-Key details:
-\begin{itemize}
-  \item \textbf{NeuMF}: Neural Matrix Factorization combining GMF and MLP
-        branches.
-  \item \textbf{LightGCN}: Simplified graph convolutional network with BPR loss.
-  \item \textbf{MultiModalNCF}: Our multi-modal extension of NeuMF. A content
-        tower projects each modality (text 384d, image 2048d, genre 18d) to
-        32 dimensions each, concatenates to 96d, then projects to 32d before
-        fusing with the behavioural embedding.
-  \item \textbf{Positive threshold}: Neural models binarise ratings
-        $\geq4$ as positive during training.
-  \item \textbf{Negative sampling}: 4 negatives per positive for NeuMF and
-        MultiModalNCF; BPR-based models use standard BPR sampling.
-\end{itemize}
-
-\begin{figure*}[t]
-  \centering
-  \begin{tikzpicture}[
-      font=\tiny, >=Latex, every node/.style={align=center},
-      b/.style={draw, rounded corners=1pt, inner sep=3pt, minimum height=5mm,
-                fill=blue!7},
-      e/.style={draw, rounded corners=1pt, inner sep=3pt, minimum height=5mm,
-                fill=green!12},
-      a/.style={-{Latex[length=1.4mm]}, semithick}
-    ]
-    % behavioural (GMF) path
-    \node[b] (uid) at (0,0.7)     {user id};
-    \node[e] (eu)  at (2.0,0.7)   {emb 32};
-    \node[b] (iid) at (0,-0.7)    {item id};
-    \node[e] (ei)  at (2.0,-0.7)  {emb 32};
-    \node[circle,draw,inner sep=1pt,minimum size=4.5mm,fill=orange!15]
-          (dot) at (4.1,0) {$\odot$};
-    \node[e] (gmf) at (5.8,0)     {GMF 32};
-    % content tower
-    \node[b] (tx) at (0,-2.4) {text 384d};
-    \node[b] (im) at (0,-3.2) {image 2048d};
-    \node[b] (ge) at (0,-4.0) {genre 18d};
-    \node[b] (ftx) at (2.2,-2.4) {FC $\to$ 32};
-    \node[b] (fim) at (2.2,-3.2) {FC $\to$ 32};
-    \node[b] (fge) at (2.2,-4.0) {FC $\to$ 32};
-    \node[b] (cat) at (4.1,-3.2) {concat 96};
-    \node[e] (cemb) at (5.9,-3.2) {FC $\to$ 32};
-    % MLP path
-    \node[b] (mcat) at (7.6,-1.7) {concat 64};
-    \node[b] (mlp)  at (9.4,-1.7) {MLP\\128$\to$64$\to$32};
-    % fusion
-    \node[b] (fuse) at (11.5,-0.85) {concat 64};
-    \node[b] (fc)   at (13.0,-0.85) {FC $\to$ 1};
-    \node[b] (sig)  at (14.3,-0.85) {$\sigma$};
-    \node[e,fill=red!12] (out) at (15.5,-0.85) {score};
-    % edges
-    \draw[a] (uid)--(eu);
-    \draw[a] (iid)--(ei);
-    \draw[a] (eu)--(dot);
-    \draw[a] (ei)--(dot);
-    \draw[a] (dot)--(gmf);
-    \draw[a] (tx)--(ftx); \draw[a] (im)--(fim); \draw[a] (ge)--(fge);
-    \draw[a] (ftx)--(cat); \draw[a] (fim)--(cat); \draw[a] (fge)--(cat);
-    \draw[a] (cat)--(cemb);
-    \draw[a] (eu) -- (mcat);
-    \draw[a] (cemb) -- (mcat);
-    \draw[a] (mcat)--(mlp);
-    \draw[a] (gmf) -- (fuse);
-    \draw[a] (mlp) -- (fuse);
-    \draw[a] (fuse)--(fc); \draw[a] (fc)--(sig); \draw[a] (sig)--(out);
-    \node[draw, dashed, rounded corners, fit=(tx)(ftx)(fge)(cat)(cemb),
-          inner sep=4pt, label={[font=\tiny]above:Content tower}] {};
-  \end{tikzpicture}
-  \caption{MultiModalNCF architecture (the configuration used in all reported
-  runs). Behavioural path: GMF over user/item embeddings ($d{=}32$). Content
-  tower: text/image/genre are each projected to 32 dims, concatenated to 96,
-  then projected to a 32-dim content embedding; the MLP path replaces the item
-  embedding with this content embedding. The two paths are concatenated (64)
-  and mapped to a score. In the cold-start path the GMF item vector is zeroed,
-  so only the content tower drives scoring.}
-  \label{fig:model}
-\end{figure*}
-
-\begin{table*}[t]
-  \caption{Model configurations}
-  \label{tab:config}
-  \begin{tabular}{@{}lp{0.80\textwidth}@{}}
-    \toprule
-    Model & Configuration \\
-    \midrule
-    UserCF & Pearson similarity, $k=50$ neighbors \\
-    ItemCF & Adjusted cosine similarity, $k=50$ neighbors \\
-    SVD & Truncated SVD, $k=64$ latent dimensions \\
-    BPR-MF & dim 64, epochs 50, lr 0.001, batch 4096, patience 8 \\
-    NeuMF & dim 32, MLP (128, 64, 32), epochs 10, batch 512, 4 negatives,
-            patience 3 \\
-    LightGCN & dim 64, 3 layers, epochs 50, batch 4096, BPR objective,
-            patience 8 \\
-    VBPR & behaviour dim 64, visual dim 64, epochs 30, lr 0.005 \\
-    MultiModalNCF & dim 32, MLP (128, 64, 32), epochs 10, batch 512; content
-            tower projects 384/2048/18$\to$32 each, concatenated
-            (96)$\to$32 \\
-    \bottomrule
-  \end{tabular}
-\end{table*}
-
-\subsection{Evaluation Protocol}
-We use the standard leave-last-5-out split: the five most recent interactions of
-each user are held out as the test set. All models are evaluated against the
-same candidate set (all items minus the user's training interactions). We
-report HR@K and NDCG@K at $K\in\{10,20\}$; Recall@10 is additionally plotted in
-Figure~\ref{fig:main}.
-
-Neural models and both baselines are trained with five random seeds (42--46)
-and reported as mean$\pm$standard deviation. Deterministic models (UserCF,
-ItemCF, SVD) have zero spread. Figure~\ref{fig:protocol} summarises the
-protocol.
-
-\begin{figure*}[t]
-  \centering
-  \begin{tikzpicture}[
-      font=\footnotesize, >=Latex, every node/.style={align=center},
-      b/.style={draw, rounded corners=2pt, fill=teal!7, inner sep=3pt,
-                minimum height=6mm},
-      a/.style={-{Latex[length=1.6mm]}, thick}
-    ]
-    \node[b] (rat) {per-user\\interactions};
-    \node[b, right=6mm of rat] (split) {leave-last-5-out\\split};
-    \node[b, right=6mm of split, yshift=5mm] (train) {train\\interactions};
-    \node[b, right=6mm of split, yshift=-5mm] (test) {held-out\\test (5 items)};
-    \node[b, right=9mm of test] (cand) {candidate set\\= all items $-$ train};
-    \node[b, right=7mm of cand] (rank) {rank\\by score};
-    \node[b, right=7mm of rank] (met) {HR@K, NDCG@K\\($K\in\{10,20\}$)};
-    \node[b, right=7mm of met] (seed) {5 seeds (42--46)\\mean$\pm$std};
-    \draw[a] (rat)--(split);
-    \draw[a] (split)--(train);
-    \draw[a] (split)--(test);
-    \draw[a] (test)--(cand);
-    \draw[a] (cand)--(rank);
-    \draw[a] (rank)--(met);
-    \draw[a] (met)--(seed);
-    \node[draw, dashed, rounded corners, fit=(test)(cand)(rank)(met)(seed),
-          inner sep=6pt,
-          label={[font=\footnotesize]below:run independently on MovieLens-100K
-          and Amazon Video\_Games}] {};
-    \node[font=\footnotesize, anchor=north west]
-          at ($(split.south west)+(-6mm,-2mm)$)
-          {deterministic models have zero seed spread};
-  \end{tikzpicture}
-  \caption{Evaluation protocol. A per-user leave-last-5-out split defines
-  training and held-out interactions; held-out items are ranked against a
-  candidate set of all non-training items; HR@K and NDCG@K
-  ($K\in\{10,20\}$) are reported over five seeds (42--46) as mean$\pm$std. The
-  protocol is run independently on both domains.}
-  \label{fig:protocol}
-\end{figure*}
-
-\subsection{Content Features}
-We precompute content features shared across all content-aware models:
-\begin{itemize}
-  \item \textbf{Text}: Sentence-BERT (all-MiniLM-L6-v2)~\cite{reimers2019}
-        embeddings of movie overviews, 384-dimensional.
-  \item \textbf{Image}: ResNet-50 (pool5)~\cite{he2016resnet} embeddings of
-        movie posters, 2048-dimensional.
-  \item \textbf{Genre}: Multi-hot genre vectors, 18-dimensional.
-\end{itemize}
-
-\section{Experiments}
-All experimental results below are read from the committed result artefacts of
-release v1.0.0 (2026-10-13) and are reproducible via the repository's make
-targets; the CI figures are as reported by the CI run on v1.0.0.
+\section{Methodology (Design/Approach)}
+Our objective is to test whether conclusions about model quality and the value
+of content features survive two changes that single-dataset studies cannot make:
+a second domain, and multi-seed repetition against published baselines. The
+methodology below describes the model suite, the shared content features, the
+two datasets and the evaluation protocol; all configuration parameters are
+listed in Table 1.
 
 \subsection{Datasets}
 We conduct experiments on two datasets:
-\begin{itemize}
-  \item \textbf{MovieLens 100K}~\cite{harper2015}: 943 users, 1,682 items, 100,000 ratings
-        (1--5 scale). Users with $\geq20$ ratings.
-  \item \textbf{Amazon Video\_Games}~\cite{hou2024}: 2,288 users, 4,753 items, 75,980 ratings
-        (1--5 scale). Heavy users with $\geq20$ ratings.
+
+\begin{itemize}[leftmargin=1.6em,itemsep=1pt,topsep=3pt]
+  \item \textbf{MovieLens 100K} [7]: 943 users, 1,682 items and 100,000 ratings
+        (1--5 scale), restricted to users with $\geq20$ ratings.
+  \item \textbf{Amazon Video\_Games} [8]: 2,288 users, 4,753 items and 75,980
+        ratings (1--5 scale), restricted to heavy users with $\geq20$ ratings.
 \end{itemize}
 
 The Amazon slice is built deterministically from the 5-core Amazon Reviews 2023
 Video\_Games dataset by keeping users with $\geq20$ ratings and re-applying the
-item 5-core rule.
-The original 5-core dataset is publicly available from the Amazon Reviews
-dataset repository; our slice definition and processing scripts are included in
-the codebase.
+item 5-core rule. The original 5-core dataset is publicly available from the
+Amazon Reviews dataset repository; our slice definition and processing scripts
+are included in the codebase.
 
 Poster and overview metadata are retrieved from the TMDB API and remain subject
 to TMDB's terms; MovieLens 100K is used under its non-commercial research terms,
 and the project's code is released under the MIT licence.
 
-\subsection{Main Results}
-Table~\ref{tab:main} shows the main model comparison on MovieLens 100K. Key
-observations:
-\begin{itemize}
+\subsection{Content features}
+We precompute content features shared across all content-aware models:
+
+\begin{itemize}[leftmargin=1.6em,itemsep=1pt,topsep=3pt]
+  \item \textbf{Text}: Sentence-BERT (all-MiniLM-L6-v2) [9] embeddings of movie
+        overviews, 384-dimensional.
+  \item \textbf{Image}: ResNet-50 (pool5) [10] embeddings of movie posters,
+        2,048-dimensional.
+  \item \textbf{Genre}: multi-hot genre vectors, 18-dimensional.
+\end{itemize}
+
+\subsection{Model suite}
+We evaluate six models of increasing complexity plus two published baselines.
+Table 1 summarises all model configurations, and Figure 2 details the
+MultiModalNCF architecture. Key details:
+
+\begin{itemize}[leftmargin=1.6em,itemsep=1pt,topsep=3pt]
+  \item \textbf{NeuMF}: neural matrix factorisation combining GMF and MLP
+        branches.
+  \item \textbf{LightGCN}: simplified graph convolutional network with a BPR
+        loss.
+  \item \textbf{MultiModalNCF}: our multi-modal extension of NeuMF. A content
+        tower projects each modality (text 384-d, image 2,048-d, genre 18-d) to
+        32 dimensions each, concatenates them to 96 dimensions, then projects to
+        32 dimensions before fusing with the behavioural embedding.
+  \item \textbf{Positive threshold}: neural models binarise ratings $\geq4$ as
+        positive during training.
+  \item \textbf{Negative sampling}: four negatives per positive for NeuMF and
+        MultiModalNCF; BPR-based models use standard BPR sampling.
+\end{itemize}
+
+\subsection{Evaluation protocol}
+We use the standard leave-last-5-out split: the five most recent interactions of
+each user are held out as the test set. All models are evaluated against the
+same candidate set (all items minus the user's training interactions). We report
+HR@K and NDCG@K at $K\in\{10,20\}$; Recall@10 is additionally plotted in
+Figure 4.
+
+Neural models and both baselines are trained with five random seeds (42--46) and
+reported as mean $\pm$ standard deviation. Deterministic models (UserCF, ItemCF,
+SVD) have zero spread. Figure 3 summarises the protocol.
+
+\subsection{Implementation, reproducibility and engineering quality}
+The pipeline is implemented in Python; content features are precomputed once and
+shared by all content-aware models, and every experiment is driven by a
+configuration file so that a run is reproducible from its parameters alone.
+Experiments run on commodity hardware through the repository's \texttt{make}
+targets. To support reproducibility we maintain a well-tested codebase with
+continuous integration:
+
+\begin{itemize}[leftmargin=1.6em,itemsep=1pt,topsep=3pt]
+  \item \textbf{Test suite}: 125 tests passed, with 50.9\% line coverage
+        (minimum threshold 45\%). Tests cover data loading, model training loops
+        and evaluation metrics.
+  \item \textbf{CI pipeline}: three jobs run on every push to main and every
+        pull request---linting plus tests with coverage, end-to-end
+        accessibility tests, and Docker image builds for both deployment modes
+        (lite and full).
+  \item \textbf{Dependency hygiene}: we pin version lower bounds to ensure
+        reproducible environments. Initial vulnerability scans flagged known
+        advisories in transitive dependencies; after updating to patched
+        versions, no known vulnerabilities remain (as of October 2026).
+  \item \textbf{Documentation}: key architectural decisions are recorded in
+        Architecture Decision Records (ADRs), and the codebase provides
+        \texttt{make} commands for setup, data preparation, training and
+        evaluation, allowing full reproduction from scratch.
+  \item \textbf{Repository hygiene}: pre-commit hooks reject large files,
+        malformed YAML and merge-conflict markers before each commit, and the
+        tracked text files contain no credentials or secret material.
+\end{itemize}
+
+\section{Results}
+All experimental results below are read from the committed result artefacts of
+release v1.0.0 (2026-10-13) and are reproducible via the repository's
+\texttt{make} targets; the continuous-integration figures are as reported by the
+CI run on v1.0.0.
+
+\subsection{Main results}
+Table 2 shows the main model comparison on MovieLens 100K. Key observations:
+
+\begin{itemize}[leftmargin=1.6em,itemsep=1pt,topsep=3pt]
   \item The expected ordering UserCF $<$ ItemCF $<$ SVD holds, with the neural
         band (0.285--0.371 HR@10) sitting above SVD.
   \item BPR-MF and NeuMF are within one combined standard deviation of each
         other.
   \item VBPR's HR@10 edge over MultiModalNCF (0.0055) is smaller than one
         MultiModalNCF standard deviation, while MultiModalNCF leads both NDCG
-        columns---the pair is read as statistically tied.
+        columns; the pair is therefore read as statistically tied.
 \end{itemize}
 
-Figure~\ref{fig:main} visualises the same comparison at $K{=}10$.
+Figure 4 visualises the same comparison at $K{=}10$.
 
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=0.92\textwidth]{model_comparison.png}
-  \caption{Model comparison on MovieLens 100K at $K{=}10$ (HR, NDCG, Recall).
-  HR@10 and NDCG@10 bars are the 5-seed means from Table~\ref{tab:main};
-  Recall@10 is from the same evaluation artefacts.}
-  \label{fig:main}
-\end{figure*}
+\subsection{Modality ablation}
+Table 3 shows the modality ablation study on MultiModalNCF. Removing all content
+lowers every metric, but by roughly one seed standard deviation. The
+single-modality deltas sit inside the noise (one even reverses sign), so no
+per-modality ranking is claimed. Figure 5 plots the per-variant HR@10 and
+NDCG@10.
 
-\begin{table*}[t]
-  \caption{Model comparison on MovieLens 100K (mean$\pm$std over 5 seeds;
-  train time in seconds)}
-  \label{tab:main}
-  \begin{tabular}{@{}lrrrrr@{}}
-    \toprule
-    Model & HR@10 & NDCG@10 & HR@20 & NDCG@20 & Train time (s) \\
-    \midrule
-    UserCF       & 0.0191$\pm$0.0000 & 0.0035$\pm$0.0000 & 0.0477$\pm$0.0000 & 0.0060$\pm$0.0000 & 0.1 \\
-    ItemCF       & 0.0721$\pm$0.0000 & 0.0142$\pm$0.0000 & 0.1283$\pm$0.0000 & 0.0199$\pm$0.0000 & 0.3 \\
-    SVD          & 0.2534$\pm$0.0000 & 0.0532$\pm$0.0000 & 0.3542$\pm$0.0000 & 0.0664$\pm$0.0000 & 0.3 \\
-    BPR-MF       & 0.3476$\pm$0.0116 & 0.0785$\pm$0.0018 & 0.4831$\pm$0.0116 & 0.1034$\pm$0.0018 & 10.6 \\
-    NeuMF        & 0.3516$\pm$0.0036 & 0.0814$\pm$0.0016 & 0.4978$\pm$0.0073 & 0.1083$\pm$0.0017 & 31.4 \\
-    LightGCN     & 0.2850$\pm$0.0041 & 0.0614$\pm$0.0004 & 0.4250$\pm$0.0047 & 0.0816$\pm$0.0007 & 10.7 \\
-    VBPR         & 0.3705$\pm$0.0048 & 0.0855$\pm$0.0009 & 0.5200$\pm$0.0096 & 0.1130$\pm$0.0008 & 41.9 \\
-    MultiModalNCF & 0.3650$\pm$0.0077 & 0.0859$\pm$0.0017 & 0.5073$\pm$0.0148 & 0.1144$\pm$0.0015 & 73.2 \\
-    \bottomrule
-  \end{tabular}
-\end{table*}
+\subsection{Cold-start study}
+Table 4 shows the cold-start experiment, in which 100 items are removed from
+training and evaluated as cold-start items. The ordering content $>$ blind $>$
+random holds on every metric. The HR@10 spread of the content variant (0.0290)
+exceeds the gap to NeuMF (0.0193), so the margin is reported as a direction
+rather than a point magnitude. Figure 6 visualises the three-way comparison.
 
-\subsection{Modality Ablation}
-Table~\ref{tab:ablation} shows the modality ablation study on MultiModalNCF.
-Removing all content lowers every metric, but by roughly one seed standard
-deviation. The single-modality deltas sit inside the noise (one even reverses
-sign), so no per-modality ranking is claimed. Figure~\ref{fig:ablation} plots
-the per-variant HR@10 / NDCG@10.
+\subsection{Cross-dataset validation}
+Table 5 compares performance across both datasets, and Table 6 repeats the
+modality ablation on Amazon.
 
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=0.86\textwidth]{ablation_study.png}
-  \caption{Modality ablation on MultiModalNCF (MovieLens 100K): HR@10 and
-  NDCG@10 for the full model and each ablated variant. Values match
-  Table~\ref{tab:ablation}.}
-  \label{fig:ablation}
-\end{figure*}
-
-\begin{table*}[t]
-  \caption{Modality ablation on MultiModalNCF (MovieLens 100K)}
-  \label{tab:ablation}
-  \begin{tabular}{@{}lrrrr@{}}
-    \toprule
-    Variant & HR@10 & NDCG@10 & HR@20 & NDCG@20 \\
-    \midrule
-    Full          & 0.3650$\pm$0.0077 & 0.0859$\pm$0.0017 & 0.5073$\pm$0.0148 & 0.1144$\pm$0.0015 \\
-    w/o Text      & 0.3642$\pm$0.0100 & 0.0855$\pm$0.0024 & 0.5075$\pm$0.0108 & 0.1144$\pm$0.0025 \\
-    w/o Image     & 0.3631$\pm$0.0085 & 0.0842$\pm$0.0026 & 0.5080$\pm$0.0029 & 0.1132$\pm$0.0025 \\
-    w/o Genre     & 0.3673$\pm$0.0080 & 0.0857$\pm$0.0015 & 0.5107$\pm$0.0139 & 0.1144$\pm$0.0016 \\
-    Behaviour only & 0.3565$\pm$0.0061 & 0.0844$\pm$0.0024 & 0.4931$\pm$0.0089 & 0.1123$\pm$0.0033 \\
-    \bottomrule
-  \end{tabular}
-\end{table*}
-
-\subsection{Cold-Start Study}
-Table~\ref{tab:coldstart} shows the cold-start experiment, where 100 items are
-removed from training and evaluated as cold-start items. The ordering content
-$>$ blind $>$ random holds on every metric. The HR@10 spread of the content
-variant (0.0290) exceeds the gap to NeuMF (0.0193), so the margin is reported
-as a direction rather than a point magnitude. Figure~\ref{fig:coldstart}
-visualises the three-way comparison.
-
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=0.82\textwidth]{coldstart.png}
-  \caption{Cold-start study: 100 items held out of training and serving as
-  the only candidates, comparing a content-aware model, a content-blind model
-  and a random ranker. Values match Table~\ref{tab:coldstart}.}
-  \label{fig:coldstart}
-\end{figure*}
-
-\begin{table*}[t]
-  \caption{Cold-start performance (100 items removed from training)}
-  \label{tab:coldstart}
-  \begin{tabular}{@{}lrrrr@{}}
-    \toprule
-    Model & HR@10 & NDCG@10 & HR@20 & NDCG@20 \\
-    \midrule
-    MultiModalNCF (content) & 0.1333$\pm$0.0290 & 0.0542$\pm$0.0151 & 0.2754$\pm$0.0233 & 0.0882$\pm$0.0139 \\
-    NeuMF (content-blind)   & 0.1140$\pm$0.0147 & 0.0467$\pm$0.0069 & 0.2351$\pm$0.0129 & 0.0739$\pm$0.0038 \\
-    Random                  & 0.0702 & 0.0288 & 0.2018 & 0.0610 \\
-    \bottomrule
-  \end{tabular}
-\end{table*}
-
-\subsection{Cross-Dataset Validation}
-Table~\ref{tab:cross} compares performance across both datasets, and
-Table~\ref{tab:amazon-ablation} repeats the modality ablation on Amazon.
-
-What transfers: the ladder ordering, the BPR-MF~$\approx$~NeuMF tie, the
-``single-modality deltas are inside seed noise'' conclusion (on Amazon removing
+What transfers: the ladder ordering, the BPR-MF $\approx$ NeuMF tie, the
+``single-modality deltas are inside seed noise'' conclusion (on Amazon, removing
 any single modality moves HR@10 by at most 0.0030, still inside the 0.0085
 full-model spread), and the cold-start direction---the content model reaches
 HR@10 0.2364$\pm$0.0202 against 0.1204$\pm$0.0120 for the content-blind model and
 0.1092 for random, a content/blind ratio of 1.96$\times$ (1.17$\times$ on
 MovieLens). What does not: on Amazon the top HR@10 point estimate belongs to
 LightGCN (0.1187 vs 0.1164), a difference well inside the combined spread, and
-Behaviour-only~$\approx$~Full (0.1163 vs 0.1164).
+Behaviour-only $\approx$ Full (0.1163 vs 0.1164).
 
-\begin{table*}[t]
-  \caption{Cross-dataset validation: HR@10 / NDCG@10 comparison}
-  \label{tab:cross}
-  \begin{tabular}{@{}lrrrr@{}}
-    \toprule
-    Model & ML-100K HR@10 & Amazon HR@10 & ML-100K NDCG@10 & Amazon NDCG@10 \\
-    \midrule
-    UserCF        & 0.0191 & 0.0122 & 0.0035 & 0.0017 \\
-    ItemCF        & 0.0721 & 0.0214 & 0.0142 & 0.0035 \\
-    SVD           & 0.2534 & 0.0651 & 0.0532 & 0.0116 \\
-    BPR-MF        & 0.3476 & 0.1055 & 0.0785 & 0.0198 \\
-    NeuMF         & 0.3516 & 0.1053 & 0.0814 & 0.0190 \\
-    LightGCN      & 0.2850 & 0.1187 & 0.0614 & 0.0222 \\
-    VBPR          & 0.3705 & 0.1097 & 0.0855 & 0.0196 \\
-    MultiModalNCF & 0.3650 & 0.1164 & 0.0859 & 0.0213 \\
-    \bottomrule
-  \end{tabular}
-\end{table*}
+\subsection{Training cost}
+Figure 7 reports the per-model training cost behind Table 2.
 
-\begin{table}[t]
-  \caption{Modality ablation on Amazon Video\_Games (MultiModalNCF, HR@10,
-  mean$\pm$std over 5 seeds)}
-  \label{tab:amazon-ablation}
-  \begin{tabular}{@{}lr@{}}
-    \toprule
-    Variant & HR@10 \\
-    \midrule
-    Full           & 0.1164$\pm$0.0085 \\
-    w/o Text       & 0.1159$\pm$0.0050 \\
-    w/o Image      & 0.1177$\pm$0.0033 \\
-    w/o Genre      & 0.1194$\pm$0.0017 \\
-    Behaviour only & 0.1163$\pm$0.0011 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\subsection{Reproducibility and Engineering Quality}
-To support reproducibility, we maintain a well-tested codebase with continuous
-integration:
-\begin{itemize}
-  \item \textbf{Test suite}: 125 tests passed, with 50.9\% line coverage
-        (minimum threshold 45\%). Tests cover data loading, model training
-        loops, and evaluation metrics.
-  \item \textbf{CI pipeline}: Three jobs run on every push to main and every
-        pull request: linting + tests
-        with coverage, end-to-end accessibility tests, and Docker image builds
-        for both deployment modes (lite and full).
-  \item \textbf{Dependency hygiene}: We use pinned version lower bounds to
-        ensure reproducible environments. Initial vulnerability scans flagged
-        known advisories in transitive dependencies; after updating to
-        patched versions, no known vulnerabilities remain (as of October 2026).
-  \item \textbf{Documentation}: Key architectural decisions are documented in
-        Architecture Decision Records (ADRs). The codebase includes make
-        commands for setup, data preparation, training, and evaluation,
-        allowing full reproduction from scratch.
-  \item \textbf{Repository hygiene}: Pre-commit hooks reject large files,
-        malformed YAML, and merge-conflict markers before each commit, and the
-        tracked text files contain no credentials or secret material.
-\end{itemize}
-
-Figure~\ref{fig:train} reports the per-model training cost behind
-Table~\ref{tab:main}.
-
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=0.82\textwidth]{training_time.png}
-  \caption{Training time per model (5-seed means, same runs as
-  Table~\ref{tab:main}). Measurement conditions are not recorded; see the
-  limitations.}
-  \label{fig:train}
-\end{figure*}
-
-\section{Discussion and Limitations}
-\subsection{Key Findings}
-\begin{enumerate}
-  \item \textbf{Model ordering is largely consistent across domains.} The
-        ladder backbone (UserCF $<$ ItemCF $<$ SVD) and the neural band's lead
-        over SVD hold on both MovieLens and Amazon, suggesting these patterns
-        are not dataset-specific artifacts. Which model leads \emph{within} the
+\section{Discussion}
+\subsection{Key findings}
+\begin{enumerate}[leftmargin=2em,itemsep=2pt,topsep=3pt]
+  \item \textbf{Model ordering is largely consistent across domains.} The ladder
+        backbone (UserCF $<$ ItemCF $<$ SVD) and the neural band's lead over SVD
+        hold on both MovieLens and Amazon, suggesting that these patterns are
+        not dataset-specific artefacts. Which model leads \emph{within} the
         neural band is domain-dependent, however (VBPR/MultiModalNCF on
         MovieLens, LightGCN on Amazon), so no cross-domain ``best model'' is
         claimed.
   \item \textbf{Content features help in cold-start, but not much in overall
-        ranking.} Modality ablation shows that removing content features has
-        limited impact on overall ranking quality, but cold-start experiments
-        show measurable gains when content is available.
+        ranking.} The modality ablation shows that removing content features has
+        limited impact on overall ranking quality, whereas the cold-start
+        experiments show measurable gains when content is available.
   \item \textbf{MultiModalNCF is competitive with established baselines.}
         Despite using a simple concatenation-based fusion, MultiModalNCF
         performs on par with VBPR, a well-established content-aware baseline.
 \end{enumerate}
 
+\subsection{Comparison with published baselines and related work}
+Our results are read against two baselines that we reproduce in-house rather
+than against their originally reported scores, because the split, the candidate
+set and the metric definitions differ across papers. Under this matched
+protocol the direction of VBPR's original claim [2] is reproduced: a content-aware
+model is clearly stronger than a content-blind model on cold-start items. The
+same comparison also bounds that claim---on these two datasets the content
+channels contribute little to overall ranking quality, so the advantage of a
+multi-modal model over a strong content-blind model such as NeuMF is not
+established. This is consistent with the wide-spread observation that visual and
+textual side information mainly compensates for missing interaction history.
+
 \subsection{Limitations}
-\begin{enumerate}
+\begin{enumerate}[leftmargin=2em,itemsep=2pt,topsep=3pt]
   \item \textbf{Single split.} We use one leave-last-5-out partition by design;
-        conclusions are read against seed spread, not split variance. No
+        conclusions are read against seed spread, not split variance, and no
         cross-validation is performed.
   \item \textbf{No significance testing.} Differences are compared against
         reported standard deviations; formal statistical tests are not run.
-        Small deltas (e.g., VBPR vs MultiModalNCF HR@10) are explicitly left
+        Small deltas (e.g.\ VBPR vs MultiModalNCF HR@10) are explicitly left
         undecided.
   \item \textbf{Epoch budgets are not equalised.} MultiModalNCF runs 10 epochs
-        against VBPR's 30 and BPR-MF/LightGCN's 50, so accuracy comparisons
+        against VBPR's 30 and BPR-MF's/LightGCN's 50, so accuracy comparisons
         carry that asymmetry.
-  \item \textbf{Training-time measurement conditions.} Hardware, warm/cold
-        cache conditions are not recorded alongside reported seconds.
+  \item \textbf{Training-time measurement conditions.} Hardware and warm/cold
+        cache conditions are not recorded alongside the reported seconds.
   \item \textbf{Second-domain slice represents heavy users only.} The Amazon
         slice is restricted to users with $\geq20$ ratings, chosen to match the
         MovieLens population rule, and does not describe the full Amazon
         population.
   \item \textbf{Content ablation effect is small.} Removing all content costs
-        about one seed std on MovieLens and nothing measurable on Amazon.
+        about one seed standard deviation on MovieLens and nothing measurable on
+        Amazon.
   \item \textbf{Free-tier deployments sleep when idle.} Reported live behaviour
-        may include cold-start latency on first request.
+        may include cold-start latency on the first request.
 \end{enumerate}
 
 \section{Conclusion}
-We presented CineRec, a practical comparative study of six recommendation
-models across two domains, with two published baselines and multi-seed
-validation. Our findings confirm that (1) model rankings are largely
-consistent across datasets, (2) content features provide measurable benefits in
-cold-start scenarios, and (3) a simple multi-modal extension of NeuMF can
-compete with established content-aware baselines like VBPR.
+We presented CineRec, a practical comparative study of six recommendation models
+across two domains, with two published baselines and multi-seed validation. Our
+findings confirm that (1) model rankings are largely consistent across datasets,
+(2) content features provide measurable benefits in cold-start scenarios but
+little overall ranking benefit, and (3) a simple multi-modal extension of NeuMF
+can compete with an established content-aware baseline such as VBPR.
 
-Future work includes: (1) evaluating on larger-scale datasets such as KuaiRec
-or Yelp, (2) exploring more sophisticated fusion strategies beyond simple
+Future work includes (1) evaluating on larger-scale datasets such as KuaiRec or
+Yelp, (2) exploring more sophisticated fusion strategies beyond simple
 concatenation, (3) conducting formal significance testing, and (4) extending the
-cold-start study to user cold-start as well as item cold-start. All code and
-evaluation scripts are available at:
-\url{https://github.com/ElijahZhao/cinerec}
+cold-start study from item cold-start to user cold-start. All code and evaluation
+scripts are available at \url{https://github.com/ElijahZhao/cinerec}.
 
-\begin{acks}
+\section*{ACKNOWLEDGEMENTS}
 This project was developed as an independent study. The author thanks the
 open-source community for providing baseline implementations and datasets.
 
 \textbf{AI use disclosure:} This project was assisted by AI tools throughout
-development and manuscript preparation, including code generation, debugging,
-and documentation writing. The author is solely responsible for the study
-design, the verification of all reported results, and the content of this paper.
-\end{acks}
+development and manuscript preparation, including code generation, debugging and
+documentation writing. The author is solely responsible for the study design,
+the verification of all reported results, and the content of this paper.
 
-\begin{thebibliography}{10}
-\bibitem{deshpande2004}
-Mukund Deshpande and George Karypis. 2004. Item-based top-N recommendation
-algorithms. \emph{ACM Transactions on Information Systems (TOIS)} 22, 1 (2004),
-143--177.
+\section*{References}
+\begingroup
+\refsfont
+\setlength{\parskip}{3pt}
+\hangindent=1.7em \hangafter=1
 
-\bibitem{harper2015}
-F. Maxwell Harper and Joseph A. Konstan. 2015. The MovieLens Datasets: History
-and Context. \emph{ACM Transactions on Interactive Intelligent Systems (TiiS)}
-5, 4 (2015), 19:1--19:19.
+\noindent [1] Rendle, S., Freudenthaler, C., Gantner, Z., \& Schmidt-Thieme, L.
+BPR: Bayesian personalized ranking from implicit feedback. In \emph{Proceedings
+of the 25th Conference on Uncertainty in Artificial Intelligence (UAI)}.
+Arlington, VA: AUAI Press, 2009: 452--461. Retrieved on October 17, 2026, from
+\url{https://arxiv.org/abs/1205.2618}.
 
-\bibitem{he2016resnet}
-Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. 2016. Deep residual
-learning for image recognition. In \emph{Proceedings of the IEEE conference on
-computer vision and pattern recognition}. 770--778.
+\noindent [2] He, R., \& McAuley, J. VBPR: Visual Bayesian personalized ranking
+from implicit feedback. In \emph{Proceedings of the 30th AAAI Conference on
+Artificial Intelligence}. Palo Alto, CA: AAAI Press, 2016: 144--150. DOI:
+10.1609/aaai.v30i1.9973.
 
-\bibitem{he2016vbpr}
-Ruining He and Julian McAuley. 2016. VBPR: Visual Bayesian personalized ranking
-from implicit feedback. In \emph{Proceedings of the AAAI Conference on
-Artificial Intelligence}. 144--150.
+\noindent [3] Deshpande, M., \& Karypis, G. Item-based top-N recommendation
+algorithms. \emph{ACM Transactions on Information Systems}, 2004, 22(1):
+143--177. DOI: 10.1145/963770.963776.
 
-\bibitem{he2020lightgcn}
-Xiangnan He, Kuan Deng, Xiang Wang, Yan Li, Yongdong Zhang, and Meng Wang. 2020.
-LightGCN: Simplifying and powering graph convolution network for
-recommendation. In \emph{Proceedings of the 43rd international ACM SIGIR
-conference on research and development in information retrieval}. 639--648.
+\noindent [4] Koren, Y., Bell, R., \& Volinsky, C. Matrix factorization
+techniques for recommender systems. \emph{Computer}, 2009, 42(8): 30--37. DOI:
+10.1109/MC.2009.263.
 
-\bibitem{he2017ncf}
-Xiangnan He, Lizi Liao, Hanwang Zhang, Liqiang Nie, Xia Hu, and Tat-Seng Chua.
-2017. Neural collaborative filtering. In \emph{Proceedings of the 26th
-international conference on world wide web}. 173--182.
+\noindent [5] He, X., Liao, L., Zhang, H., Nie, L., Hu, X., \& Chua, T.-S.
+Neural collaborative filtering. In \emph{Proceedings of the 26th International
+Conference on World Wide Web (WWW)}. Republic and Canton of Geneva:
+International World Wide Web Conferences Steering Committee, 2017: 173--182.
+DOI: 10.1145/3038912.3052569.
 
-\bibitem{hou2024}
-Yupeng Hou, Jiacheng Li, Zhankui He, An Yan, Xiusi Chen, and Julian McAuley.
-2024. Bridging Language and Items for Retrieval and Recommendation.
-\emph{arXiv preprint arXiv:2403.03952}.
+\noindent [6] He, X., Deng, K., Wang, X., Li, Y., Zhang, Y., \& Wang, M.
+LightGCN: Simplifying and powering graph convolution network for recommendation.
+In \emph{Proceedings of the 43rd International ACM SIGIR Conference on Research
+and Development in Information Retrieval}. New York: ACM, 2020: 639--648. DOI:
+10.1145/3397271.3401063.
 
-\bibitem{koren2009}
-Yehuda Koren, Robert Bell, and Chris Volinsky. 2009. Matrix factorization
-techniques for recommender systems. \emph{Computer} 42, 8 (2009), 30--37.
+\noindent [7] Harper, F. M., \& Konstan, J. A. The MovieLens datasets: History
+and context. \emph{ACM Transactions on Interactive Intelligent Systems}, 2015,
+5(4): 19:1--19:19. DOI: 10.1145/2827872.
 
-\bibitem{reimers2019}
-Nils Reimers and Iryna Gurevych. 2019. Sentence-BERT: Sentence embeddings using
-siamese BERT-networks. In \emph{Proceedings of the 2019 conference on empirical
-methods in natural language processing}. 3982--3992.
+\noindent [8] Hou, Y., Li, J., He, Z., Yan, A., Chen, X., \& McAuley, J.
+Bridging language and items for retrieval and recommendation: Benchmarking LLMs
+as semantic encoders. \emph{arXiv preprint}, 2024, arXiv:2403.03952. Retrieved on
+October 17, 2026, from \url{https://arxiv.org/abs/2403.03952}.
 
-\bibitem{rendle2009}
-Steffen Rendle, Christoph Freudenthaler, Zeno Gantner, and Lars
-Schmidt-Thieme. 2009. BPR: Bayesian personalized ranking from implicit feedback.
-In \emph{Proceedings of the twenty-fifth conference on uncertainty in
-artificial intelligence}. 452--461.
-\end{thebibliography}
+\noindent [9] Reimers, N., \& Gurevych, I. Sentence-BERT: Sentence embeddings
+using Siamese BERT-networks. In \emph{Proceedings of the 2019 Conference on
+Empirical Methods in Natural Language Processing (EMNLP-IJCNLP)}. Stroudsburg,
+PA: Association for Computational Linguistics, 2019: 3982--3992. DOI:
+10.18653/v1/D19-1410.
+
+\noindent [10] He, K., Zhang, X., Ren, S., \& Sun, J. Deep residual learning for
+image recognition. In \emph{Proceedings of the 2016 IEEE Conference on Computer
+Vision and Pattern Recognition (CVPR)}. Piscataway, NJ: IEEE, 2016: 770--778.
+DOI: 10.1109/CVPR.2016.90.
+
+\endgroup
+
+%% ===========================================================================
+%% Figure legends (all captions on this page, in order of citation).
+%% ===========================================================================
+\clearpage
+\section*{Figure Legends}
+\begingroup
+\figfont
+\setlength{\parskip}{5pt}
+\hangindent=2.2em \hangafter=1
+
+\noindent \textbf{Figure 1.} Overview of the CineRec study. Two domains feed
+precomputed text/image/genre content features into a ladder of eight
+recommenders---six ladder models plus two reproduced published baselines (marked
+$^\star$)---all evaluated under a single leave-last-5-out protocol with five-seed
+mean$\pm$std reporting.
+
+\noindent \textbf{Figure 2.} MultiModalNCF architecture (the configuration used
+in all reported runs). Behavioural path: GMF over user/item embeddings
+($d{=}32$). Content tower: text/image/genre are each projected to 32 dimensions,
+concatenated to 96, then projected to a 32-dimensional content embedding; the MLP
+path replaces the item embedding with this content embedding. The two paths are
+concatenated (64) and mapped to a score. In the cold-start path the GMF item
+vector is zeroed, so only the content tower drives scoring.
+
+\noindent \textbf{Figure 3.} Evaluation protocol. A per-user leave-last-5-out
+split defines training and held-out interactions; held-out items are ranked
+against a candidate set of all non-training items; HR@K and NDCG@K
+($K\in\{10,20\}$) are reported over five seeds (42--46) as mean$\pm$std. The
+protocol is run independently on both domains.
+
+\noindent \textbf{Figure 4.} Model comparison on MovieLens 100K at $K{=}10$
+(HR, NDCG, Recall). The HR@10 and NDCG@10 bars are the five-seed means from
+Table 2; Recall@10 is from the same evaluation artefacts.
+
+\noindent \textbf{Figure 5.} Modality ablation on MultiModalNCF (MovieLens 100K):
+HR@10 and NDCG@10 for the full model and each ablated variant. The values match
+Table 3.
+
+\noindent \textbf{Figure 6.} Cold-start study: 100 items held out of training and
+serving as the only candidates, comparing a content-aware model, a content-blind
+model and a random ranker. The values match Table 4.
+
+\noindent \textbf{Figure 7.} Training time per model (five-seed means, same runs
+as Table 2). Measurement conditions are not recorded; see the limitations in
+Section 5.3.
+
+\endgroup
+
+%% ===========================================================================
+%% Figures: each figure on its own page, separated by page breaks.
+%% ===========================================================================
+\clearpage
+\section*{Figures}
+
+\clearpage
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize,>=Latex,every node/.style={align=center},
+    s/.style={draw,rounded corners=2pt,fill=blue!6,inner sep=4pt,
+              text width=92mm,minimum height=10mm},
+    a/.style={-{Latex[length=1.8mm]},thick}]
+  \node[s] (d) {\textbf{Two domains}: MovieLens-100K (943 users / 1,682 items)
+    and Amazon Video\_Games (2,288 users / 4,753 items)};
+  \node[s,below=5mm of d] (f) {\textbf{Content features}: text (SBERT, 384-d),
+    image (ResNet-50, 2,048-d), genre (multi-hot, 18-d)};
+  \node[s,below=5mm of f] (m) {\textbf{Model ladder (8)}: UserCF, ItemCF, SVD,
+    BPR-MF$^\star$, NeuMF, LightGCN, VBPR$^\star$, MultiModalNCF};
+  \node[s,below=5mm of m] (e) {\textbf{Protocol and outputs}:
+    leave-last-5-out split, five seeds; HR@K / NDCG@K; modality ablation,
+    cold-start and cross-dataset studies};
+  \draw[a] (d)--(f);
+  \draw[a] (f)--(m);
+  \draw[a] (m)--(e);
+\end{tikzpicture}
+\end{center}
+
+\clearpage
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize,>=Latex,every node/.style={align=center},
+    b/.style={draw,rounded corners=1pt,inner sep=3pt,minimum height=5mm,fill=blue!7},
+    e/.style={draw,rounded corners=1pt,inner sep=3pt,minimum height=5mm,fill=green!12},
+    a/.style={-{Latex[length=1.4mm]},semithick}]
+  % behavioural (GMF) path
+  \node[b] (uid) at (0,1.0)     {user id};
+  \node[e] (eu)  at (2.0,1.0)   {emb 32};
+  \node[b] (iid) at (0,0.0)     {item id};
+  \node[e] (ei)  at (2.0,0.0)   {emb 32};
+  \node[circle,draw,inner sep=1pt,minimum size=4mm,fill=orange!15]
+        (dot) at (3.3,0.5) {$\odot$};
+  \node[e] (gmf) at (4.6,0.5)   {GMF 32};
+  % content tower
+  \node[b] (tx) at (0,-1.6) {text 384d};
+  \node[b] (im) at (0,-2.5) {image 2048d};
+  \node[b] (ge) at (0,-3.4) {genre 18d};
+  \node[b] (ftx) at (2.0,-1.6) {FC $\to$ 32};
+  \node[b] (fim) at (2.0,-2.5) {FC $\to$ 32};
+  \node[b] (fge) at (2.0,-3.4) {FC $\to$ 32};
+  \node[b] (cat) at (3.3,-2.5) {concat 96};
+  \node[e] (cemb) at (4.6,-2.5) {FC $\to$ 32};
+  % MLP path
+  \node[b] (mcat) at (6.6,-1.0) {concat 64};
+  \node[b] (mlp)  at (6.6,-2.3) {MLP 128$\to$64$\to$32};
+  % fusion
+  \node[b] (fuse) at (9.4,0.5) {concat 64};
+  \node[b] (fc)   at (9.4,-0.5) {FC $\to$ 1};
+  \node[b] (sig)  at (9.4,-1.4) {$\sigma$};
+  \node[e,fill=red!12] (out) at (9.4,-2.3) {score};
+  % edges
+  \draw[a] (uid)--(eu);
+  \draw[a] (iid)--(ei);
+  \draw[a] (eu)--(dot);
+  \draw[a] (ei)--(dot);
+  \draw[a] (dot)--(gmf);
+  \draw[a] (tx)--(ftx); \draw[a] (im)--(fim); \draw[a] (ge)--(fge);
+  \draw[a] (ftx)--(cat); \draw[a] (fim)--(cat); \draw[a] (fge)--(cat);
+  \draw[a] (cat)--(cemb);
+  \draw[a] (eu.east) -- (8.0,1.0) |- (mcat.east);
+  \draw[a] (cemb.east) -- (5.8,-2.5) |- (mcat.west);
+  \draw[a] (mcat)--(mlp);
+  \draw[a] (gmf.east) -- (fuse.west);
+  \draw[a] (mlp.east) -- (8.2,-2.3) |- (fuse.south);
+  \draw[a] (fuse)--(fc); \draw[a] (fc)--(sig); \draw[a] (sig)--(out);
+  \node[draw,dashed,rounded corners,fit=(tx)(ftx)(fge)(cat)(cemb),inner sep=4pt,
+        label={[font=\scriptsize]above:Content tower}] {};
+\end{tikzpicture}
+\end{center}
+
+\clearpage
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize,>=Latex,every node/.style={align=center},
+    b/.style={draw,rounded corners=2pt,fill=teal!7,inner sep=3pt,minimum height=7mm},
+    a/.style={-{Latex[length=1.6mm]},thick}]
+  \node[b] (rat) {per-user interactions};
+  \node[b,below=6mm of rat] (split) {leave-last-5-out split};
+  \node[b,below left=8mm and 3mm of split] (train) {train interactions};
+  \node[b,below right=8mm and 3mm of split] (test) {held-out test (5 items)};
+  \node[b,below=10mm of test] (cand) {candidate set $=$ all items $-$ train};
+  \node[b,below=6mm of cand] (rank) {rank by score};
+  \node[b,below=6mm of rank] (met) {HR@K, NDCG@K ($K\in\{10,20\}$)};
+  \node[b,below=6mm of met] (seed) {5 seeds (42--46), mean$\pm$std};
+  \draw[a] (rat)--(split);
+  \draw[a] (split)--(train);
+  \draw[a] (split)--(test);
+  \draw[a] (test)--(cand);
+  \draw[a] (cand)--(rank);
+  \draw[a] (rank)--(met);
+  \draw[a] (met)--(seed);
+  \node[draw,dashed,rounded corners,fit=(cand)(rank)(met)(seed),inner sep=5pt,
+        label={[font=\scriptsize]below:run independently on MovieLens-100K and
+        Amazon Video\_Games}] {};
+  \node[font=\scriptsize,anchor=north west] at ($(train.south west)+(-1mm,-4mm)$)
+        {deterministic models have zero seed spread};
+\end{tikzpicture}
+\end{center}
+
+\clearpage
+\begin{center}
+\includegraphics[width=120mm]{paper_model_comparison.png}
+\end{center}
+
+\clearpage
+\begin{center}
+\includegraphics[width=120mm]{paper_ablation_study.png}
+\end{center}
+
+\clearpage
+\begin{center}
+\includegraphics[width=120mm]{paper_coldstart.png}
+\end{center}
+
+\clearpage
+\begin{center}
+\includegraphics[width=120mm]{paper_training_time.png}
+\end{center}
+
+%% ===========================================================================
+%% Tables: each table on its own page, separated by page breaks.
+%% ===========================================================================
+\clearpage
+\section*{Tables}
+
+\clearpage
+\noindent{\figfont\textbf{Table 1.} Model configurations.}\par
+\vspace{4pt}
+\begin{center}
+{\figfont
+\begin{tabular}{@{}p{32mm}p{98mm}@{}}
+  \toprule
+  Model & Configuration \\
+  \midrule
+  UserCF & Pearson similarity, $k=50$ neighbours \\
+  ItemCF & Adjusted cosine similarity, $k=50$ neighbours \\
+  SVD & Truncated SVD, $k=64$ latent dimensions \\
+  BPR-MF & dim 64, epochs 50, lr 0.001, batch 4,096, patience 8 \\
+  NeuMF & dim 32, MLP (128, 64, 32), epochs 10, batch 512, four negatives,
+          patience 3 \\
+  LightGCN & dim 64, three layers, epochs 50, batch 4,096, BPR objective,
+          patience 8 \\
+  VBPR & behaviour dim 64, visual dim 64, epochs 30, lr 0.005 \\
+  MultiModalNCF & dim 32, MLP (128, 64, 32), epochs 10, batch 512; content
+          tower projects 384/2,048/18 $\to$ 32 each, concatenated (96) $\to$ 32 \\
+  \bottomrule
+\end{tabular}}
+\end{center}
+
+\clearpage
+\noindent{\figfont\textbf{Table 2.} Model comparison on MovieLens 100K
+(mean$\pm$std over five seeds; training time in seconds).}\par
+\vspace{4pt}
+\begin{center}
+{\figfont
+\begin{tabular}{@{}lrrrrr@{}}
+  \toprule
+  Model & HR@10 & NDCG@10 & HR@20 & NDCG@20 & Train time (s) \\
+  \midrule
+  UserCF       & 0.0191$\pm$0.0000 & 0.0035$\pm$0.0000 & 0.0477$\pm$0.0000 & 0.0060$\pm$0.0000 & 0.1 \\
+  ItemCF       & 0.0721$\pm$0.0000 & 0.0142$\pm$0.0000 & 0.1283$\pm$0.0000 & 0.0199$\pm$0.0000 & 0.3 \\
+  SVD          & 0.2534$\pm$0.0000 & 0.0532$\pm$0.0000 & 0.3542$\pm$0.0000 & 0.0664$\pm$0.0000 & 0.3 \\
+  BPR-MF       & 0.3476$\pm$0.0116 & 0.0785$\pm$0.0018 & 0.4831$\pm$0.0116 & 0.1034$\pm$0.0018 & 10.6 \\
+  NeuMF        & 0.3516$\pm$0.0036 & 0.0814$\pm$0.0016 & 0.4978$\pm$0.0073 & 0.1083$\pm$0.0017 & 31.4 \\
+  LightGCN     & 0.2850$\pm$0.0041 & 0.0614$\pm$0.0004 & 0.4250$\pm$0.0047 & 0.0816$\pm$0.0007 & 10.7 \\
+  VBPR         & 0.3705$\pm$0.0048 & 0.0855$\pm$0.0009 & 0.5200$\pm$0.0096 & 0.1130$\pm$0.0008 & 41.9 \\
+  MultiModalNCF & 0.3650$\pm$0.0077 & 0.0859$\pm$0.0017 & 0.5073$\pm$0.0148 & 0.1144$\pm$0.0015 & 73.2 \\
+  \bottomrule
+\end{tabular}}
+\end{center}
+
+\clearpage
+\noindent{\figfont\textbf{Table 3.} Modality ablation on MultiModalNCF
+(MovieLens 100K).}\par
+\vspace{4pt}
+\begin{center}
+{\figfont
+\begin{tabular}{@{}lrrrr@{}}
+  \toprule
+  Variant & HR@10 & NDCG@10 & HR@20 & NDCG@20 \\
+  \midrule
+  Full           & 0.3650$\pm$0.0077 & 0.0859$\pm$0.0017 & 0.5073$\pm$0.0148 & 0.1144$\pm$0.0015 \\
+  w/o Text       & 0.3642$\pm$0.0100 & 0.0855$\pm$0.0024 & 0.5075$\pm$0.0108 & 0.1144$\pm$0.0025 \\
+  w/o Image      & 0.3631$\pm$0.0085 & 0.0842$\pm$0.0026 & 0.5080$\pm$0.0029 & 0.1132$\pm$0.0025 \\
+  w/o Genre      & 0.3673$\pm$0.0080 & 0.0857$\pm$0.0015 & 0.5107$\pm$0.0139 & 0.1144$\pm$0.0016 \\
+  Behaviour only & 0.3565$\pm$0.0061 & 0.0844$\pm$0.0024 & 0.4931$\pm$0.0089 & 0.1123$\pm$0.0033 \\
+  \bottomrule
+\end{tabular}}
+\end{center}
+
+\clearpage
+\noindent{\figfont\textbf{Table 4.} Cold-start performance (100 items removed
+from training).}\par
+\vspace{4pt}
+\begin{center}
+{\figfont
+\begin{tabular}{@{}lrrrr@{}}
+  \toprule
+  Model & HR@10 & NDCG@10 & HR@20 & NDCG@20 \\
+  \midrule
+  MultiModalNCF (content) & 0.1333$\pm$0.0290 & 0.0542$\pm$0.0151 & 0.2754$\pm$0.0233 & 0.0882$\pm$0.0139 \\
+  NeuMF (content-blind)   & 0.1140$\pm$0.0147 & 0.0467$\pm$0.0069 & 0.2351$\pm$0.0129 & 0.0739$\pm$0.0038 \\
+  Random                  & 0.0702            & 0.0288            & 0.2018            & 0.0610 \\
+  \bottomrule
+\end{tabular}}
+\end{center}
+
+\clearpage
+\noindent{\figfont\textbf{Table 5.} Cross-dataset validation: HR@10 / NDCG@10
+comparison.}\par
+\vspace{4pt}
+\begin{center}
+{\figfont
+\begin{tabular}{@{}lrrrr@{}}
+  \toprule
+  Model & ML-100K HR@10 & Amazon HR@10 & ML-100K NDCG@10 & Amazon NDCG@10 \\
+  \midrule
+  UserCF        & 0.0191 & 0.0122 & 0.0035 & 0.0017 \\
+  ItemCF        & 0.0721 & 0.0214 & 0.0142 & 0.0035 \\
+  SVD           & 0.2534 & 0.0651 & 0.0532 & 0.0116 \\
+  BPR-MF        & 0.3476 & 0.1055 & 0.0785 & 0.0198 \\
+  NeuMF         & 0.3516 & 0.1053 & 0.0814 & 0.0190 \\
+  LightGCN      & 0.2850 & 0.1187 & 0.0614 & 0.0222 \\
+  VBPR          & 0.3705 & 0.1097 & 0.0855 & 0.0196 \\
+  MultiModalNCF & 0.3650 & 0.1164 & 0.0859 & 0.0213 \\
+  \bottomrule
+\end{tabular}}
+\end{center}
+
+\clearpage
+\noindent{\figfont\textbf{Table 6.} Modality ablation on Amazon Video\_Games
+(MultiModalNCF, HR@10, mean$\pm$std over five seeds).}\par
+\vspace{4pt}
+\begin{center}
+{\figfont
+\begin{tabular}{@{}lr@{}}
+  \toprule
+  Variant & HR@10 \\
+  \midrule
+  Full           & 0.1164$\pm$0.0085 \\
+  w/o Text       & 0.1159$\pm$0.0050 \\
+  w/o Image      & 0.1177$\pm$0.0033 \\
+  w/o Genre      & 0.1194$\pm$0.0017 \\
+  Behaviour only & 0.1163$\pm$0.0011 \\
+  \bottomrule
+\end{tabular}}
+\end{center}
 
 \end{document}

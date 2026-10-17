@@ -67,6 +67,16 @@ htmlcov/
 dist/
 build/
 
+# LaTeX build artifacts (the typeset PDF itself is committed for the preprint)
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+docs/paper.bbl
+
 # Local scratch / working files
 scratch/
 *.local
