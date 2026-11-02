@@ -4,6 +4,7 @@
 <img src="https://img.shields.io/badge/PyTorch-2.13-EE4C2C?style=flat&logo=pytorch&logoColor=white" alt="PyTorch">
 <img src="https://img.shields.io/badge/FastAPI-0.100-009688?style=flat&logo=fastapi&logoColor=white" alt="FastAPI">
 <img src="https://img.shields.io/badge/License-MIT-F5C518?style=flat" alt="License">
+<a href="https://doi.org/10.20944/preprints202610.2504.v1"><img src="https://img.shields.io/badge/Preprint-10.20944%2Fpreprints202610.2504.v1-8A2BE2?style=flat" alt="Preprint DOI"></a>
 
 <br><br>
 
@@ -17,8 +18,12 @@ SOTA 基线（BPR-MF、VBPR），全部在同一 leave-last-5-out 划分上评�
 
 [English](README.md) · 简体中文
 
-📄 **伴随论文**：*CineRec: A Practical Multi-Modal Recommender Study with
-Cross-Dataset Validation and Published-Baseline Comparison* —— [`docs/paper.pdf`](docs/paper.pdf)
+📄 **预印本已发布** — *CineRec: A Practical Multi-Modal Recommender Study with
+Cross-Dataset Validation and Published-Baseline Comparison* — **Yulin Zhao**，
+[Preprints.org](https://preprints.org)，2026-10-26 发布（非同行评审版本）。
+
+**DOI: [10.20944/preprints202610.2504.v1](https://doi.org/10.20944/preprints202610.2504.v1)** ·
+[存档 PDF](docs/CineRec-preprints202610.2504.v1.pdf) · [引用格式](#-引用本论文)
 
 [在线演示](#-在线演示) · [效果预览](#-效果预览) · [评测结果](#-评测结果) · [快速开始](#-快速开始)
 
@@ -54,6 +59,7 @@ Cross-Dataset Validation and Published-Baseline Comparison* —— [`docs/paper.
 - [技术栈](#-技术栈)
 - [项目结构](#-项目结构)
 - [常见问题](#-常见问题)
+- [引用本论文](#-引用本论文)
 - [许可协议](#-许可协议)
 - [更新日志](#-更新日志)
 
@@ -239,7 +245,9 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 
 > 📄 **伴随论文** — *CineRec: A Practical Multi-Modal Recommender Study with
 > Cross-Dataset Validation and Published-Baseline Comparison* 已随本仓库交付于
-> [`docs/paper.pdf`](docs/paper.pdf)；其协议、配置与原始结果记录在
+> [`docs/paper.pdf`](docs/paper.pdf)，并已在 Preprints.org 发布为公开预印本
+> （**DOI [10.20944/preprints202610.2504.v1](https://doi.org/10.20944/preprints202610.2504.v1)**，
+> 2026-10-26 发布）；其协议、配置与原始结果记录在
 > [`docs/tech-report.md`](docs/tech-report.md)。
 
 ### 研究问题
@@ -555,6 +563,7 @@ cinerec/
 │   ├── adr/               # Architecture decision records
 │   ├── tech-report.md     # Protocol, configurations and raw results (paper-facing)
 │   ├── paper.pdf          # Companion paper of this study
+│   ├── CineRec-preprints202610.2504.v1.pdf  # Published preprint copy (Preprints.org, CC BY 4.0)
 │   └── paper.tex          # LaTeX source of the companion paper
 ├── reports/               # Measured load-test report + Locust HTML output
 │   ├── loadtest.md        # Curated, measured load-test findings
@@ -676,6 +685,38 @@ docker run -p 8000:8000 cinerec:lite
 
 ---
 
+## 📑 引用本论文
+
+如果本项目对你的研究有帮助，请引用该预印本：
+
+**Preprints.org**
+
+> Zhao, Y. *CineRec: A Practical Multi-Modal Recommender Study with Cross-Dataset
+> Validation and Published-Baseline Comparison*; Preprints **2026**, 202610.2504.V1.
+> https://doi.org/10.20944/preprints202610.2504.v1 —— 2026-10-26 发布，CC BY 4.0
+> 许可，非同行评审版本。
+
+<details>
+<summary><strong>BibTeX</strong></summary>
+
+```bibtex
+@article{zhao2026cinerec,
+  author  = {Zhao, Yulin},
+  title   = {CineRec: A Practical Multi-Modal Recommender Study with Cross-Dataset
+             Validation and Published-Baseline Comparison},
+  journal = {Preprints.org},
+  year    = {2026},
+  month   = oct,
+  doi     = {10.20944/preprints202610.2504.v1},
+  url     = {https://doi.org/10.20944/preprints202610.2504.v1},
+  note    = {Not peer-reviewed. Posted 2026-10-26. CC BY 4.0.}
+}
+```
+
+</details>
+
+---
+
 ## 📄 许可协议
 
 **源代码**以 MIT 许可发布 —— 见 [LICENSE](LICENSE)。
@@ -695,6 +736,10 @@ MIT 许可**不**覆盖随仓库交付的数据：
 <details>
 <summary>展开查看</summary>
 
+- **2026-10-26** — 📄 伴随论文在 Preprints.org 发布为公开预印本：DOI
+  [10.20944/preprints202610.2504.v1](https://doi.org/10.20944/preprints202610.2504.v1)
+  （CC BY 4.0，非同行评审）；副本存档于
+  [`docs/CineRec-preprints202610.2504.v1.pdf`](docs/CineRec-preprints202610.2504.v1.pdf)。
 - **2026-10-13** — README 拆分为两个单语版本：`README.md`（英文）与 `README.zh-CN.md`
   （中文），结构、表格与数字完全一致。
 - **2026-10-13** — 论文：伴随论文《CineRec: A Practical Multi-Modal Recommender

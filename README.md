@@ -4,6 +4,7 @@
 <img src="https://img.shields.io/badge/PyTorch-2.13-EE4C2C?style=flat&logo=pytorch&logoColor=white" alt="PyTorch">
 <img src="https://img.shields.io/badge/FastAPI-0.100-009688?style=flat&logo=fastapi&logoColor=white" alt="FastAPI">
 <img src="https://img.shields.io/badge/License-MIT-F5C518?style=flat" alt="License">
+<a href="https://doi.org/10.20944/preprints202610.2504.v1"><img src="https://img.shields.io/badge/Preprint-10.20944%2Fpreprints202610.2504.v1-8A2BE2?style=flat" alt="Preprint DOI"></a>
 
 <br><br>
 
@@ -17,8 +18,12 @@ with the neural models reported as mean ± std over five seeds.*
 
 English · [简体中文](README.zh-CN.md)
 
-📄 **Companion paper**: *CineRec: A Practical Multi-Modal Recommender Study with
-Cross-Dataset Validation and Published-Baseline Comparison* — [`docs/paper.pdf`](docs/paper.pdf)
+📄 **Published preprint** — *CineRec: A Practical Multi-Modal Recommender Study with
+Cross-Dataset Validation and Published-Baseline Comparison* — **Yulin Zhao**,
+[Preprints.org](https://preprints.org), posted 26 October 2026 (not peer-reviewed).
+
+**DOI: [10.20944/preprints202610.2504.v1](https://doi.org/10.20944/preprints202610.2504.v1)** ·
+[Archived PDF](docs/CineRec-preprints202610.2504.v1.pdf) · [Citation](#-citation)
 
 [Live Demo](#-live-demo) · [Demo](#-demo-preview) · [Evaluation](#-evaluation) · [Quick Start](#-quick-start)
 
@@ -54,6 +59,7 @@ One codebase, two runtime modes (`APP_MODE`), each hosted on the free tier it fi
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [FAQ](#-faq)
+- [Citation](#-citation)
 - [License](#-license)
 - [Changelog](#-changelog)
 
@@ -249,8 +255,10 @@ either runtime mode from the same image.
 
 > 📄 **Companion paper** — *CineRec: A Practical Multi-Modal Recommender Study with
 > Cross-Dataset Validation and Published-Baseline Comparison* ships in this repo as
-> [`docs/paper.pdf`](docs/paper.pdf); the protocol, configurations and raw results
-> behind it are documented in [`docs/tech-report.md`](docs/tech-report.md).
+> [`docs/paper.pdf`](docs/paper.pdf) and is published as a public preprint on
+> Preprints.org (**DOI [10.20944/preprints202610.2504.v1](https://doi.org/10.20944/preprints202610.2504.v1)**,
+> posted 26 October 2026); the protocol, configurations and raw results behind it
+> are documented in [`docs/tech-report.md`](docs/tech-report.md).
 
 ### Research Questions
 
@@ -596,6 +604,7 @@ cinerec/
 │   ├── adr/               # Architecture decision records
 │   ├── tech-report.md     # Protocol, configurations and raw results (paper-facing)
 │   ├── paper.pdf          # Companion paper of this study
+│   ├── CineRec-preprints202610.2504.v1.pdf  # Published preprint copy (Preprints.org, CC BY 4.0)
 │   └── paper.tex          # LaTeX source of the companion paper
 ├── reports/               # Measured load-test report + Locust HTML output
 │   ├── loadtest.md        # Curated, measured load-test findings
@@ -737,6 +746,38 @@ Three inputs, three licences, none of which covers the others:
 
 ---
 
+## 📑 Citation
+
+If CineRec is useful in your research, please cite the preprint:
+
+**Preprints.org**
+
+> Zhao, Y. *CineRec: A Practical Multi-Modal Recommender Study with Cross-Dataset
+> Validation and Published-Baseline Comparison*; Preprints **2026**, 202610.2504.V1.
+> https://doi.org/10.20944/preprints202610.2504.v1 — posted 26 October 2026,
+> licensed CC BY 4.0, not peer-reviewed.
+
+<details>
+<summary><strong>BibTeX</strong></summary>
+
+```bibtex
+@article{zhao2026cinerec,
+  author  = {Zhao, Yulin},
+  title   = {CineRec: A Practical Multi-Modal Recommender Study with Cross-Dataset
+             Validation and Published-Baseline Comparison},
+  journal = {Preprints.org},
+  year    = {2026},
+  month   = oct,
+  doi     = {10.20944/preprints202610.2504.v1},
+  url     = {https://doi.org/10.20944/preprints202610.2504.v1},
+  note    = {Not peer-reviewed. Posted 2026-10-26. CC BY 4.0.}
+}
+```
+
+</details>
+
+---
+
 ## 📄 License
 
 The **source code** is licensed under the MIT License — see [LICENSE](LICENSE).
@@ -757,6 +798,10 @@ This does **not** extend to the bundled data:
 <details>
 <summary>Expand</summary>
 
+- **2026-10-26** — 📄 The companion paper is published as a public preprint on
+  Preprints.org: DOI [10.20944/preprints202610.2504.v1](https://doi.org/10.20944/preprints202610.2504.v1)
+  (CC BY 4.0, not peer-reviewed); a copy is archived at
+  [`docs/CineRec-preprints202610.2504.v1.pdf`](docs/CineRec-preprints202610.2504.v1.pdf).
 - **2026-10-13** — README split into two single-language editions: `README.md`
   (English) and `README.zh-CN.md` (Chinese), with identical structure, tables and
   numbers.
