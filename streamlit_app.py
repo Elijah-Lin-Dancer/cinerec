@@ -361,6 +361,94 @@ h3 { font-weight: 700; }
   .stApp::before { animation: none; }
   .cr-bar-fill, .cr-card { transition: none; }
 }
+
+/* --- Study overview (P0–P2 content above the tabs) --- */
+.cr-ov-lead {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--cr-text);
+  margin: .15rem 0 .3rem;
+  line-height: 1.45;
+}
+.cr-ov-body {
+  color: var(--cr-muted);
+  font-size: .9rem;
+  line-height: 1.6;
+  max-width: 980px;
+}
+.cr-ov-sec {
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--cr-accent);
+  font-weight: 700;
+  margin: 1.1rem 0 .35rem;
+}
+.cr-ov-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: .7rem;
+  margin: .95rem 0 .25rem;
+}
+.cr-ov-card {
+  border: 1px solid var(--cr-border);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  padding: .8rem .95rem;
+}
+.cr-ov-k {
+  font-size: .7rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--cr-accent);
+  font-weight: 700;
+  margin-bottom: .45rem;
+}
+.cr-ov-card ul { margin: 0; padding-left: 1.05rem; }
+.cr-ov-card li {
+  color: var(--cr-muted);
+  font-size: .86rem;
+  line-height: 1.5;
+  margin: .18rem 0;
+}
+.cr-ov-card li b { color: var(--cr-text); font-weight: 600; }
+.cr-ov-links { display: flex; flex-wrap: wrap; gap: .45rem; margin: .85rem 0 .15rem; }
+.cr-ov-link {
+  display: inline-block;
+  padding: .3rem .72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212,168,67,.35);
+  color: var(--cr-accent-light);
+  text-decoration: none;
+  font-size: .79rem;
+  font-weight: 600;
+  transition: background .18s ease, border-color .18s ease;
+}
+.cr-ov-link:hover { background: rgba(212,168,67,.12); border-color: var(--cr-accent); }
+.cr-ov-find-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: .55rem;
+  margin: .25rem 0 .3rem;
+}
+.cr-ov-finding {
+  border-left: 2px solid rgba(212,168,67,.55);
+  padding: .12rem 0 .12rem .7rem;
+}
+.cr-ov-finding .n {
+  color: var(--cr-accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.cr-ov-finding p {
+  margin: .1rem 0 0;
+  color: var(--cr-muted);
+  font-size: .85rem;
+  line-height: 1.5;
+}
+.cr-ov-finding p b { color: var(--cr-text); }
 </style>
 """
 
@@ -590,7 +678,7 @@ _ALGO_COLORS = {
     "MultiModalNCF": "#d4a843",
 }
 
-#: Display names for the offline SOTA baselines that appear in the evaluation
+#: Display names for the offline published baselines that appear in the evaluation
 #: artefacts but are not servable ladder members (not in ``ALGORITHMS``).
 _EVAL_DISPLAY = {
     "BPRMF": "BPR-MF (Rendle 2009)",
@@ -809,7 +897,7 @@ def tab_compare(movies, user_id):
     if unavailable:
         st.warning("Unavailable in this deployment: " + "; ".join(unavailable))
 
-    # Prefer the 5-seed multiseed artefact (8 models incl. the offline SOTA
+    # Prefer the 5-seed multiseed artefact (8 models incl. the offline published
     # baselines); fall back to the single-seed one when only that ships.
     eval_results = load_artifact("eval_multiseed.json") or load_artifact("eval_results.json")
     if eval_results:
@@ -831,7 +919,7 @@ def tab_compare(movies, user_id):
         st.markdown("**HR@10 — leave-last-5-out, mean ± std over 5 seeds (42–46)**")
         st.caption(
             "Hit-rate at 10: the fraction of users whose held-out film appears in the top 10. "
-            "BPR-MF / VBPR are the published SOTA baselines — offline references, not servable."
+            "BPR-MF / VBPR are the published baselines — offline references, not servable."
         )
         hr_rows, hr_labels = metric_rows("HR@10")
         st.markdown(_bar_chart_html(hr_rows, labels=hr_labels), unsafe_allow_html=True)
@@ -1006,7 +1094,7 @@ def tab_coldstart(movies, user_id, lang):
 # Cross-dataset validation (RQ5)
 # --------------------------------------------------------------------------- #
 def _eval_names(art):
-    """Chart order: the servable ladder first, then the offline SOTA baselines."""
+    """Chart order: the servable ladder first, then the offline published baselines."""
     return [n for n in ALGORITHMS if n in art] + [n for n in ("BPRMF", "VBPR") if n in art]
 
 
@@ -1140,6 +1228,167 @@ def tab_crossdataset():
 
 
 # --------------------------------------------------------------------------- #
+# Study overview and provenance (P0–P2)
+# --------------------------------------------------------------------------- #
+GITHUB_URL = "https://github.com/ElijahZhao/cinerec"
+PREPRINT_DOI = "10.20944/preprints202610.2504.v1"
+PREPRINT_URL = f"https://doi.org/{PREPRINT_DOI}"
+LITE_URL = "https://cinerec-rfew.onrender.com"
+TECH_REPORT_URL = f"{GITHUB_URL}/blob/main/docs/tech-report.md"
+
+_CITATION_BIBTEX = """@article{zhao2026cinerec,
+  author  = {Zhao, Yulin},
+  title   = {CineRec: A Practical Multi-Modal Recommender Study with
+             Cross-Dataset Validation and Published-Baseline Comparison},
+  journal = {Preprints.org},
+  year    = {2026},
+  month   = oct,
+  doi     = {10.20944/preprints202610.2504.v1},
+  url     = {https://doi.org/10.20944/preprints202610.2504.v1},
+  note    = {Not peer-reviewed. Posted 2026-10-26. CC BY 4.0.}
+}"""
+
+_OV_CARDS = (
+    "<div class='cr-ov-grid'>"
+    "<div class='cr-ov-card'><div class='cr-ov-k'>What we built</div><ul>"
+    "<li><b>8 models</b> — UserCF, ItemCF, SVD, NeuMF, LightGCN, MultiModalNCF, "
+    "plus reproduced BPR-MF and VBPR</li>"
+    "<li><b>2 domains</b> — MovieLens-100K and an Amazon Video_Games slice "
+    "(2,288 users × 4,753 items × 75,980 ratings)</li>"
+    "<li><b>5 seeds</b> (42–46), reported as mean ± std rather than one-off points</li>"
+    "<li><b>3 content channels</b> — SBERT text 384-d, ResNet-50 image 2,048-d, "
+    "genre 18-d</li>"
+    "</ul></div>"
+    "<div class='cr-ov-card'><div class='cr-ov-k'>Why it matters</div><ul>"
+    "<li><b>Cross-domain check</b> — the same protocol, not a re-tuned one, is "
+    "re-run unchanged on a second domain</li>"
+    "<li><b>Honest reporting</b> — conclusions that do <i>not</i> transfer are "
+    "stated, not hidden</li>"
+    "<li><b>Reproducible and citable</b> — code, <code>make</code> targets, CI, "
+    "and a published preprint with a DOI</li>"
+    "</ul></div>"
+    "<div class='cr-ov-card'><div class='cr-ov-k'>What to try first</div><ul>"
+    "<li>Pick a user in the sidebar and switch algorithms — the ladder is live</li>"
+    "<li>Compare all six servable models on the same user</li>"
+    "<li>Open <b>Cold start</b> to see content carry items with no history</li>"
+    "<li>Open <b>Cross-dataset</b> for what travels and what does not</li>"
+    "</ul></div></div>"
+)
+
+_OV_FINDINGS = (
+    "<div class='cr-ov-find-grid'>"
+    "<div class='cr-ov-finding'><span class='n'>01</span><p><b>The ladder holds on "
+    "both domains.</b> UserCF &lt; ItemCF &lt; SVD, and the neural band sits above "
+    "SVD on MovieLens-100K and on Amazon.</p></div>"
+    "<div class='cr-ov-finding'><span class='n'>02</span><p><b>The leader inside the "
+    "neural band is domain-dependent.</b> VBPR / MultiModalNCF on MovieLens, "
+    "LightGCN on Amazon — so no cross-domain “best model” is claimed.</p></div>"
+    "<div class='cr-ov-finding'><span class='n'>03</span><p><b>Content pays off in "
+    "cold start.</b> The content/blind HR@10 ratio grows 1.17× → 1.96× as the "
+    "collaborative signal gets sparser.</p></div>"
+    "<div class='cr-ov-finding'><span class='n'>04</span><p><b>Overall ranking barely "
+    "moves.</b> Removing all content costs about one seed std on MovieLens and "
+    "nothing measurable on Amazon.</p></div>"
+    "</div>"
+)
+
+_OV_LINKS = (
+    "<div class='cr-ov-links'>"
+    f"<a class='cr-ov-link' href='{GITHUB_URL}' target='_blank' rel='noopener'>"
+    "GitHub repository</a>"
+    f"<a class='cr-ov-link' href='{PREPRINT_URL}' target='_blank' rel='noopener'>"
+    f"Preprint · DOI {PREPRINT_DOI}</a>"
+    f"<a class='cr-ov-link' href='{LITE_URL}' target='_blank' rel='noopener'>"
+    "Lite product app</a>"
+    f"<a class='cr-ov-link' href='{TECH_REPORT_URL}' target='_blank' rel='noopener'>"
+    "Technical report</a>"
+    "</div>"
+)
+
+
+def render_overview() -> None:
+    """Project-level summary shown once, above the interactive tabs."""
+    st.markdown(_OV_CARDS, unsafe_allow_html=True)
+    st.markdown(
+        "<div class='cr-ov-sec'>Key findings</div>" + _OV_FINDINGS,
+        unsafe_allow_html=True,
+    )
+    st.markdown(_OV_LINKS, unsafe_allow_html=True)
+
+
+def render_about_study() -> None:
+    """Provenance, engineering evidence, limitations and citation."""
+    st.divider()
+    st.markdown("<div class='cr-ov-sec'>About this study</div>", unsafe_allow_html=True)
+
+    with st.expander("Research questions (RQ1–RQ5)"):
+        st.markdown(
+            "| # | Question | Where to look |\n"
+            "|:--|:--|:--|\n"
+            "| **RQ1** | How do classical, factorisation and neural models rank on "
+            "accuracy versus training cost? | Six-model comparison |\n"
+            "| **RQ2** | How much does each content channel (text / image / genre) "
+            "contribute? | Multi-modal ablation |\n"
+            "| **RQ3** | Do content features help items with no interactions at all? "
+            "| Cold start |\n"
+            "| **RQ4** | Where does CineRec stand against the two published baselines, "
+            "BPR-MF and VBPR? | Six-model comparison |\n"
+            "| **RQ5** | Do the conclusions transfer to a second domain? | "
+            "Cross-dataset |"
+        )
+
+    with st.expander("Engineering evidence"):
+        st.markdown(
+            "- **125 tests** pass with the neural stack installed (110 pass and 6 skip "
+            "without it); line coverage is **50.9%** against a 45% CI floor.\n"
+            "- **CI runs three jobs** on every push and pull request: lint + tests with "
+            "coverage, end-to-end accessibility tests, and Docker builds for both "
+            "deployment modes (lite and full).\n"
+            "- **Dependency hygiene**: versions are pinned; after patching known "
+            "advisories, the vulnerability scan reports no known issues (October 2026).\n"
+            "- **Documented decisions** in ADRs, and `make` targets for setup, data "
+            "preparation, training and evaluation.\n"
+            "- **MIT-licensed code**, CC BY 4.0 preprint, and a technical report that "
+            "maps every reported number to its result artefact."
+        )
+
+    with st.expander("Limitations"):
+        st.markdown(
+            "- **Single split.** One leave-last-5-out partition by design; conclusions "
+            "are read against seed spread, not split variance.\n"
+            "- **No formal significance testing.** Differences are compared against "
+            "reported standard deviations; small deltas are left undecided.\n"
+            "- **Epoch budgets are not equalised.** MultiModalNCF runs 10 epochs "
+            "against VBPR's 30 and BPR-MF's/LightGCN's 50.\n"
+            "- **Second-domain slice covers heavy users only.** The Amazon slice keeps "
+            "users with ≥20 ratings, matching the MovieLens population rule.\n"
+            "- **Training-time conditions are unrecorded** (hardware, warm/cold cache).\n"
+            "- **Free-tier hosting sleeps when idle**, so the first request may be slow."
+        )
+
+    with st.expander("How to read the metrics"):
+        st.markdown(
+            "- **HR@10** — hit rate at 10: the fraction of users whose held-out film "
+            "appears in the top 10 ranked candidates.\n"
+            "- **NDCG@10** — normalised discounted cumulative gain at 10: same "
+            "hit-or-miss signal, but rewarding higher placement.\n"
+            "- **leave-last-5-out** — the five most recent interactions of each user "
+            "are held out; models rank all items minus the user's training items.\n"
+            "- **Cold start** — 100 items are removed from training and become the "
+            "only candidates, so collaborative signal is unavailable.\n"
+            "- **mean ± std** — every neural model and both baselines are trained on "
+            "five seeds (42–46); deterministic models have zero spread."
+        )
+
+    with st.expander("Citation"):
+        st.code(_CITATION_BIBTEX, language="bibtex")
+        st.caption(
+            f"Preprints.org, posted 2026-10-26, CC BY 4.0, not peer-reviewed. "
+            f"DOI: {PREPRINT_DOI}"
+        )
+
+
+# --------------------------------------------------------------------------- #
 # Entry point
 # --------------------------------------------------------------------------- #
 def main():
@@ -1155,10 +1404,10 @@ def main():
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<div class='cr-sub'>The six trained recommenders running in-process on MovieLens-100K, "
-        "with the 5-seed evaluation, the published SOTA baselines and the RQ5 cross-dataset "
-        "study (Amazon Video_Games) — the <code>full</code> counterpart to the cached product "
-        "deployment.</div>",
+        "<div class='cr-sub'>Eight recommenders running live in-process — six servable models "
+        "and two reproduced published baselines, on MovieLens-100K and Amazon Video_Games. "
+        "This is the <b>full</b> companion to the cached product deployment; the models are "
+        "loaded and scored here, not read from a cache.</div>",
         unsafe_allow_html=True,
     )
 
@@ -1167,6 +1416,9 @@ def main():
 
     # KPI strip.
     st.markdown(_kpi_row_html(movies, ratings_df, len(ALGORITHMS)), unsafe_allow_html=True)
+
+    # Project-level summary: what was built, why it matters, key findings, links.
+    render_overview()
 
     with st.sidebar:
         st.header("Controls")
@@ -1197,6 +1449,8 @@ def main():
         tab_coldstart(movies, user_id, lang)
     with cross:
         tab_crossdataset()
+
+    render_about_study()
 
 
 if __name__ == "__main__":

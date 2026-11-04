@@ -12,8 +12,8 @@
 
 **多模态电影推荐系统**
 
-*六个可服务的推荐器共用一套代码库 —— 从 UserCF 到多模态 NCF，外加两个已发表的
-SOTA 基线（BPR-MF、VBPR），全部在同一 leave-last-5-out 划分上评测，神经模型以
+*六个可服务的推荐器共用一套代码库 —— 从 UserCF 到多模态 NCF，外加两个已发表
+基线（BPR-MF、VBPR），全部在同一 leave-last-5-out 划分上评测，神经模型以
 5 个种子的均值±标准差报告。*
 
 [English](README.md) · 简体中文
@@ -39,7 +39,7 @@ Cross-Dataset Validation and Published-Baseline Comparison* — **Yulin Zhao**�
 | 模式 | 展示内容 | 链接 |
 |------|----------|------|
 | **`lite`** — 产品 | 双语 FastAPI Web 应用。推荐结果来自预计算缓存，可运行在 512 MB 实例上。无需注册：点击 **游客体验** 即可。 | **https://cinerec-rfew.onrender.com** |
-| **`full`** — 伴生 | Streamlit 应用，加载训练好的 PyTorch 模型**实时推理**：在线推荐、六模型对比、模态消融、冷启动研究。 | **https://cinerec-movie-recommend.streamlit.app** |
+| **`full`** — 伴生 | Streamlit 应用，加载训练好的 PyTorch 模型**实时推理**：在线推荐、六模型对比、模态消融、冷启动研究与跨数据集验证。 | **https://cinerec-movie-recommend.streamlit.app** |
 
 > 两者都跑在免费档上，闲置会休眠 —— 首次访问可能需要几秒钟唤醒。伴生应用位于
 > [`deploy/streamlit/`](deploy/streamlit/)。
@@ -83,7 +83,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 - **多模态融合（核心创新）** — Multi-Modal NCF 在 MLP 路径上用 Content Tower 融合
   三路内容特征：Sentence-BERT 文本(384d)、ResNet-50 图像(2048d)、类型多热(18d)。
 - **诚实的离线评测** — 单一 leave-last-5-out 划分、候选集剔除训练已见条目；主评测、
-  消融与冷启动均以 5 个种子的均值±标准差报告，对照 BPR-MF / VBPR 两个公开 SOTA
+  消融与冷启动均以 5 个种子的均值±标准差报告，对照 BPR-MF / VBPR 两个公开
   基线且不作"最优模型"声明；同一协议在第二个数据集（Amazon Video_Games）上完整复验。
 - **可解释 · 双语 · 双模式** — 每条推荐给出理由；EN/ZH 前端；`lite`（预计算缓存）
   与 `full`（实时推理）由 `APP_MODE` 切换。电影详情弹窗与 Streamlit 伴生应用见
@@ -201,7 +201,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 | 5 | **LightGCN** | 图卷积（PyTorch） | 用户-物品二部图上的简化 GCN：逐层邻域聚合取平均，BPR 训练。 |
 | 6 | **Multi-Modal NCF** ⭐ | 文本+图像+类型融合 | 核心创新。MLP 路径的物品嵌入替换为融合多模态特征的 Content Tower。 |
 
-> **离线 SOTA 基线** — BPR-MF 与 VBPR 仅为评测对照而实现
+> **离线已发表基线** — BPR-MF 与 VBPR 仅为评测对照而实现
 > （[`models/bpr_mf.py`](models/bpr_mf.py) / [`models/vbpr.py`](models/vbpr.py)），
 > **不属于**可服务阶梯，从不进入 API。
 
@@ -257,7 +257,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 | **RQ1** | 相比纯行为信号，内容特征（文本/图像/类型）在同一排序任务上带来多大提升？ | [消融实验](#消融实验) |
 | **RQ2** | 这一提升是否大于随机种子的波动？ | 主表与消融表的**均值±标准差** |
 | **RQ3** | 内容特征能否迁移到完全没有交互历史的冷启动条目？ | [冷启动实验](#冷启动实验) |
-| **RQ4** | 与已发表的 SOTA 基线（BPR-MF / VBPR）相比处于什么位置？ | [SOTA 基线对比](#sota-基线对比) |
+| **RQ4** | 与已发表的基线（BPR-MF / VBPR）相比处于什么位置？ | [已发表基线对比](#已发表基线对比) |
 | **RQ5** | 上述结论是否是 MovieLens 特有的？换一个域还成立吗？ | [跨数据集验证](#跨数据集验证) |
 
 ### 主要贡献
@@ -268,7 +268,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 2. **Multi-Modal NCF（核心创新）** —— 在 NCF 的 MLP 路径上用 Content Tower 融合
    Sentence-BERT 文本、ResNet-50 图像与类型多热三路特征。
 3. **诚实的消融与冷启动研究** —— 两者都以多种子报告，明确区分"真实效应"与"种子噪声"。
-4. **与公开 SOTA 基线对照** —— 在同一划分上复现 BPR-MF（Rendle 2009）与
+4. **与公开基线对照** —— 在同一划分上复现 BPR-MF（Rendle 2009）与
    VBPR（He & McAuley 2016），作为行为-only 与内容感知两条线的外部参考。
 5. **跨数据集验证** —— 同一协议与种子列表在第二个域（Amazon Video_Games，
    2,288 重度用户 × 4,753 物品）上完整重跑主评测/消融/冷启动，检验结论是否
@@ -310,7 +310,7 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 - MultiModalNCF：HR@10 0.3650 ± 0.0077 / NDCG@10 0.0859 ± 0.0017。5 个种子平均后
   在阶梯六模型的命中率与 NDCG 两列均领先，每种模态的贡献占比由下方消融实验量化。
 
-### SOTA 基线对比
+### 已发表基线对比
 
 为了把 CineRec 放到文献坐标系而不只是和自己比，同一划分复现了两个已发表基线 ——
 **BPR-MF**（Rendle et al., UAI 2009）作为行为-only 参考，**VBPR**（He & McAuley,
@@ -525,7 +525,7 @@ cinerec/
 │   ├── recommend.py      # Model inference + explanation (APP_MODE aware, LRU cache)
 │   ├── metrics.py        # In-process request counters + latency middleware
 │   └── eval_api.py       # Evaluation results API
-├── models/                # 6 servable models + 2 offline SOTA baselines
+├── models/                # 6 servable models + 2 offline published baselines
 │   ├── base.py           # Base recommender class
 │   ├── registry.py       # Single source of truth for the algorithm ladder
 │   ├── user_cf.py        # User-based CF (Pearson)
@@ -605,7 +605,7 @@ cinerec/
 <details>
 <summary><b>评测为什么只有 single split？多 seed 是怎么跑的？</b></summary>
 
-划分仍是刻意的单一 leave-last-5-out（项目目标是展示算法取舍与工程规范，而非刷 SOTA）。
+划分仍是刻意的单一 leave-last-5-out（项目目标是展示算法取舍与工程规范，而非刷榜）。
 神经模型（NeuMF / LightGCN / MultiModalNCF）已固定随机种子并支持多种子评测：`make eval-seeds`
 会用种子 42–46 各训练一次，把均值±标准差写入 `data/processed/eval_multiseed.json`；
 默认单 seed 运行（`make eval`）仍写 `eval_results.json` 供看板读取，二者互不覆盖。
@@ -617,9 +617,9 @@ cinerec/
 <details>
 <summary><b>BPR-MF / VBPR 是什么？会进入线上服务吗？</b></summary>
 
-它们是两个**公开的 SOTA 基线**，用于在同一划分上做外部对照：BPR-MF（Rendle et al.,
+它们是两个**公开基线**，用于在同一划分上做外部对照：BPR-MF（Rendle et al.,
 UAI 2009）是纯行为的 BPR 排序 MF，VBPR（He & McAuley, AAAI 2016）是内容感知的视觉
-BPR。两者只在离线评测中训练与报告（见 [SOTA 基线对比](#sota-基线对比)），
+BPR。两者只在离线评测中训练与报告（见 [已发表基线对比](#已发表基线对比)），
 **不登记进 [`models/registry.py`](models/registry.py)，不会部署到 API**——线上服务的
 仍是 6 个阶梯模型。
 </details>
@@ -746,7 +746,7 @@ MIT 许可**不**覆盖随仓库交付的数据：
   Study with Cross-Dataset Validation and Published-Baseline Comparison》入库为
   [`docs/paper.pdf`](docs/paper.pdf)，README 评测区挂引用。
 - **2026-10-13** — 发布 **v1.0.0**（首个 tag + GitHub Release）。治理面：三个 requirements 写入修复版本下限（`urllib3>=2.8.0` / `anyio>=4.14.2` / `setuptools>=83.0` / `torch>=2.13.0`）使 pip-audit 归零，CI 增加覆盖率门槛（`fail_under = 45`）。收敛与新增：第二数据集路径统一为 `config.SECOND_PROCESSED_DIR` 单一源，资源缓存版本号统一，新增 [CONTRIBUTING.md](CONTRIBUTING.md)、[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) 与技术文档 [`docs/tech-report.md`](docs/tech-report.md)。
-- **2026-10-12** — 含金量：新增两个公开 SOTA 基线 BPR-MF（Rendle et al., 2009）与 VBPR（He & McAuley, 2016）并纳入统一评测（仅离线对照，不进线上服务）；消融与冷启动改为 5 seed 均值±标准差（`make ablation-seeds` / `make coldstart-seeds`，写 `ablation_multiseed.json` / `coldstart_multiseed.json`）；README 新增研究问题（RQ1–RQ4）、主要贡献与 SOTA 基线对比表。
+- **2026-10-12** — 含金量：新增两个公开基线 BPR-MF（Rendle et al., 2009）与 VBPR（He & McAuley, 2016）并纳入统一评测（仅离线对照，不进线上服务）；消融与冷启动改为 5 seed 均值±标准差（`make ablation-seeds` / `make coldstart-seeds`，写 `ablation_multiseed.json` / `coldstart_multiseed.json`）；README 新增研究问题（RQ1–RQ4）、主要贡献与已发表基线对比表。
 - **2026-10-12** — 可复现性：NeuMF / LightGCN / MultiModalNCF 增加统一随机种子（`set_seed`）；`evaluation/runner.py` 支持多种子评测（`make eval-seeds`，种子 42–46），主评测表改为均值±标准差并写入 `eval_multiseed.json`；单 seed 运行行为不变，仍写 `eval_results.json` 供看板读取。
 - **2026-10-06** — 测试/CI 补齐：Playwright E2E（游客登录→推荐、筛选→详情弹窗、评分→推荐排除已评）+ axe-core 无障碍断言；三个神经模型的 torch 门控 forward 测试；recommend `full` 分支与解释器失败路径测试；CI 新增 `full` 镜像构建 + `/api/health` 冒烟；压测纳入每周定时任务并留趋势（`reports/loadtest_trend.csv`）；`/api/metrics` 补充多副本聚合说明。
 - **2026-10-05** — UI：电影详情弹窗（卡片点击/键盘打开、评分与 IMDb 入口、随语言切换重绘）；数据集取舍与许可写入 [ADR 0004](docs/adr/0004-dataset-choice.md) 与上方 FAQ；Streamlit 伴生应用美化（胶片 logo + KPI 条 + 融合推荐卡 + CSS 柱状图/热力图 + 算法阶梯 + 用户画像）；README 截图全部更新为最新版本。

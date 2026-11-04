@@ -13,7 +13,7 @@
 **Multi-Modal Movie Recommendation System**
 
 *Six servable recommenders on one codebase — from UserCF to a multi-modal NCF — plus
-two published SOTA baselines (BPR-MF, VBPR), all on a single leave-last-5-out split,
+two published baselines (BPR-MF, VBPR), all on a single leave-last-5-out split,
 with the neural models reported as mean ± std over five seeds.*
 
 English · [简体中文](README.zh-CN.md)
@@ -39,7 +39,7 @@ One codebase, two runtime modes (`APP_MODE`), each hosted on the free tier it fi
 | Mode | What it shows | Link |
 |------|---------------|------|
 | **`lite`** — product | The bilingual FastAPI web app. Recommendations come from a precomputed cache, so it fits a 512 MB instance. No account needed: click **Try as Guest**. | **https://cinerec-rfew.onrender.com** |
-| **`full`** — companion | A Streamlit app that loads the trained PyTorch models and runs them **live**: live inference, the six-model comparison, the modality ablation, the cold-start study. | **https://cinerec-movie-recommend.streamlit.app** |
+| **`full`** — companion | A Streamlit app that loads the trained PyTorch models and runs them **live**: live inference, the six-model comparison, the modality ablation, the cold-start study and the cross-dataset validation. | **https://cinerec-movie-recommend.streamlit.app** |
 
 > Both run on free tiers and sleep when idle — the first visit can take a few
 > seconds to wake. The companion lives in [`deploy/streamlit/`](deploy/streamlit/).
@@ -88,7 +88,7 @@ either runtime mode from the same image.
   ResNet-50 image (2048d), and genre multi-hot (18d).
 - **Honest offline evaluation** — a single leave-last-5-out split, candidate sets
   stripped of training-seen items; the main, ablation and cold-start results are all
-  reported as mean ± std over 5 seeds, benchmarked against the two published SOTA
+  reported as mean ± std over 5 seeds, benchmarked against the two published
   baselines (BPR-MF / VBPR) with no "best model" claims; the same protocol is
   re-validated end-to-end on a second dataset (Amazon Video_Games).
 - **Explainable · bilingual · dual-mode** — every recommendation ships a reason;
@@ -208,7 +208,7 @@ either runtime mode from the same image.
 | 5 | **LightGCN** | Graph Convolution (PyTorch) | Simplified GCN on the user–item bipartite graph: neighbourhood aggregation averaged over layers, trained with BPR. |
 | 6 | **Multi-Modal NCF** ⭐ | Text+Image+Genre Fusion | Core innovation. Replaces item embedding in MLP path with a Content Tower fusing multi-modal features. |
 
-> **Offline SOTA baselines** — BPR-MF and VBPR are implemented
+> **Offline published baselines** — BPR-MF and VBPR are implemented
 > ([`models/bpr_mf.py`](models/bpr_mf.py) / [`models/vbpr.py`](models/vbpr.py)) purely
 > for the evaluation comparison; they are **not** part of this servable ladder and
 > never ship to the API.
@@ -267,7 +267,7 @@ either runtime mode from the same image.
 | **RQ1** | How much do content features (text/image/genre) improve the same ranking task over behaviour-only signals? | [Ablation](#ablation-study) |
 | **RQ2** | Is that improvement larger than random-seed noise? | The **mean ± std** in the main and ablation tables |
 | **RQ3** | Do content features transfer to cold-start items with zero interaction history? | [Cold-start](#cold-start-study) |
-| **RQ4** | Where does CineRec stand against the published SOTA baselines (BPR-MF / VBPR)? | [Baseline comparison](#sota-baselines) |
+| **RQ4** | Where does CineRec stand against the published baselines (BPR-MF / VBPR)? | [Baseline comparison](#published-baselines) |
 | **RQ5** | Are the conclusions above MovieLens-specific? Do they hold in another domain? | [Cross-dataset](#cross-dataset-validation) |
 
 ### Contributions
@@ -332,7 +332,7 @@ deterministic, so their spread is exactly zero.
   seeds it leads both the hit-rate and NDCG columns among the six ladder models, and
   the ablation study below quantifies each modality's share.
 
-### SOTA Baselines
+### Published Baselines
 
 To place CineRec against the literature rather than only against itself, the same
 split is used to reproduce two published baselines — **BPR-MF** (Rendle et al.,
@@ -566,7 +566,7 @@ cinerec/
 │   ├── recommend.py      # Model inference + explanation (APP_MODE aware, LRU cache)
 │   ├── metrics.py        # In-process request counters + latency middleware
 │   └── eval_api.py       # Evaluation results API
-├── models/                # 6 servable models + 2 offline SOTA baselines
+├── models/                # 6 servable models + 2 offline published baselines
 │   ├── base.py           # Base recommender class
 │   ├── registry.py       # Single source of truth for the algorithm ladder
 │   ├── user_cf.py        # User-based CF (Pearson)
@@ -663,11 +663,11 @@ use 5-seed mean ± std, and no strict significance claims are made about the mar
 <details>
 <summary><b>What are BPR-MF / VBPR? Do they serve live traffic?</b></summary>
 
-They are two **published SOTA baselines** used as external references on the same
+They are two **published baselines** used as external references on the same
 split: BPR-MF (Rendle et al., UAI 2009) is a purely behavioural BPR-optimized MF,
 and VBPR (He & McAuley, AAAI 2016) is a content-aware visual BPR. Both are trained
 and reported in the offline evaluation only (see
-[Baseline comparison](#sota-baselines)); they are **not** registered in
+[Baseline comparison](#published-baselines)); they are **not** registered in
 [`models/registry.py`](models/registry.py) and **never deploy to the API** — the
 serving ladder remains the 6 ladder models.
 </details>
@@ -817,12 +817,12 @@ This does **not** extend to the bundled data:
   source, asset cache versions unified, plus new [CONTRIBUTING.md](CONTRIBUTING.md),
   [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and the technical report
   [`docs/tech-report.md`](docs/tech-report.md).
-- **2026-10-12** — Substance: two published SOTA baselines, BPR-MF (Rendle et al.,
+- **2026-10-12** — Substance: two published baselines, BPR-MF (Rendle et al.,
   2009) and VBPR (He & McAuley, 2016), added to the unified evaluation (offline
   comparison only, never served); ablation and cold-start re-run as 5-seed
   mean ± std (`make ablation-seeds` / `make coldstart-seeds`, writing
   `ablation_multiseed.json` / `coldstart_multiseed.json`); README gains research
-  questions (RQ1–RQ4), contributions and the SOTA baseline comparison table.
+  questions (RQ1–RQ4), contributions and the published-baseline comparison table.
 - **2026-10-12** — Reproducibility: NeuMF / LightGCN / MultiModalNCF get a unified
   seeding utility (`set_seed`); `evaluation/runner.py` supports multi-seed
   evaluation (`make eval-seeds`, seeds 42–46); the main table switches to
