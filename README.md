@@ -130,15 +130,15 @@ either runtime mode from the same image.
 > Cold-start is covered separately with its own measured chart in the **Measured Results** section below.
 
 ### Streamlit Companion (Full Mode)
-> Live inference companion with a study overview (build scope, key findings, outbound links), a film-strip logo, KPI strip, CSS bar charts, a Jaccard overlap heatmap, an algorithm ladder, and a user profile mini-card.
+> Live inference companion with a film-strip logo, KPI strip, live recommendations first, the study overview below the tabs (build scope, key findings, outbound links), CSS bar charts, a Jaccard overlap heatmap, an algorithm ladder, and a user profile mini-card.
 
 <table>
 <tr>
-<td><img src="screenshots/streamlit_live.png" width="400" alt="Streamlit overview and live recommendation"></td>
+<td><img src="screenshots/streamlit_live.png" width="400" alt="Streamlit live recommendation and sidebar controls"></td>
 <td><img src="screenshots/streamlit_comparison.png" width="400" alt="Streamlit Six-Model Comparison"></td>
 </tr>
 <tr>
-<td align="center"><sub>Project overview (build scope, key findings, links) + live recommendation</sub></td>
+<td align="center"><sub>Live recommendation + sidebar controls (overview sits below the tabs)</sub></td>
 <td align="center"><sub>Six-model comparison + heatmap</sub></td>
 </tr>
 </table>

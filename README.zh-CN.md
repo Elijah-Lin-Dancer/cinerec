@@ -123,15 +123,15 @@ CineRec 是一个全栈电影推荐系统，实现了 6 个复杂度递进的模
 > 冷启动研究在下方 **实测图表** 区有单独的实测图。
 
 ### Streamlit 伴生应用（Full 模式）
-> 实时推理伴生应用：项目总览（建设范围、关键发现、外链）、胶片 logo、KPI 条、CSS 柱状图、Jaccard 重叠热力图、算法阶梯与用户画像小卡。
+> 实时推理伴生应用：胶片 logo、KPI 条、先展示实时推荐，Tab 下方是项目总览（建设范围、关键发现、外链），另有 CSS 柱状图、Jaccard 重叠热力图、算法阶梯与用户画像小卡。
 
 <table>
 <tr>
-<td><img src="screenshots/streamlit_live.png" width="400" alt="Streamlit 项目总览与实时推荐"></td>
+<td><img src="screenshots/streamlit_live.png" width="400" alt="Streamlit 实时推荐与侧栏控制"></td>
 <td><img src="screenshots/streamlit_comparison.png" width="400" alt="Streamlit 六模型对比"></td>
 </tr>
 <tr>
-<td align="center"><sub>项目总览（建设范围、关键发现、外链）+ 实时推荐</sub></td>
+<td align="center"><sub>实时推荐 + 侧栏控制（项目总览在 Tab 下方）</sub></td>
 <td align="center"><sub>六模型对比 + 热力图</sub></td>
 </tr>
 </table>
