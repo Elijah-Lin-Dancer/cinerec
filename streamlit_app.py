@@ -309,10 +309,16 @@ code, pre, .cr-score, .cr-mono {
 
 /* User profile mini-card in the sidebar. */
 .cr-profile { border: 1px solid var(--cr-border); border-radius: 10px; padding: .55rem .7rem; background: rgba(18,18,34,.45); margin-top: .35rem; }
+.cr-profile-title { font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; color: var(--cr-accent); font-weight: 700; }
+.cr-profile-sub { font-size: .66rem; color: var(--cr-muted); margin: .05rem 0 .3rem; }
 .cr-profile-row { display: flex; justify-content: space-between; font-size: .74rem; color: var(--cr-muted); margin: .12rem 0; }
 .cr-profile-row b { color: var(--cr-text); font-weight: 600; }
 .cr-profile-genres { margin-top: .3rem; display: flex; flex-wrap: wrap; gap: .25rem; }
 .cr-profile-genre { font-size: .62rem; padding: .08rem .4rem; border-radius: 8px; background: rgba(212,168,67,.12); color: var(--cr-accent-light); border: 1px solid rgba(212,168,67,.25); }
+
+/* One-line usage hint above the interactive tabs. */
+.cr-howto { border-left: 2px solid var(--cr-accent); background: rgba(212,168,67,.06); padding: .55rem .8rem; border-radius: 0 8px 8px 0; color: var(--cr-muted); font-size: .82rem; margin: .2rem 0 .7rem; }
+.cr-howto b { color: var(--cr-text); }
 
 /* --- Headings, expanders, tables --- */
 h1, h2, h3, h4 { color: var(--cr-text); letter-spacing: -.01em; }
@@ -823,6 +829,8 @@ def _profile_html(movies, ratings_df, user_id):
     fallback = "<span class='cr-profile-row'>—</span>"
     return (
         "<div class='cr-profile'>"
+        f"<div class='cr-profile-title'>{tr('Training profile')}</div>"
+        f"<div class='cr-profile-sub'>{tr('This user in the training set')}</div>"
         f"<div class='cr-profile-row'><span>{tr('Ratings')}</span><b>{count}</b></div>"
         f"<div class='cr-profile-row'><span>{tr('Avg score')}</span><b>{avg:.2f} / 5</b></div>"
         f"<div class='cr-profile-row'><span>{tr('Top genres')}</span></div>"
@@ -1421,6 +1429,19 @@ _ZH = {
         "*放大* —— 这是本研究中跨域迁移最强的证据。",
     "What transfers and what doesn't (RQ5 verdicts)": "什么能迁移、什么不能（RQ5 结论）",
     "Raw cross-domain metrics": "原始跨域指标表",
+    # Sidebar control affordance / user context
+    "Algorithm (click to switch)": "算法（点击切换）",
+    "Gold node = current model; switch with the dropdown above.":
+        "金色节点 = 当前模型；在上方下拉框切换算法。",
+    "User (click to switch)": "用户（点击切换）",
+    "Every tab below recomputes for this user.":
+        "下方每个标签页都会按这位用户重新计算。",
+    "Training profile": "训练集画像",
+    "This user in the training set": "该用户在训练集中的记录",
+    "Ratings = training interactions; average = this user's mean score; genres = "
+    "most-rated genres.":
+        "评分数 = 训练集交互数；平均分 = 该用户的打分均值；偏好类型 = 评分最多的类型。",
+    "Project overview": "项目概览",
 }
 
 
@@ -1470,12 +1491,6 @@ _OV_CARDS = (
     "stated, not hidden</li>"
     "<li><b>Reproducible and citable</b> — code, <code>make</code> targets, CI, "
     "and a published preprint with a DOI</li>"
-    "</ul></div>"
-    "<div class='cr-ov-card'><div class='cr-ov-k'>What to try first</div><ul>"
-    "<li>Pick a user in the sidebar and switch algorithms — the ladder is live</li>"
-    "<li>Compare all six servable models on the same user</li>"
-    "<li>Open <b>Cold start</b> to see content carry items with no history</li>"
-    "<li>Open <b>Cross-dataset</b> for what travels and what does not</li>"
     "</ul></div></div>"
 )
 
@@ -1523,12 +1538,6 @@ _OV_CARDS_ZH = (
     "<li><b>跨域复验</b> —— 同一套协议（不重新调参）原样复跑到第二个域</li>"
     "<li><b>诚实报告</b> —— 不成立的结论明确写出，而不是隐藏</li>"
     "<li><b>可复现、可引用</b> —— 代码、<code>make</code> 目标、CI，以及带 DOI 的预印本</li>"
-    "</ul></div>"
-    "<div class='cr-ov-card'><div class='cr-ov-k'>从这里开始</div><ul>"
-    "<li>在侧栏选一位用户并切换算法 —— 模型阶梯是实时的</li>"
-    "<li>在同一用户上比较六个可服务模型</li>"
-    "<li>打开<b>冷启动</b>，看内容塔如何托住无交互的物品</li>"
-    "<li>打开<b>跨数据集</b>，看什么能迁移、什么不能</li>"
     "</ul></div></div>"
 )
 
@@ -1566,7 +1575,10 @@ def _pick(en: str, zh: str) -> str:
 
 
 def render_overview() -> None:
-    """Project-level summary shown once, above the interactive tabs."""
+    """Project-level summary shown once, below the live demo."""
+    st.divider()
+    st.markdown("<div class='cr-ov-sec'>" + tr("Project overview") + "</div>",
+                unsafe_allow_html=True)
     st.markdown(_pick(_OV_CARDS, _OV_CARDS_ZH), unsafe_allow_html=True)
     st.markdown(
         "<div class='cr-ov-sec'>" + _pick("Key findings", "关键发现") + "</div>"
@@ -1723,25 +1735,39 @@ def main():
     # KPI strip.
     st.markdown(_kpi_row_html(movies, ratings_df, len(ALGORITHMS)), unsafe_allow_html=True)
 
-    # Project-level summary: what was built, why it matters, key findings, links.
-    render_overview()
-
     with st.sidebar:
         st.header(tr("Controls"))
-        st.markdown(_ladder_html("SVD"), unsafe_allow_html=True)
-        algorithm = st.selectbox(tr("Algorithm"), ALGORITHMS, index=ALGORITHMS.index("SVD"))
-        # Re-render the ladder with the now-selected algorithm highlighted.
-        st.markdown(f"<div style='margin-top:-.4rem'>{_ladder_html(algorithm)}</div>",
-                    unsafe_allow_html=True)
-        user_id = st.selectbox(tr("User"), all_user_ids(), index=0,
-                               format_func=lambda u: f"user {u}")
+        algorithm = st.selectbox(tr("Algorithm (click to switch)"), ALGORITHMS,
+                                 index=ALGORITHMS.index("SVD"))
+        # One ladder only: it reflects the current selection rather than duplicating the control.
+        st.markdown(_ladder_html(algorithm), unsafe_allow_html=True)
+        st.caption(tr("Gold node = current model; switch with the dropdown above."))
+        user_id = st.selectbox(
+            tr("User (click to switch)"), all_user_ids(), index=0,
+            format_func=lambda u: f"user {u}",
+        )
+        st.caption(tr("Every tab below recomputes for this user."))
         st.markdown(_profile_html(movies, ratings_df, user_id), unsafe_allow_html=True)
+        st.caption(tr("Ratings = training interactions; average = this user's mean score; "
+                      "genres = most-rated genres."))
         top_k = st.slider("Top-K", 1, 20, 10)
         lang = st.radio("语言 / Language", ["中文", "English"], horizontal=True, key="lang")
         st.divider()
         st.caption(tr("{films} films · {users} users · {algorithms} servable + 2 baselines · "
                       "2 datasets", films=len(movies), users=len(all_user_ids()),
                       algorithms=len(ALGORITHMS)))
+
+    st.markdown(
+        "<div class='cr-howto'>" + _pick(
+            "<b>How to use:</b> switch user and algorithm in the sidebar — every tab recomputes "
+            "live. Start with <b>Live recommendation</b>, then compare the six models, blank a "
+            "modality, and finish with <b>Cold start</b> and <b>Cross-dataset</b>.",
+            "<b>怎么用：</b>在侧栏切换用户与算法，下方每个标签页都会实时重算。先看"
+            "<b>实时推荐</b>，再对比六个模型、屏蔽单路模态，最后看<b>冷启动</b>与"
+            "<b>跨数据集</b>。",
+        ) + "</div>",
+        unsafe_allow_html=True,
+    )
 
     live, compare, multimodal, cold, cross = st.tabs(
         [tr("Live recommendation"), tr("Six-model comparison"), tr("Multi-modal ablation"),
@@ -1758,6 +1784,8 @@ def main():
     with cross:
         tab_crossdataset()
 
+    # Project-level context after the demo: what was built, why it matters, findings, links.
+    render_overview()
     render_about_study()
 
 
