@@ -789,18 +789,18 @@ def _kpi_row_html(movies, ratings_df, n_algos):
     n_users = int(ratings_df["user_id"].nunique())
     return (
         "<div class='cr-kpi-row'>"
-        f"<div class='cr-kpi'><div class='cr-kpi-label'>Models</div>"
+        f"<div class='cr-kpi'><div class='cr-kpi-label'>{tr('Models')}</div>"
         f"<div class='cr-kpi-value'><span class='cr-accent'>{n_algos}</span></div>"
-        f"<div class='cr-kpi-sub'>UserCF → Multi-Modal</div></div>"
-        f"<div class='cr-kpi'><div class='cr-kpi-label'>Films</div>"
+        f"<div class='cr-kpi-sub'>{tr('UserCF → Multi-Modal')}</div></div>"
+        f"<div class='cr-kpi'><div class='cr-kpi-label'>{tr('Films')}</div>"
         f"<div class='cr-kpi-value'>{n_movies:,}</div>"
-        f"<div class='cr-kpi-sub'>MovieLens 100K</div></div>"
-        f"<div class='cr-kpi'><div class='cr-kpi-label'>Ratings</div>"
+        f"<div class='cr-kpi-sub'>{tr('MovieLens 100K')}</div></div>"
+        f"<div class='cr-kpi'><div class='cr-kpi-label'>{tr('Ratings')}</div>"
         f"<div class='cr-kpi-value'>{n_ratings:,}</div>"
-        f"<div class='cr-kpi-sub'>{n_users:,} users</div></div>"
-        f"<div class='cr-kpi'><div class='cr-kpi-label'>GPU</div>"
+        f"<div class='cr-kpi-sub'>{tr('{n} users', n=f'{n_users:,}')}</div></div>"
+        f"<div class='cr-kpi'><div class='cr-kpi-label'>{tr('GPU')}</div>"
         f"<div class='cr-kpi-value'><span class='cr-accent'>0</span></div>"
-        f"<div class='cr-kpi-sub'>CPU-only inference</div></div>"
+        f"<div class='cr-kpi-sub'>{tr('CPU-only inference')}</div></div>"
         "</div>"
     )
 
@@ -823,9 +823,9 @@ def _profile_html(movies, ratings_df, user_id):
     fallback = "<span class='cr-profile-row'>—</span>"
     return (
         "<div class='cr-profile'>"
-        f"<div class='cr-profile-row'><span>Ratings</span><b>{count}</b></div>"
-        f"<div class='cr-profile-row'><span>Avg score</span><b>{avg:.2f} / 5</b></div>"
-        f"<div class='cr-profile-row'><span>Top genres</span></div>"
+        f"<div class='cr-profile-row'><span>{tr('Ratings')}</span><b>{count}</b></div>"
+        f"<div class='cr-profile-row'><span>{tr('Avg score')}</span><b>{avg:.2f} / 5</b></div>"
+        f"<div class='cr-profile-row'><span>{tr('Top genres')}</span></div>"
         f"<div class='cr-profile-genres'>{genre_chips or fallback}</div>"
         "</div>"
     )
@@ -835,28 +835,34 @@ def _profile_html(movies, ratings_df, user_id):
 # Tabs
 # --------------------------------------------------------------------------- #
 def tab_live(movies, user_id, algorithm, top_k, lang):
-    st.subheader("Live recommendation")
+    st.subheader(tr("Live recommendation"))
     history = user_history(user_id)
     top_rated = sorted(history.items(), key=lambda kv: kv[1], reverse=True)[:5]
-    with st.expander(f"Your top-rated films ({len(history)} ratings in the training set)", expanded=True):
+    with st.expander(
+        tr("Your top-rated films ({n} ratings in the training set)", n=len(history)),
+        expanded=True,
+    ):
         for item_id, rating in top_rated:
-            st.markdown(f"- {movie_title(movies, item_id)} — your rating {rating:.0f}")
+            st.markdown("- " + tr("{title} — your rating {rating}",
+                                  title=movie_title(movies, item_id),
+                                  rating=f"{rating:.0f}"))
 
     try:
         model = get_model(algorithm)
     except AlgorithmUnavailable as exc:
-        st.error(f"`{algorithm}` is not available here: {exc}")
+        st.error(tr("`{algorithm}` is not available here: {err}",
+                    algorithm=algorithm, err=exc))
         return
     if model is None:
-        st.error(f"Unknown algorithm '{algorithm}'.")
+        st.error(tr("Unknown algorithm '{algorithm}'.", algorithm=algorithm))
         return
 
     recs, error = top_items(model, user_id, top_k, set(history))
     if error:
-        st.error(f"Inference failed: {error}")
+        st.error(tr("Inference failed: {err}", err=error))
         return
     if not recs:
-        st.warning("No recommendations — the user may be outside the model's training range.")
+        st.warning(tr("No recommendations — the user may be outside the model's training range."))
         return
 
     reasons_by_item = {}
@@ -865,18 +871,20 @@ def tab_live(movies, user_id, algorithm, top_k, lang):
         reasons_by_item = {item_id: explainer.explain(user_id, item_id).get("reasons", [])
                            for item_id, _ in recs}
     except Exception as exc:  # explanations are decoration; never fatal
-        st.info(f"Explanations unavailable: {exc}")
+        st.info(tr("Explanations unavailable: {err}", err=exc))
 
     render_cards(recs, movies, reasons_by_item, lang)
-    st.caption(
-        f"{algorithm} scored {model.num_items} candidates live in-process (full mode). "
-        "The hosted product runs the same call, or a cached equivalent in lite mode."
-    )
+    st.caption(tr(
+        "{algorithm} scored {n} candidates live in-process (full mode). "
+        "The hosted product runs the same call, or a cached equivalent in lite mode.",
+        algorithm=algorithm, n=model.num_items,
+    ))
 
 
 def tab_compare(movies, user_id):
-    st.subheader("Six-model comparison")
-    st.caption(f"Top-{COMPARE_K} for the same user, computed live for every rung of the ladder.")
+    st.subheader(tr("Six-model comparison"))
+    st.caption(tr("Top-{k} for the same user, computed live for every rung of the ladder.",
+                  k=COMPARE_K))
 
     history = set(user_history(user_id))
     columns, ids_by_algo, unavailable = {}, {}, []
@@ -885,7 +893,7 @@ def tab_compare(movies, user_id):
             model = get_model(name)
         except AlgorithmUnavailable as exc:
             unavailable.append(f"{name} ({exc})")
-            columns[name] = [f"— ({name} unavailable)"] * COMPARE_K
+            columns[name] = [_pick(f"— ({name} unavailable)", f"—（{name} 不可用）")] * COMPARE_K
             continue
         recs, _ = top_items(model, user_id, COMPARE_K, history)
         titles = [movie_title(movies, item_id) for item_id, _ in recs]
@@ -895,7 +903,7 @@ def tab_compare(movies, user_id):
     table = pd.DataFrame(columns, index=[f"#{i + 1}" for i in range(COMPARE_K)])
     st.dataframe(table, use_container_width=True, height=380)
     if unavailable:
-        st.warning("Unavailable in this deployment: " + "; ".join(unavailable))
+        st.warning(tr("Unavailable in this deployment: {names}", names="; ".join(unavailable)))
 
     # Prefer the 5-seed multiseed artefact (8 models incl. the offline published
     # baselines); fall back to the single-seed one when only that ships.
@@ -916,28 +924,28 @@ def tab_compare(movies, user_id):
         def display_name(name):
             return _EVAL_DISPLAY.get(name, name)
 
-        st.markdown("**HR@10 — leave-last-5-out, mean ± std over 5 seeds (42–46)**")
-        st.caption(
+        st.markdown("**" + tr("HR@10 — leave-last-5-out, mean ± std over 5 seeds (42–46)") + "**")
+        st.caption(tr(
             "Hit-rate at 10: the fraction of users whose held-out film appears in the top 10. "
             "BPR-MF / VBPR are the published baselines — offline references, not servable."
-        )
+        ))
         hr_rows, hr_labels = metric_rows("HR@10")
         st.markdown(_bar_chart_html(hr_rows, labels=hr_labels), unsafe_allow_html=True)
 
-        st.markdown("**NDCG@10 — mean ± std over 5 seeds**")
-        st.caption("Discounted cumulative gain at 10: rewards ranking the held-out film higher.")
+        st.markdown("**" + tr("NDCG@10 — mean ± std over 5 seeds") + "**")
+        st.caption(tr("Discounted cumulative gain at 10: rewards ranking the held-out film higher."))
         ndcg_rows, ndcg_labels = metric_rows("NDCG@10")
         st.markdown(_bar_chart_html(ndcg_rows, labels=ndcg_labels), unsafe_allow_html=True)
 
-        st.markdown("**Training time (seconds, CPU)**")
-        st.caption("Why the classic models win on cost; why the neural ones win on hit-rate.")
+        st.markdown("**" + tr("Training time (seconds, CPU)") + "**")
+        st.caption(tr("Why the classic models win on cost; why the neural ones win on hit-rate."))
         tt_rows, tt_labels = metric_rows("train_time")
         st.markdown(
             _bar_chart_html(tt_rows, value_fmt="{:.1f}s", labels=tt_labels),
             unsafe_allow_html=True,
         )
 
-        with st.expander("Raw metrics table (mean ± std over seeds)"):
+        with st.expander(tr("Raw metrics table (mean ± std over seeds)")):
             metrics = ["HR@10", "NDCG@10", "Recall@10", "train_time"]
             frame = pd.DataFrame(
                 {
@@ -950,13 +958,13 @@ def tab_compare(movies, user_id):
                 }
             ).T
             st.dataframe(frame, use_container_width=True)
-        st.caption("All numbers are reproduced with `make eval-seeds` — mean ± std over seeds "
-                   "42–46; deterministic models have exactly zero spread.")
+        st.caption(tr("All numbers are reproduced with `make eval-seeds` — mean ± std over seeds "
+                      "42–46; deterministic models have exactly zero spread."))
     else:
-        st.info("eval_results.json not found.")
+        st.info(tr("eval_results.json not found."))
 
-    st.markdown(f"**Top-{COMPARE_K} overlap between algorithms (Jaccard)**")
-    st.caption("0 = disjoint recommendation lists, 1 = identical. Gold = high agreement.")
+    st.markdown("**" + tr("Top-{k} overlap between algorithms (Jaccard)", k=COMPARE_K) + "**")
+    st.caption(tr("0 = disjoint recommendation lists, 1 = identical. Gold = high agreement."))
     if len(ids_by_algo) >= 2:
         names = list(ids_by_algo)
         matrix = [[0.0] * len(names) for _ in names]
@@ -965,39 +973,42 @@ def tab_compare(movies, user_id):
                 union = ids_by_algo[a] | ids_by_algo[b]
                 matrix[i][j] = (len(ids_by_algo[a] & ids_by_algo[b]) / len(union)) if union else 0.0
         st.markdown(_heatmap_html(matrix, names), unsafe_allow_html=True)
-        with st.expander("Raw overlap table"):
+        with st.expander(tr("Raw overlap table")):
             overlap = pd.DataFrame(matrix, index=names, columns=names)
             st.dataframe(overlap.style.format("{:.2f}"), use_container_width=True)
 
 
 def tab_multimodal(movies, user_id, lang):
-    st.subheader("Multi-modal content tower")
-    st.caption(
+    st.subheader(tr("Multi-modal content tower"))
+    st.caption(tr(
         "The core innovation: text (Sentence-BERT), image (ResNet-50) and genre vectors are fused "
         "into the MLP path. Blank a modality and watch the same checkpoint re-rank."
-    )
+    ))
 
-    disabled = st.multiselect("Modalities to blank out", ["text", "image", "genre"], default=[])
+    disabled = st.multiselect(tr("Modalities to blank out"), ["text", "image", "genre"], default=[],
+                              format_func=lambda m: tr(m))
     history = set(user_history(user_id))
     try:
         model = get_multimodal_variant(tuple(disabled))
     except AlgorithmUnavailable as exc:
-        st.error(f"The multi-modal model is unavailable here: {exc}")
+        st.error(tr("The multi-modal model is unavailable here: {err}", err=exc))
         return
 
     recs, error = top_items(model, user_id, COMPARE_K, history)
     if error:
-        st.error(f"Inference failed: {error}")
+        st.error(tr("Inference failed: {err}", err=error))
         return
-    label = "full fusion" if not disabled else "w/o " + ", ".join(disabled)
-    st.markdown(f"**Live top-{COMPARE_K} — {label}**")
+    label = (_pick("full fusion", "全模态融合") if not disabled
+             else tr("w/o {names}", names=", ".join(tr(d) for d in disabled)))
+    st.markdown("**" + tr("Live top-{k} — {label}", k=COMPARE_K, label=label) + "**")
     render_cards(recs, movies, lang=lang, columns=5)
 
-    st.markdown("**Retrained ablation (rigorous — each configuration is retrained, not just masked)**")
-    st.caption(
+    st.markdown("**" + tr("Retrained ablation (rigorous — each configuration is retrained, "
+                          "not just masked)") + "**")
+    st.caption(tr(
         "Drop a modality at the input, retrain the full model, measure — mean ± std over 5 seeds. "
         "Behavior-only is the floor; single-modality deltas sit inside the seed noise."
-    )
+    ))
     ablation = load_artifact("ablation_multiseed.json") or load_artifact("ablation_results.json")
     if ablation:
         # HR@10 horizontal bars with a behaviour-only baseline line.
@@ -1012,9 +1023,9 @@ def tab_multimodal(movies, user_id, lang):
             labels.append(ms_label(ablation, name, "HR@10"))
         st.markdown(_bar_chart_html(rows, labels=labels,
                                     baseline=baseline,
-                                    baseline_label="behavior-only floor"),
+                                    baseline_label=tr("behavior-only floor")),
                     unsafe_allow_html=True)
-        with st.expander("Raw ablation table (mean ± std over 5 seeds)"):
+        with st.expander(tr("Raw ablation table (mean ± std over 5 seeds)")):
             metrics = ["HR@10", "NDCG@10", "Recall@10"]
             variant_names = [r[0] for r in rows]
             frame = pd.DataFrame(
@@ -1022,36 +1033,39 @@ def tab_multimodal(movies, user_id, lang):
                  for name in variant_names}
             ).T
             st.dataframe(frame, use_container_width=True)
-        st.caption("Inference-time masking above is a sensitivity probe; the chart is the measured study.")
+        st.caption(tr("Inference-time masking above is a sensitivity probe; "
+                      "the chart is the measured study."))
     else:
-        st.info("ablation_results.json not found.")
+        st.info(tr("ablation_results.json not found."))
 
 
 def tab_coldstart(movies, user_id, lang):
-    st.subheader("Cold start — scoring items with no collaborative signal")
-    st.caption(
+    st.subheader(tr("Cold start — scoring items with no collaborative signal"))
+    st.caption(tr(
         "Candidates are ranked through the content tower alone (`forward_cold`): the item embedding "
         "is bypassed, so nothing about user-item history can help. This is the path a brand-new film takes."
-    )
+    ))
 
     try:
         model = get_multimodal_variant(())
     except AlgorithmUnavailable as exc:
-        st.error(f"The multi-modal model is unavailable here: {exc}")
+        st.error(tr("The multi-modal model is unavailable here: {err}", err=exc))
         return
 
     history = set(user_history(user_id))
     catalogue = sorted(set(movies) - history)
-    pool_size = st.slider("Candidate pool size", 50, min(1000, len(catalogue)),
+    pool_size = st.slider(tr("Candidate pool size"), 50, min(1000, len(catalogue)),
                           min(300, len(catalogue)), step=50)
     rng = np.random.default_rng(42)  # fixed seed: the demo is reproducible
     pool = rng.choice(catalogue, size=pool_size, replace=False)
     recs = cold_rank(model, user_id, pool, COMPARE_K)
 
-    st.markdown(f"**Content-only top-{COMPARE_K} out of {pool_size} unseen films**")
+    st.markdown("**" + tr("Content-only top-{k} out of {n} unseen films",
+                          k=COMPARE_K, n=pool_size) + "**")
     render_cards(recs, movies, lang=lang, columns=5)
 
-    st.markdown("**Cold-start study (100 genuinely cold items, candidate pool = cold items only)**")
+    st.markdown("**" + tr("Cold-start study (100 genuinely cold items, "
+                          "candidate pool = cold items only)") + "**")
     cold_art = (load_artifact("coldstart_multiseed.json")
                 or load_artifact("coldstart_results.json"))
     study = cold_art.get("metrics", {}) if isinstance(cold_art, dict) else {}
@@ -1072,13 +1086,14 @@ def tab_coldstart(movies, user_id, lang):
             labels.append(ms_label(study, name, "HR@10"))
         st.markdown(_bar_chart_html(rows, labels=labels,
                                     baseline=random_floor,
-                                    baseline_label="random floor"),
+                                    baseline_label=tr("random floor")),
                     unsafe_allow_html=True)
         n_seeds = cold_art.get("n_seeds")
-        seed_note = f"mean ± std over {n_seeds} seeds" if n_seeds else "values over seeds"
-        st.caption(f"Content tower beats the content-blind control and the random floor on "
-                   f"unseen items ({seed_note}).")
-        with st.expander(f"Raw cold-start table ({seed_note})"):
+        seed_note = (tr("mean ± std over {n} seeds", n=n_seeds) if n_seeds
+                     else tr("values over seeds"))
+        st.caption(tr("Content tower beats the content-blind control and the random floor on "
+                      "unseen items ({seed_note}).", seed_note=seed_note))
+        with st.expander(tr("Raw cold-start table ({seed_note})", seed_note=seed_note)):
             metrics = ["HR@10", "NDCG@10", "Recall@10", "HR@20", "NDCG@20", "Recall@20"]
             model_names = [r[0] for r in rows]
             frame = pd.DataFrame(
@@ -1087,7 +1102,7 @@ def tab_coldstart(movies, user_id, lang):
             ).T
             st.dataframe(frame, use_container_width=True)
     else:
-        st.info("coldstart_results.json not found.")
+        st.info(tr("coldstart_results.json not found."))
 
 
 # --------------------------------------------------------------------------- #
@@ -1113,22 +1128,22 @@ def _domain_column(art, metric, names, title):
 
 
 def tab_crossdataset():
-    st.subheader("Cross-dataset validation (RQ5)")
-    st.caption(
+    st.subheader(tr("Cross-dataset validation (RQ5)"))
+    st.caption(tr(
         "The whole protocol — same leave-last-5-out split, same candidate filtering, eight models, "
         "seed list 42–46 — re-run unchanged on Amazon Reviews-2023 Video_Games (ADR 0005): a "
         "2,288-user × 4,753-item heavy-user slice built with MovieLens-100K's own population rule. "
         "The ~2.8× larger catalogue mechanically depresses absolute HR@K — read the orderings, "
         "not the levels."
-    )
+    ))
 
     ml_eval = load_artifact("eval_multiseed.json") or load_artifact("eval_results.json")
     amz_eval = load_artifact("eval_multiseed.json", directory=SECOND_PROCESSED_DIR)
     if not (ml_eval and amz_eval):
-        st.info(
+        st.info(tr(
             "Cross-dataset artefacts not found. Build the second dataset with `make amazon-data`, "
             "then re-run the evaluation with `CINEREC_DATASET=amazon-video-games make eval-seeds`."
-        )
+        ))
         return
 
     names = [n for n in _eval_names(ml_eval) if n in amz_eval]
@@ -1137,13 +1152,14 @@ def tab_crossdataset():
         ("HR@10", "Hit-rate at 10: the fraction of users whose held-out item appears in the top 10."),
         ("NDCG@10", "NDCG at 10: rewards ranking the held-out item higher."),
     ]:
-        st.markdown(f"**{metric} — MovieLens-100K vs Amazon Video_Games (mean ± std, 5 seeds)**")
-        st.caption(blurb)
+        st.markdown("**" + tr("{metric} — MovieLens-100K vs Amazon Video_Games "
+                              "(mean ± std, 5 seeds)", metric=metric) + "**")
+        st.caption(tr(blurb))
         left, right = st.columns(2)
         with left:
-            _domain_column(ml_eval, metric, names, "MovieLens-100K (movies)")
+            _domain_column(ml_eval, metric, names, tr("MovieLens-100K (movies)"))
         with right:
-            _domain_column(amz_eval, metric, names, "Amazon Video_Games (games)")
+            _domain_column(amz_eval, metric, names, tr("Amazon Video_Games (games)"))
 
     # --- Ablation on both domains ---
     ml_abl = (load_artifact("ablation_multiseed.json")
@@ -1151,21 +1167,22 @@ def tab_crossdataset():
     amz_abl = (load_artifact("ablation_multiseed.json", directory=SECOND_PROCESSED_DIR)
                or load_artifact("ablation_results.json", directory=SECOND_PROCESSED_DIR))
     if ml_abl and amz_abl:
-        st.markdown("**Ablation on both domains (HR@10, mean ± std over 5 seeds)**")
-        st.caption(
+        st.markdown("**" + tr("Ablation on both domains (HR@10, mean ± std over 5 seeds)") + "**")
+        st.caption(tr(
             "Single-modality deltas sit inside the seed noise on *both* domains; the "
             "behavior-only drop that is ~1 seed std on MovieLens vanishes on Amazon."
-        )
+        ))
         abl_rows = []
+        variant_col = tr("Variant")
         for variant in ml_abl:
             if not isinstance(ml_abl[variant], dict) or "HR@10" not in ml_abl[variant]:
                 continue
             abl_rows.append({
-                "Variant": variant,
+                variant_col: variant,
                 "ML-100K": ms_label(ml_abl, variant, "HR@10"),
                 "Amazon": ms_label(amz_abl, variant, "HR@10"),
             })
-        st.dataframe(pd.DataFrame(abl_rows).set_index("Variant"), use_container_width=True)
+        st.dataframe(pd.DataFrame(abl_rows).set_index(variant_col), use_container_width=True)
 
     # --- Cold start on both domains ---
     ml_cold = (load_artifact("coldstart_multiseed.json")
@@ -1174,12 +1191,12 @@ def tab_crossdataset():
                 or load_artifact("coldstart_results.json", directory=SECOND_PROCESSED_DIR))
     if ml_cold.get("metrics") and amz_cold.get("metrics"):
         ml_m, amz_m = ml_cold["metrics"], amz_cold["metrics"]
-        st.markdown("**Cold start on both domains (HR@10, mean ± std over 5 seeds)**")
-        st.caption(
+        st.markdown("**" + tr("Cold start on both domains (HR@10, mean ± std over 5 seeds)") + "**")
+        st.caption(tr(
             "Content-aware ranking of items with no collaborative history. The content tower's "
             "edge over the content-blind control *amplifies* on the sparser domain — the "
             "strongest cross-domain transfer in the study."
-        )
+        ))
         cold_rows = []
         for model in ml_m:
             if not isinstance(ml_m[model], dict) and not isinstance(ml_m[model], (int, float)):
@@ -1197,8 +1214,8 @@ def tab_crossdataset():
                           "ML-100K": f"{c_ml:.2f}×", "Amazon": f"{c_amz:.2f}×"})
         st.dataframe(pd.DataFrame(cold_rows).set_index("Model"), use_container_width=True)
 
-    with st.expander("What transfers and what doesn't (RQ5 verdicts)"):
-        st.markdown(
+    with st.expander(tr("What transfers and what doesn't (RQ5 verdicts)")):
+        st.markdown(_pick(
             "**Transfers** — agreement strengthens the MovieLens conclusions:\n"
             "- The ladder ordering **UserCF < ItemCF < SVD** holds in both domains, and the "
             "neural lead over SVD is *larger* on Amazon.\n"
@@ -1211,10 +1228,23 @@ def tab_crossdataset():
             "HR@10 point estimate (0.1187 vs 0.1164) — a statistical tie won at 1/7 of the "
             "training cost. The neural band (0.105–0.119) is the same; the pick inside it is "
             "domain-dependent.\n"
-            "- *\"Removing all content hurts\"*: on Amazon Behavior only ≈ Full (0.1163 vs 0.1164)."
-        )
+            "- *\"Removing all content hurts\"*: on Amazon Behavior only ≈ Full (0.1163 vs 0.1164).",
 
-    with st.expander("Raw cross-domain metrics"):
+            "**能迁移的部分** —— 与 MovieLens 结论一致：\n"
+            "- 阶梯排序 **UserCF < ItemCF < SVD** 在两个域上都成立，且神经模型相对 SVD 的"
+            "领先在 Amazon 上*更大*。\n"
+            "- **BPR-MF ≈ NeuMF**：这对仅行为模型在两个域上都是统计平局。\n"
+            "- 单模态消融差异在两个域上都**落在种子噪声内**。\n"
+            "- **冷启动会放大内容优势**：内容 / 无内容的比值从 1.17× 升到 1.96× —— "
+            "协同信号越稀疏，内容塔越有价值。\n\n"
+            "**不能迁移的部分** —— 如实报告，不做隐藏：\n"
+            "- *“MultiModalNCF 是阶梯中最好的模型”*：在 Amazon 上 **LightGCN** 拿到最高的 "
+            "HR@10 点估计（0.1187 vs 0.1164）—— 以 1/7 的训练成本赢下的统计平局。"
+            "神经带（0.105–0.119）相同，带内选谁取决于域。\n"
+            "- *“移除全部内容会有损失”*：在 Amazon 上仅行为 ≈ 全模态（0.1163 vs 0.1164）。"
+        ))
+
+    with st.expander(tr("Raw cross-domain metrics")):
         eval_tbl = {
             _EVAL_DISPLAY.get(n, n): {
                 "ML HR@10": ms_label(ml_eval, n, "HR@10"),
@@ -1225,6 +1255,180 @@ def tab_crossdataset():
             for n in names
         }
         st.dataframe(pd.DataFrame(eval_tbl).T, use_container_width=True)
+
+
+# --------------------------------------------------------------------------- #
+# Page language (Chinese / English)
+# --------------------------------------------------------------------------- #
+_DEFAULT_LANG = "中文"
+
+#: Chinese renderings keyed by the original English string. Anything missing
+#: falls back to English, so a new string never breaks the page.
+_ZH = {
+    # Sidebar
+    "Controls": "控制",
+    "Algorithm": "算法",
+    "User": "用户",
+    "Language": "语言",
+    "Ratings": "评分数",
+    "Avg score": "平均分",
+    "Top genres": "偏好类型",
+    # KPI strip
+    "Models": "模型",
+    "Films": "影片",
+    "GPU": "GPU",
+    "CPU-only inference": "纯 CPU 推理",
+    "MovieLens 100K": "MovieLens 100K",
+    "UserCF → Multi-Modal": "UserCF → Multi-Modal",
+    # Tabs
+    "Live recommendation": "实时推荐",
+    "Six-model comparison": "六模型对比",
+    "Multi-modal ablation": "多模态消融",
+    "Cold start": "冷启动",
+    "Cross-dataset (RQ5)": "跨数据集验证（RQ5）",
+    "About this study": "关于本研究",
+    # Live tab
+    "Your top-rated films ({n} ratings in the training set)": "你的高分影片（训练集中 {n} 条评分）",
+    "No recommendations — the user may be outside the model's training range.":
+        "没有推荐结果 —— 该用户可能不在模型的训练范围内。",
+    "Explanations unavailable: {err}": "推荐理由暂不可用：{err}",
+    # Compare tab
+    "Unavailable in this deployment: {names}": "本次部署不可用：{names}",
+    "HR@10 — leave-last-5-out, mean ± std over 5 seeds (42–46)":
+        "HR@10 — leave-last-5-out，5 个种子（42–46）的均值 ± 标准差",
+    "Hit-rate at 10: the fraction of users whose held-out film appears in the top 10. "
+    "BPR-MF / VBPR are the published baselines — offline references, not servable.":
+        "HR@10：留出影片进入前 10 的用户比例。BPR-MF / VBPR 是已发表基线 —— 仅作离线对照，不参与线上服务。",
+    "NDCG@10 — mean ± std over 5 seeds": "NDCG@10 — 5 个种子的均值 ± 标准差",
+    "Discounted cumulative gain at 10: rewards ranking the held-out film higher.":
+        "NDCG@10：对留出影片排得更高给予更高折算增益。",
+    "Training time (seconds, CPU)": "训练耗时（秒，CPU）",
+    "Why the classic models win on cost; why the neural ones win on hit-rate.":
+        "经典模型胜在成本，神经模型胜在命中率。",
+    "Raw metrics table (mean ± std over seeds)": "原始指标表（种子的均值 ± 标准差）",
+    "All numbers are reproduced with `make eval-seeds` — mean ± std over seeds "
+    "42–46; deterministic models have exactly zero spread.":
+        "所有数字可用 `make eval-seeds` 复现 —— 种子 42–46 的均值 ± 标准差；确定性模型的标准差恰为零。",
+    "Top-{k} overlap between algorithms (Jaccard)": "算法间的 Top-{k} 重合度（Jaccard）",
+    "0 = disjoint recommendation lists, 1 = identical. Gold = high agreement.":
+        "0 = 推荐列表完全不相交，1 = 完全相同。金色 = 高一致。",
+    "Raw overlap table": "原始重合度表",
+    # Ablation tab
+    "Multi-modal content tower": "多模态内容塔",
+    "The core innovation: text (Sentence-BERT), image (ResNet-50) and genre vectors are fused "
+    "into the MLP path. Blank a modality and watch the same checkpoint re-rank.":
+        "核心设计：文本（Sentence-BERT）、图像（ResNet-50）与类型向量融合进 MLP 路径。屏蔽某一路模态，同一权重会重新排序。",
+    "Modalities to blank out": "要屏蔽的模态",
+    "The multi-modal model is unavailable here: {err}": "多模态模型在本次部署中不可用：{err}",
+    "Inference failed: {err}": "推理失败：{err}",
+    "Live top-{k} — {label}": "实时 Top-{k} — {label}",
+    "full fusion": "全模态融合",
+    "Retrained ablation (rigorous — each configuration is retrained, not just masked)":
+        "重训练消融（每个配置都重新训练，而非仅屏蔽输入）",
+    "Drop a modality at the input, retrain the full model, measure — mean ± std over 5 seeds. "
+    "Behavior-only is the floor; single-modality deltas sit inside the seed noise.":
+        "在输入端去掉一路模态、重训完整模型再测量 —— 5 个种子的均值 ± 标准差。仅协同信号是下限；单模态的差异落在种子噪声内。",
+    "behavior-only floor": "仅协同信号下限",
+    "Raw ablation table (mean ± std over 5 seeds)": "原始消融表（5 个种子的均值 ± 标准差）",
+    "Inference-time masking above is a sensitivity probe; the chart is the measured study.":
+        "上方的推理期屏蔽只是敏感性探测；图表才是实测研究。",
+    # Cold-start tab
+    "Cold start — scoring items with no collaborative signal":
+        "冷启动 —— 给没有任何协同信号的物品打分",
+    "Candidates are ranked through the content tower alone (`forward_cold`): the item embedding "
+    "is bypassed, so nothing about user-item history can help. This is the path a brand-new film takes.":
+        "候选集只经由内容塔排序（`forward_cold`）：物品 embedding 被绕过，用户-物品历史帮不上忙。新片上线走的就是这条路径。",
+    "Candidate pool size": "候选池大小",
+    "Content-only top-{k} out of {n} unseen films": "仅凭内容从 {n} 部未见影片中选出的 Top-{k}",
+    "Cold-start study (100 genuinely cold items, candidate pool = cold items only)":
+        "冷启动研究（100 个真正冷启物品，候选池仅含冷启物品）",
+    "random floor": "随机下限",
+    "Content tower beats the content-blind control and the random floor on "
+    "unseen items ({seed_note}).":
+        "在未见物品上，内容塔优于无内容对照与随机下限（{seed_note}）。",
+    "Raw cold-start table ({seed_note})": "原始冷启动表（{seed_note}）",
+    "mean ± std over {n} seeds": "{n} 个种子的均值 ± 标准差",
+    "values over seeds": "各种子取值",
+    # Cross-dataset tab
+    "Cross-dataset validation (RQ5)": "跨数据集验证（RQ5）",
+    "The whole protocol — same leave-last-5-out split, same candidate filtering, eight models, "
+    "seed list 42–46 — re-run unchanged on Amazon Reviews-2023 Video_Games (ADR 0005): a "
+    "2,288-user × 4,753-item heavy-user slice built with MovieLens-100K's own population rule. "
+    "The ~2.8× larger catalogue mechanically depresses absolute HR@K — read the orderings, "
+    "not the levels.":
+        "整套协议 —— 同一 leave-last-5-out 划分、同一候选过滤、八个模型、种子 42–46 —— 原样复跑到 "
+        "Amazon Reviews-2023 Video_Games（ADR 0005）：按 MovieLens-100K 相同的人群规则构建的 "
+        "2,288 用户 × 4,753 物品重用户切片。目录约大 2.8 倍会机械性压低绝对 HR@K —— 请读排序，而非水平。",
+    # About block
+    "Research questions (RQ1–RQ5)": "研究问题（RQ1–RQ5）",
+    "Engineering evidence": "工程证据",
+    "Limitations": "限制",
+    "How to read the metrics": "指标读法",
+    "Citation": "引用",
+    "Preprints.org, posted 2026-10-26, CC BY 4.0, not peer-reviewed. "
+    "DOI: {doi}":
+        "Preprints.org，2026-10-26 发布，CC BY 4.0，非同行评审版本。DOI：{doi}",
+    # Sidebar footer / option labels
+    "{films} films · {users} users · {algorithms} servable + 2 baselines · 2 datasets":
+        "{films} 部影片 · {users} 位用户 · {algorithms} 个可服务模型 + 2 个基线 · 2 个数据集",
+    "{n} users": "{n} 位用户",
+    # Live tab (remaining)
+    "{title} — your rating {rating}": "{title} —— 你的评分 {rating}",
+    "`{algorithm}` is not available here: {err}": "`{algorithm}` 在本次部署不可用：{err}",
+    "Unknown algorithm '{algorithm}'.": "未知算法 '{algorithm}'。",
+    "{algorithm} scored {n} candidates live in-process (full mode). "
+    "The hosted product runs the same call, or a cached equivalent in lite mode.":
+        "{algorithm} 在进程内实时为 {n} 个候选打分（full 模式）。"
+        "托管产品站调用同一接口，lite 模式下则读取等价的缓存结果。",
+    # Compare tab (remaining)
+    "Top-{k} for the same user, computed live for every rung of the ladder.":
+        "同一用户的 Top-{k}，模型阶梯的每一级都实时计算。",
+    "eval_results.json not found.": "未找到 eval_results.json。",
+    # Ablation tab (remaining)
+    "text": "文本",
+    "image": "图像",
+    "genre": "类型",
+    "w/o {names}": "去 {names}",
+    "ablation_results.json not found.": "未找到 ablation_results.json。",
+    # Cold-start tab (remaining)
+    "coldstart_results.json not found.": "未找到 coldstart_results.json。",
+    # Cross-dataset tab (remaining)
+    "Cross-dataset artefacts not found. Build the second dataset with `make amazon-data`, "
+    "then re-run the evaluation with `CINEREC_DATASET=amazon-video-games make eval-seeds`.":
+        "未找到跨数据集结果文件。先用 `make amazon-data` 构建第二个数据集，"
+        "再用 `CINEREC_DATASET=amazon-video-games make eval-seeds` 重跑评测。",
+    "{metric} — MovieLens-100K vs Amazon Video_Games (mean ± std, 5 seeds)":
+        "{metric} — MovieLens-100K 与 Amazon Video_Games（均值 ± 标准差，5 个种子）",
+    "Hit-rate at 10: the fraction of users whose held-out item appears in the top 10.":
+        "HR@10：留出物品进入前 10 的用户比例。",
+    "NDCG at 10: rewards ranking the held-out item higher.":
+        "NDCG@10：对留出物品排得更高给予更高折算增益。",
+    "MovieLens-100K (movies)": "MovieLens-100K（电影）",
+    "Amazon Video_Games (games)": "Amazon Video_Games（游戏）",
+    "Ablation on both domains (HR@10, mean ± std over 5 seeds)":
+        "两个域上的消融（HR@10，5 个种子的均值 ± 标准差）",
+    "Single-modality deltas sit inside the seed noise on *both* domains; the "
+    "behavior-only drop that is ~1 seed std on MovieLens vanishes on Amazon.":
+        "单模态差异在*两个*域上都落在种子噪声内；MovieLens 上约 1 个种子标准差的"
+        "“仅协同信号”跌幅在 Amazon 上消失。",
+    "Variant": "变体",
+    "Cold start on both domains (HR@10, mean ± std over 5 seeds)":
+        "两个域上的冷启动（HR@10，5 个种子的均值 ± 标准差）",
+    "Content-aware ranking of items with no collaborative history. The content tower's "
+    "edge over the content-blind control *amplifies* on the sparser domain — the "
+    "strongest cross-domain transfer in the study.":
+        "对无协同历史物品的内容感知排序。内容塔相对无内容对照的优势在更稀疏的域上"
+        "*放大* —— 这是本研究中跨域迁移最强的证据。",
+    "What transfers and what doesn't (RQ5 verdicts)": "什么能迁移、什么不能（RQ5 结论）",
+    "Raw cross-domain metrics": "原始跨域指标表",
+}
+
+
+def tr(text: str, **kw) -> str:
+    """Render a UI string in the language chosen in the sidebar."""
+    lang = st.session_state.get("lang", _DEFAULT_LANG)
+    out = _ZH.get(text, text) if lang == "中文" else text
+    return out.format(**kw) if kw else out
 
 
 # --------------------------------------------------------------------------- #
@@ -1305,24 +1509,81 @@ _OV_LINKS = (
     "</div>"
 )
 
+_OV_CARDS_ZH = (
+    "<div class='cr-ov-grid'>"
+    "<div class='cr-ov-card'><div class='cr-ov-k'>我们做了什么</div><ul>"
+    "<li><b>8 个模型</b> —— UserCF、ItemCF、SVD、NeuMF、LightGCN、MultiModalNCF，"
+    "另复现 BPR-MF 与 VBPR</li>"
+    "<li><b>2 个数据集</b> —— MovieLens-100K 与 Amazon Video_Games 切片"
+    "（2,288 用户 × 4,753 物品 × 75,980 评分）</li>"
+    "<li><b>5 个种子</b>（42–46），报告均值 ± 标准差，而非单点数值</li>"
+    "<li><b>3 路内容特征</b> —— SBERT 文本 384 维、ResNet-50 图像 2,048 维、类型 18 维</li>"
+    "</ul></div>"
+    "<div class='cr-ov-card'><div class='cr-ov-k'>为什么值得关注</div><ul>"
+    "<li><b>跨域复验</b> —— 同一套协议（不重新调参）原样复跑到第二个域</li>"
+    "<li><b>诚实报告</b> —— 不成立的结论明确写出，而不是隐藏</li>"
+    "<li><b>可复现、可引用</b> —— 代码、<code>make</code> 目标、CI，以及带 DOI 的预印本</li>"
+    "</ul></div>"
+    "<div class='cr-ov-card'><div class='cr-ov-k'>从这里开始</div><ul>"
+    "<li>在侧栏选一位用户并切换算法 —— 模型阶梯是实时的</li>"
+    "<li>在同一用户上比较六个可服务模型</li>"
+    "<li>打开<b>冷启动</b>，看内容塔如何托住无交互的物品</li>"
+    "<li>打开<b>跨数据集</b>，看什么能迁移、什么不能</li>"
+    "</ul></div></div>"
+)
+
+_OV_FINDINGS_ZH = (
+    "<div class='cr-ov-find-grid'>"
+    "<div class='cr-ov-finding'><span class='n'>01</span><p><b>模型阶梯在两个域上都成立。</b>"
+    "UserCF &lt; ItemCF &lt; SVD，且神经模型带高于 SVD（MovieLens-100K 与 Amazon 均如此）。</p></div>"
+    "<div class='cr-ov-finding'><span class='n'>02</span><p><b>神经带内的第一名随域变化。</b>"
+    "MovieLens 上是 VBPR / MultiModalNCF，Amazon 上是 LightGCN —— 因此不声明跨域"
+    "“最佳模型”。</p></div>"
+    "<div class='cr-ov-finding'><span class='n'>03</span><p><b>内容特征在冷启动上有效。</b>"
+    "当协同信号变稀时，内容 / 无内容 的 HR@10 比值从 1.17× 提升到 1.96×。</p></div>"
+    "<div class='cr-ov-finding'><span class='n'>04</span><p><b>整体排序几乎不动。</b>"
+    "移除全部内容在 MovieLens 上约损失一个种子标准差，在 Amazon 上无可测差异。</p></div>"
+    "</div>"
+)
+
+_OV_LINKS_ZH = (
+    "<div class='cr-ov-links'>"
+    f"<a class='cr-ov-link' href='{GITHUB_URL}' target='_blank' rel='noopener'>"
+    "GitHub 仓库</a>"
+    f"<a class='cr-ov-link' href='{PREPRINT_URL}' target='_blank' rel='noopener'>"
+    f"预印本 · DOI {PREPRINT_DOI}</a>"
+    f"<a class='cr-ov-link' href='{LITE_URL}' target='_blank' rel='noopener'>"
+    "Lite 产品站</a>"
+    f"<a class='cr-ov-link' href='{TECH_REPORT_URL}' target='_blank' rel='noopener'>"
+    "技术报告</a>"
+    "</div>"
+)
+
+
+def _pick(en: str, zh: str) -> str:
+    """Choose the Chinese variant when the page language is Chinese."""
+    return zh if st.session_state.get("lang", _DEFAULT_LANG) == "中文" else en
+
 
 def render_overview() -> None:
     """Project-level summary shown once, above the interactive tabs."""
-    st.markdown(_OV_CARDS, unsafe_allow_html=True)
+    st.markdown(_pick(_OV_CARDS, _OV_CARDS_ZH), unsafe_allow_html=True)
     st.markdown(
-        "<div class='cr-ov-sec'>Key findings</div>" + _OV_FINDINGS,
+        "<div class='cr-ov-sec'>" + _pick("Key findings", "关键发现") + "</div>"
+        + _pick(_OV_FINDINGS, _OV_FINDINGS_ZH),
         unsafe_allow_html=True,
     )
-    st.markdown(_OV_LINKS, unsafe_allow_html=True)
+    st.markdown(_pick(_OV_LINKS, _OV_LINKS_ZH), unsafe_allow_html=True)
 
 
 def render_about_study() -> None:
     """Provenance, engineering evidence, limitations and citation."""
     st.divider()
-    st.markdown("<div class='cr-ov-sec'>About this study</div>", unsafe_allow_html=True)
+    st.markdown("<div class='cr-ov-sec'>" + tr("About this study") + "</div>",
+                unsafe_allow_html=True)
 
-    with st.expander("Research questions (RQ1–RQ5)"):
-        st.markdown(
+    with st.expander(tr("Research questions (RQ1–RQ5)")):
+        st.markdown(_pick(
             "| # | Question | Where to look |\n"
             "|:--|:--|:--|\n"
             "| **RQ1** | How do classical, factorisation and neural models rank on "
@@ -1334,11 +1595,22 @@ def render_about_study() -> None:
             "| **RQ4** | Where does CineRec stand against the two published baselines, "
             "BPR-MF and VBPR? | Six-model comparison |\n"
             "| **RQ5** | Do the conclusions transfer to a second domain? | "
-            "Cross-dataset |"
-        )
+            "Cross-dataset |",
 
-    with st.expander("Engineering evidence"):
-        st.markdown(
+            "| # | 问题 | 查看位置 |\n"
+            "|:--|:--|:--|\n"
+            "| **RQ1** | 经典模型、矩阵分解与神经模型在准确率与训练成本上如何排序？ "
+            "| 六模型对比 |\n"
+            "| **RQ2** | 每路内容特征（文本 / 图像 / 类型）各自贡献多少？ "
+            "| 多模态消融 |\n"
+            "| **RQ3** | 内容特征能否帮助完全没有交互的物品？ | 冷启动 |\n"
+            "| **RQ4** | CineRec 与两个已发表基线 BPR-MF、VBPR 相比处于什么位置？ "
+            "| 六模型对比 |\n"
+            "| **RQ5** | 结论能否迁移到第二个数据集？ | 跨数据集 |"
+        ))
+
+    with st.expander(tr("Engineering evidence")):
+        st.markdown(_pick(
             "- **125 tests** pass with the neural stack installed (110 pass and 6 skip "
             "without it); line coverage is **50.9%** against a 45% CI floor.\n"
             "- **CI runs three jobs** on every push and pull request: lint + tests with "
@@ -1349,11 +1621,20 @@ def render_about_study() -> None:
             "- **Documented decisions** in ADRs, and `make` targets for setup, data "
             "preparation, training and evaluation.\n"
             "- **MIT-licensed code**, CC BY 4.0 preprint, and a technical report that "
-            "maps every reported number to its result artefact."
-        )
+            "maps every reported number to its result artefact.",
 
-    with st.expander("Limitations"):
-        st.markdown(
+            "- **125 项测试**在安装神经模型依赖后全部通过（未安装时 110 通过、6 跳过）；"
+            "行覆盖率为 **50.9%**，CI 下限为 45%。\n"
+            "- **CI 在每次 push 与 PR 上运行三个作业**：lint + 覆盖率测试、"
+            "端到端可访问性测试，以及两种部署模式（lite 与 full）的 Docker 构建。\n"
+            "- **依赖治理**：版本全部锁定；修补已知公告后，漏洞扫描未报告已知问题"
+            "（2026 年 10 月）。\n"
+            "- **决策有 ADR 记录**，并提供 setup、数据准备、训练与评测的 `make` 目标。\n"
+            "- **代码 MIT 许可**、预印本 CC BY 4.0，并有把每个报告数字映射到结果产物的技术报告。"
+        ))
+
+    with st.expander(tr("Limitations")):
+        st.markdown(_pick(
             "- **Single split.** One leave-last-5-out partition by design; conclusions "
             "are read against seed spread, not split variance.\n"
             "- **No formal significance testing.** Differences are compared against "
@@ -1363,11 +1644,21 @@ def render_about_study() -> None:
             "- **Second-domain slice covers heavy users only.** The Amazon slice keeps "
             "users with ≥20 ratings, matching the MovieLens population rule.\n"
             "- **Training-time conditions are unrecorded** (hardware, warm/cold cache).\n"
-            "- **Free-tier hosting sleeps when idle**, so the first request may be slow."
-        )
+            "- **Free-tier hosting sleeps when idle**, so the first request may be slow.",
 
-    with st.expander("How to read the metrics"):
-        st.markdown(
+            "- **单一划分。** 设计上只用一个 leave-last-5-out 划分；结论对照种子波动阅读，"
+            "而非划分方差。\n"
+            "- **未做正式显著性检验。** 差异与已报告的标准差对照；小幅差异不作结论。\n"
+            "- **各模型 epoch 预算不等。** MultiModalNCF 训练 10 个 epoch，VBPR 为 30，"
+            "BPR-MF / LightGCN 为 50。\n"
+            "- **第二域切片只覆盖重度用户。** Amazon 切片保留 ≥20 条评分的用户，"
+            "与 MovieLens 的人群规则一致。\n"
+            "- **训练耗时条件未记录**（硬件、缓存冷热）。\n"
+            "- **免费层托管空闲时会休眠**，首次请求可能较慢。"
+        ))
+
+    with st.expander(tr("How to read the metrics")):
+        st.markdown(_pick(
             "- **HR@10** — hit rate at 10: the fraction of users whose held-out film "
             "appears in the top 10 ranked candidates.\n"
             "- **NDCG@10** — normalised discounted cumulative gain at 10: same "
@@ -1377,37 +1668,52 @@ def render_about_study() -> None:
             "- **Cold start** — 100 items are removed from training and become the "
             "only candidates, so collaborative signal is unavailable.\n"
             "- **mean ± std** — every neural model and both baselines are trained on "
-            "five seeds (42–46); deterministic models have zero spread."
-        )
+            "five seeds (42–46); deterministic models have zero spread.",
 
-    with st.expander("Citation"):
+            "- **HR@10** —— 命中率：留出影片出现在前 10 名候选中的用户比例。\n"
+            "- **NDCG@10** —— 归一化折算累计增益：同样是命中信号，但排名越高得分越高。\n"
+            "- **leave-last-5-out** —— 每位用户最近 5 条交互被留出；"
+            "模型在除用户训练物品外的全部物品上排序。\n"
+            "- **冷启动** —— 100 个物品从训练集中移除并成为唯一候选，因此协同信号不可用。\n"
+            "- **均值 ± 标准差** —— 所有神经模型与两个基线都跑 5 个种子（42–46）；"
+            "确定性模型标准差恰为零。"
+        ))
+
+    with st.expander(tr("Citation")):
         st.code(_CITATION_BIBTEX, language="bibtex")
-        st.caption(
-            f"Preprints.org, posted 2026-10-26, CC BY 4.0, not peer-reviewed. "
-            f"DOI: {PREPRINT_DOI}"
-        )
+        st.caption(tr("Preprints.org, posted 2026-10-26, CC BY 4.0, not peer-reviewed. "
+                      "DOI: {doi}", doi=PREPRINT_DOI))
 
 
 # --------------------------------------------------------------------------- #
 # Entry point
 # --------------------------------------------------------------------------- #
 def main():
-    st.set_page_config(page_title="CineRec — Live Inference", layout="wide")
+    st.set_page_config(
+        page_title=_pick("CineRec — Live Inference", "CineRec — 实时推理"),
+        layout="wide",
+    )
     st.markdown(CSS, unsafe_allow_html=True)
 
     # Hero with film-strip logo.
     st.markdown(
         "<div class='cr-hero-row'>"
         "<div class='cr-film-logo'>▶</div>"
-        "<div><div class='cr-hero'>CineRec — Live Inference</div></div>"
+        f"<div><div class='cr-hero'>{_pick('CineRec — Live Inference', 'CineRec — 实时推理')}</div></div>"
         "</div>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<div class='cr-sub'>Eight recommenders running live in-process — six servable models "
-        "and two reproduced published baselines, on MovieLens-100K and Amazon Video_Games. "
-        "This is the <b>full</b> companion to the cached product deployment; the models are "
-        "loaded and scored here, not read from a cache.</div>",
+        _pick(
+            "<div class='cr-sub'>Eight recommenders running live in-process — six servable models "
+            "and two reproduced published baselines, on MovieLens-100K and Amazon Video_Games. "
+            "This is the <b>full</b> companion to the cached product deployment; the models are "
+            "loaded and scored here, not read from a cache.</div>",
+
+            "<div class='cr-sub'>八个推荐器在进程内实时运行 —— 六个可服务模型加两个复现的已发表基线，"
+            "覆盖 MovieLens-100K 与 Amazon Video_Games。这是缓存式产品站的 <b>full</b> 伴生站；"
+            "模型在此现场加载并打分，而不是从缓存读取。</div>",
+        ),
         unsafe_allow_html=True,
     )
 
@@ -1421,23 +1727,25 @@ def main():
     render_overview()
 
     with st.sidebar:
-        st.header("Controls")
+        st.header(tr("Controls"))
         st.markdown(_ladder_html("SVD"), unsafe_allow_html=True)
-        algorithm = st.selectbox("Algorithm", ALGORITHMS, index=ALGORITHMS.index("SVD"))
+        algorithm = st.selectbox(tr("Algorithm"), ALGORITHMS, index=ALGORITHMS.index("SVD"))
         # Re-render the ladder with the now-selected algorithm highlighted.
         st.markdown(f"<div style='margin-top:-.4rem'>{_ladder_html(algorithm)}</div>",
                     unsafe_allow_html=True)
-        user_id = st.selectbox("User", all_user_ids(), index=0, format_func=lambda u: f"user {u}")
+        user_id = st.selectbox(tr("User"), all_user_ids(), index=0,
+                               format_func=lambda u: f"user {u}")
         st.markdown(_profile_html(movies, ratings_df, user_id), unsafe_allow_html=True)
         top_k = st.slider("Top-K", 1, 20, 10)
-        lang = st.radio("Explanation language", ["中文", "English"], horizontal=True)
+        lang = st.radio("语言 / Language", ["中文", "English"], horizontal=True, key="lang")
         st.divider()
-        st.caption(f"{len(movies)} films · {len(all_user_ids())} users · "
-                   f"{len(ALGORITHMS)} servable + 2 baselines · 2 datasets")
+        st.caption(tr("{films} films · {users} users · {algorithms} servable + 2 baselines · "
+                      "2 datasets", films=len(movies), users=len(all_user_ids()),
+                      algorithms=len(ALGORITHMS)))
 
     live, compare, multimodal, cold, cross = st.tabs(
-        ["Live recommendation", "Six-model comparison", "Multi-modal ablation",
-         "Cold start", "Cross-dataset (RQ5)"]
+        [tr("Live recommendation"), tr("Six-model comparison"), tr("Multi-modal ablation"),
+         tr("Cold start"), tr("Cross-dataset (RQ5)")]
     )
     with live:
         tab_live(movies, user_id, algorithm, top_k, lang)
